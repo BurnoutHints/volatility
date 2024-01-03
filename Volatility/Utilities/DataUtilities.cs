@@ -9,7 +9,7 @@
 
         public static byte[] x64Switch(bool x64, ulong value)
         {
-            return BitConverter.GetBytes(x64 ? value : (uint)value);
+            return x64 ? BitConverter.GetBytes(value) : BitConverter.GetBytes((uint)value);
         }
     }
 }
