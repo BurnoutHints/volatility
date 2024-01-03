@@ -4,16 +4,6 @@
     {
         CELL_GCM_TEXTURE_DIMENSION CellDimension;
 
-        public override DIMENSION Dimension 
-        { 
-            get => _Dimension;
-            set 
-            {
-                _Dimension = value;
-                PushInternalFormat();
-            } 
-        }
-
         public override void PullInternalDimension()
         {
             throw new NotImplementedException();

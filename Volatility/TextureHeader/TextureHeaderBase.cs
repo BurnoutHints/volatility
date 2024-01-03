@@ -35,11 +35,15 @@
             }
         }
 
-        protected DIMENSION _Dimension;
-        public abstract DIMENSION Dimension // GPUDIMENSION / renderengine::Texture::Type
+        protected DIMENSION _Dimension = DIMENSION.DIMENSION_2D;
+        public virtual DIMENSION Dimension // GPUDIMENSION / renderengine::Texture::Type
         {
-            get;
-            set;
+            get => _Dimension;
+            set
+            {
+                _Dimension = value;
+                PushInternalDimension();
+            }
         }
 
         public abstract void PushInternalDimension();

@@ -10,18 +10,7 @@ namespace Volatility.TextureHeader
         public BitArray Pitch = new BitArray(new bool[9] { false, false, false, false, true, false, false, false, false });
         public BitArray Padding = new BitArray(1);
 
-
         public GPUDIMENSION GPUDimension = GPUDIMENSION.GPUDIMENSION_2D;
-
-        public override DIMENSION Dimension 
-        { 
-            get => _Dimension;
-            set 
-            {
-                _Dimension = value;
-                PushInternalFormat();
-            }
-        }
 
         public override void PullInternalDimension()
         {

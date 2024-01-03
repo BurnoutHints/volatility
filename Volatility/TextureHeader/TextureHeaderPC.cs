@@ -16,16 +16,6 @@ namespace Volatility.TextureHeader
             }
         }
 
-        public override DIMENSION Dimension
-        {
-            get => _Dimension;
-            set 
-            {
-                _Dimension = value;
-                PushInternalFormat(); 
-            }
-        }
-
         public readonly IntPtr TextureDataPtr;      // Set at game runtime, 0
         public readonly IntPtr TextureInterfacePtr; // Set at game runtime, 0
         public uint Unknown0;                       // Flags
