@@ -39,10 +39,39 @@ internal class Frontend
         };
 
         // Write example texture data to file
-        using (FileStream fs = new FileStream("texture_header.bin", FileMode.Create))
+        using (FileStream fs = new FileStream("test_header_PC.bin", FileMode.Create))
         using (BinaryWriter writer = new BinaryWriter(fs))
         {
             textureHeaderPC.WriteToStream(writer);
+            writer.Close();
+            fs.Close();
+        }
+
+        TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
+        {
+            Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
+            Width = 1024,
+            Height = 512,
+            MipLevels = 11,
+            GRTexture = true
+        };
+
+        using (FileStream fs = new FileStream("test_header_BPR.bin", FileMode.Create))
+        using (BinaryWriter writer = new BinaryWriter(fs))
+        {
+            textureHeaderBPR.WriteToStream(writer);
+            writer.Close();
+            fs.Close();
+        }
+
+        textureHeaderBPR.x64Header = true;
+
+        using (FileStream fs = new FileStream("test_header_BPRx64.bin", FileMode.Create))
+        using (BinaryWriter writer = new BinaryWriter(fs))
+        {
+            textureHeaderBPR.WriteToStream(writer);
+            writer.Close();
+            fs.Close();
         }
     }
 }
