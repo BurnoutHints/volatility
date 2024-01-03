@@ -1,4 +1,6 @@
-﻿namespace Volatility.TextureHeader
+﻿using Volatility.Utilities;
+
+namespace Volatility.TextureHeader
 {
     public class TextureHeaderBPR : TextureHeaderBase
     {
@@ -48,7 +50,26 @@
         }
         public override void WriteToStream(BinaryWriter writer)
         {
-            throw new NotImplementedException();
+            writer.Write(DataUtilities.x64Switch(x64Header, TextureInterfacePtr));              // 64 bit
+            writer.Write((uint)Usage);
+            writer.Write((uint)Dimension);
+            writer.Write(DataUtilities.x64Switch(x64Header, PixelDataPtr));                     // 64 bit
+            writer.Write(DataUtilities.x64Switch(x64Header, ShaderResourceViewInterface0Ptr));  // 64 bit
+            writer.Write(DataUtilities.x64Switch(x64Header, ShaderResourceViewInterface1Ptr));  // 64 bit
+            writer.Write(Unknown0);
+            writer.Write((uint)Format);
+            writer.Write(Flags);
+            writer.Write(Width);
+            writer.Write(Height);
+            writer.Write(Depth);
+            writer.Write(ArraySize);
+            writer.Write(MostDetailedMip);
+            writer.Write(MipLevels);
+            writer.Write(Unknown1);
+            writer.Write(DataUtilities.x64Switch(x64Header, Unknown2));                         // 64 bit
+            writer.Write(ArrayIndex);
+            writer.Write(ContentsSize);
+            writer.Write(DataUtilities.x64Switch(x64Header, TextureData));                      // 64 bit
         }
 
         public override void PushInternalDimension()
@@ -62,7 +83,7 @@
         }
     }
 
-    public enum D3D11_USAGE : int
+    public enum D3D11_USAGE : int   // 32 bit value
     {
         D3D11_USAGE_DEFAULT = 0,
         D3D11_USAGE_IMMUTABLE = 1,
@@ -70,7 +91,7 @@
         D3D11_USAGE_STAGING = 3
     }
 
-    public enum DXGI_FORMAT : int
+    public enum DXGI_FORMAT : int   // 32 bit value
     {
         DXGI_FORMAT_UNKNOWN = 0,
         DXGI_FORMAT_R32G32B32A32_TYPELESS = 1,
