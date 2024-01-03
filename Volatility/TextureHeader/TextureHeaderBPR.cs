@@ -42,7 +42,7 @@ namespace Volatility.TextureHeader
         }
         public override void PushInternalFlags()
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
         public override void PullInternalFlags()
         {
