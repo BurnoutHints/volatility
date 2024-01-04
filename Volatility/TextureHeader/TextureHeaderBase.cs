@@ -56,6 +56,7 @@
         public abstract void PullInternalFlags();
 
         public abstract void WriteToStream(BinaryWriter writer);
+        public abstract void ParseFromStream(BinaryReader reader);
     }
 
     // BPR formatted but converted for each platform

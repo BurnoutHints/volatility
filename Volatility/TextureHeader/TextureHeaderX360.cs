@@ -14,7 +14,16 @@ namespace Volatility.TextureHeader
 
         public override void PullInternalDimension()
         {
-            throw new NotImplementedException();
+            DIMENSION OutputDimension = GPUDimension switch
+            {
+                GPUDIMENSION.GPUDIMENSION_1D => DIMENSION.DIMENSION_1D,
+                GPUDIMENSION.GPUDIMENSION_3D => DIMENSION.DIMENSION_3D,
+                GPUDIMENSION.GPUDIMENSION_CUBEMAP => DIMENSION.DIMENSION_CUBE,
+                _ => DIMENSION.DIMENSION_2D,
+            };
+            // Directly set the internal field to not trigger a push
+            // Is this good a good practice?
+            _Dimension = OutputDimension;
         }
 
         public override void PullInternalFlags()
@@ -29,23 +38,13 @@ namespace Volatility.TextureHeader
 
         public override void PushInternalDimension()
         {
-            GPUDIMENSION OutputDimension;
-            switch (Dimension)
+            var OutputDimension = Dimension switch
             {
-                case DIMENSION.DIMENSION_1D:
-                    OutputDimension = GPUDIMENSION.GPUDIMENSION_1D;
-                    break;
-                case DIMENSION.DIMENSION_3D:
-                    OutputDimension = GPUDIMENSION.GPUDIMENSION_3D;
-                    break;
-                case DIMENSION.DIMENSION_CUBE:
-                    OutputDimension = GPUDIMENSION.GPUDIMENSION_CUBEMAP;
-                    break;
-                case DIMENSION.DIMENSION_2D:
-                default:
-                    OutputDimension = GPUDIMENSION.GPUDIMENSION_2D;
-                    break;
-            }
+                DIMENSION.DIMENSION_1D => GPUDIMENSION.GPUDIMENSION_1D,
+                DIMENSION.DIMENSION_3D => GPUDIMENSION.GPUDIMENSION_3D,
+                DIMENSION.DIMENSION_CUBE => GPUDIMENSION.GPUDIMENSION_CUBEMAP,
+                _ => GPUDIMENSION.GPUDIMENSION_2D,
+            };
             GPUDimension = OutputDimension;
         }
 
@@ -61,6 +60,11 @@ namespace Volatility.TextureHeader
         }
 
         public override void WriteToStream(BinaryWriter writer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ParseFromStream(BinaryReader reader)
         {
             throw new NotImplementedException();
         }

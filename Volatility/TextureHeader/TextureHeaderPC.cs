@@ -51,60 +51,37 @@ namespace Volatility.TextureHeader
             writer.Write(new byte[4]);  // Padding
         }
 
+        public override void ParseFromStream(BinaryReader reader)
+        {
+            throw new NotImplementedException();
+        }
+
         public override void PushInternalFormat()
         {
-            byte[] outputFormat = new byte[4];
-            switch (Format)
+            byte[] outputFormat = Format switch 
             {
-                case D3DFORMAT.D3DFMT_DXT1:
-                    outputFormat = Encoding.UTF8.GetBytes("DXT1");
-                    break;
-                case D3DFORMAT.D3DFMT_DXT3:
-                    outputFormat = Encoding.UTF8.GetBytes("DXT3");
-                    break;
-                case D3DFORMAT.D3DFMT_DXT5:
-                    outputFormat = Encoding.UTF8.GetBytes("DXT5");
-                    break;
-                case D3DFORMAT.D3DFMT_G8R8_G8B8:
-                    outputFormat = Encoding.UTF8.GetBytes("GRGB");
-                    break;
-                case D3DFORMAT.D3DFMT_MULTI2_ARGB8:
-                    outputFormat = Encoding.UTF8.GetBytes("MET1");
-                    break;
-                default:
-                    outputFormat[0] = DataUtilities.TrimIntToByte((int)Format); // Use literal value
-                    break;
-
-            }
+                D3DFORMAT.D3DFMT_DXT1 => Encoding.UTF8.GetBytes("DXT1"),
+                D3DFORMAT.D3DFMT_DXT3 => Encoding.UTF8.GetBytes("DXT3"),
+                D3DFORMAT.D3DFMT_DXT5 => Encoding.UTF8.GetBytes("DXT5"),
+                D3DFORMAT.D3DFMT_G8R8_G8B8 => Encoding.UTF8.GetBytes("GRGB"),
+                D3DFORMAT.D3DFMT_MULTI2_ARGB8 => Encoding.UTF8.GetBytes("MET1"),
+                _ => BitConverter.GetBytes((int)Format), // Use literal value
+            };
             OutputFormat = outputFormat;
         }
 
         public override void PullInternalFormat()
         {
             string tryParseString = Encoding.ASCII.GetString(OutputFormat);
-
-            D3DFORMAT outputFormat;
-            switch (tryParseString)
+            var outputFormat = tryParseString switch
             {
-                case "DXT1":
-                    outputFormat = D3DFORMAT.D3DFMT_DXT1;
-                    break;
-                case "DXT3":
-                    outputFormat = D3DFORMAT.D3DFMT_DXT3;
-                    break;
-                case "DXT5":
-                    outputFormat = D3DFORMAT.D3DFMT_DXT5;
-                    break;
-                case "GRGB":
-                    outputFormat = D3DFORMAT.D3DFMT_G8R8_G8B8;
-                    break;
-                case "MET1":
-                    outputFormat = D3DFORMAT.D3DFMT_MULTI2_ARGB8;
-                    break;
-                default:
-                    outputFormat = (D3DFORMAT)BitConverter.ToInt32(OutputFormat);
-                    break;
-            }
+                "DXT1" => D3DFORMAT.D3DFMT_DXT1,
+                "DXT3" => D3DFORMAT.D3DFMT_DXT3,
+                "DXT5" => D3DFORMAT.D3DFMT_DXT5,
+                "GRGB" => D3DFORMAT.D3DFMT_G8R8_G8B8,
+                "MET1" => D3DFORMAT.D3DFMT_MULTI2_ARGB8,
+                _ => (D3DFORMAT)BitConverter.ToInt32(OutputFormat),
+            };
             Format = outputFormat;
         }
 
@@ -121,41 +98,23 @@ namespace Volatility.TextureHeader
 
         public override void PushInternalDimension()
         {
-            TEXTURETYPE outputDimension;
-            switch (Dimension)
+            var outputDimension = Dimension switch
             {
-                case DIMENSION.DIMENSION_1D:
-                case DIMENSION.DIMENSION_CUBE:
-                    outputDimension = TEXTURETYPE.TEXTURETYPE_1D;
-                    break;
-                case DIMENSION.DIMENSION_3D:
-                    outputDimension = TEXTURETYPE.TEXTURETYPE_3D;
-                    break;
-                case DIMENSION.DIMENSION_2D:
-                default:
-                    outputDimension = TEXTURETYPE.TEXTURETYPE_2D;
-                    break;
-            }
+                DIMENSION.DIMENSION_1D or DIMENSION.DIMENSION_CUBE => TEXTURETYPE.TEXTURETYPE_1D,
+                DIMENSION.DIMENSION_3D => TEXTURETYPE.TEXTURETYPE_3D,
+                _ => TEXTURETYPE.TEXTURETYPE_2D,
+            };
             TextureType = outputDimension;
         }
 
         public override void PullInternalDimension()
         {
-            DIMENSION outputDimension;
-            switch (TextureType)    // Idk how to handle 1D textures, doc says 1D is cube in TUB
+            var outputDimension = TextureType switch    // Idk how to handle 1D textures, doc says 1D is cube in TUB
             {
-                case TEXTURETYPE.TEXTURETYPE_1D:
-                    outputDimension = DIMENSION.DIMENSION_CUBE;
-                    break;
-                case TEXTURETYPE.TEXTURETYPE_3D:
-                    outputDimension = DIMENSION.DIMENSION_3D;
-                    break;
-                case TEXTURETYPE.TEXTURETYPE_2D:
-                case TEXTURETYPE.TEXTURETYPE_UNKNOWN2D:
-                default:
-                    outputDimension = DIMENSION.DIMENSION_2D;
-                    break;
-            }
+                TEXTURETYPE.TEXTURETYPE_1D => DIMENSION.DIMENSION_CUBE,
+                TEXTURETYPE.TEXTURETYPE_3D => DIMENSION.DIMENSION_3D,
+                _ => DIMENSION.DIMENSION_2D,
+            };
             Dimension = outputDimension;
         }
     }
@@ -217,6 +176,7 @@ namespace Volatility.TextureHeader
         D3DFMT_A1 = 118,
         D3DFMT_A2B10G10R10_XR_BIAS = 119,
         D3DFMT_BINARYBUFFER = 199,
+        // Formats represented by strings
         D3DFMT_DXT1 = -1,
         D3DFMT_DXT3 = -3,
         D3DFMT_DXT5 = -5,

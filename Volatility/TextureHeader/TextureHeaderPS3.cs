@@ -21,21 +21,12 @@
 
         public override void PushInternalDimension()
         {
-            CELL_GCM_TEXTURE_DIMENSION OutputDimension;
-            switch (Dimension)
+            var OutputDimension = Dimension switch
             {
-                case (DIMENSION.DIMENSION_3D):
-                    OutputDimension = CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3;
-                    break;
-                case (DIMENSION.DIMENSION_1D):
-                    OutputDimension = CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1;
-                    break;
-                case (DIMENSION.DIMENSION_CUBE):
-                case (DIMENSION.DIMENSION_2D):
-                default:
-                    OutputDimension = CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2;
-                    break;
-            }
+                (DIMENSION.DIMENSION_3D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
+                (DIMENSION.DIMENSION_1D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1,
+                _ => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2,
+            };
             CellDimension = OutputDimension;
         }
 
@@ -50,6 +41,11 @@
         }
 
         public override void WriteToStream(BinaryWriter writer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ParseFromStream(BinaryReader reader)
         {
             throw new NotImplementedException();
         }

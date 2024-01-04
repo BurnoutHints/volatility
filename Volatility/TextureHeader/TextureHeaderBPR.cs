@@ -72,6 +72,11 @@ namespace Volatility.TextureHeader
             writer.Write(DataUtilities.x64Switch(x64Header, TextureData));                      // 64 bit
         }
 
+        public override void ParseFromStream(BinaryReader reader)
+        {
+            throw new NotImplementedException();
+        }
+
         public override void PushInternalDimension()
         {
             // Not needed for BPR
