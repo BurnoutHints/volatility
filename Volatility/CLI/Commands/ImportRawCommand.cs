@@ -77,7 +77,7 @@ class ImportRawCommand : ICommand
     public void SetArgs(Dictionary<string, object> args)
     {
         Format = args.TryGetValue("format", out object? format) ? format as string : "auto";
-        Path = args.TryGetValue("path", out object? path) ? format as string : "";
+        Path = args.TryGetValue("path", out object? path) ? path as string : "";
     }
 
     public void ShowUsage()
