@@ -30,6 +30,10 @@ namespace Volatility.TextureHeader
         public TEXTURETYPE TextureType;             // Dimension in BPR
         public byte Flags;                          // Flags
 
+        public TextureHeaderPC() : base() {}
+
+        public TextureHeaderPC(string path) : base(path) { }
+
         public override void WriteToStream(BinaryWriter writer)
         {
             PushInternalFlags();
@@ -51,10 +55,7 @@ namespace Volatility.TextureHeader
             writer.Write(new byte[4]);  // Padding
         }
 
-        public override void ParseFromStream(BinaryReader reader)
-        {
-            throw new NotImplementedException();
-        }
+        public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
 
         public override void PushInternalFormat()
         {
@@ -91,10 +92,7 @@ namespace Volatility.TextureHeader
             Unknown2 = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
             Flags = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
         }
-        public override void PullInternalFlags()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalFlags() => throw new NotImplementedException();
 
         public override void PushInternalDimension()
         {

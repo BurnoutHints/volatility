@@ -12,6 +12,10 @@ namespace Volatility.TextureHeader
 
         public GPUDIMENSION GPUDimension = GPUDIMENSION.GPUDIMENSION_2D;
 
+        public TextureHeaderX360() : base() {}
+
+        public TextureHeaderX360(string path) : base(path) { }
+
         public override void PullInternalDimension()
         {
             DIMENSION OutputDimension = GPUDimension switch
@@ -26,15 +30,9 @@ namespace Volatility.TextureHeader
             _Dimension = OutputDimension;
         }
 
-        public override void PullInternalFlags()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalFlags() => throw new NotImplementedException();
 
-        public override void PullInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalFormat() => throw new NotImplementedException();
 
         public override void PushInternalDimension()
         {
@@ -48,26 +46,14 @@ namespace Volatility.TextureHeader
             GPUDimension = OutputDimension;
         }
 
-        public override void PushInternalFlags()
-        {
-            // parse GPUTEXTURE_FETCH_CONSTANT
-            throw new NotImplementedException();
-        }
+        // parse GPUTEXTURE_FETCH_CONSTANT
+        public override void PushInternalFlags() => throw new NotImplementedException();
 
-        public override void PushInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PushInternalFormat() => throw new NotImplementedException();
 
-        public override void WriteToStream(BinaryWriter writer)
-        {
-            throw new NotImplementedException();
-        }
+        public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
 
-        public override void ParseFromStream(BinaryReader reader)
-        {
-            throw new NotImplementedException();
-        }
+        public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
     }
 
     public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value

@@ -57,6 +57,16 @@
 
         public abstract void WriteToStream(BinaryWriter writer);
         public abstract void ParseFromStream(BinaryReader reader);
+
+        public TextureHeaderBase() {}
+        
+        public TextureHeaderBase(string path)
+        {
+            using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
+            {
+                ParseFromStream(reader);
+            }
+        }
     }
 
     // BPR formatted but converted for each platform

@@ -1,90 +1,127 @@
-﻿using Volatility.TextureHeader;
-using Volatility.Utilities;
+﻿using System.Runtime.CompilerServices;
+
+namespace Volatility;
 
 internal class Frontend
 {
-    private static void Main(string[] args)
+    /* 
+     * TODO LIST:
+     *
+     * ! = Completed
+     * ? = WIP/Needs Testing
+     * > = To Do
+     * 
+     * DONE!
+     * --------------------------
+     * ! Bit accurate PC header
+     * 
+     * TODO LIST!
+     * --------------------------
+     * ? Bit accurate BPR (PC) header (needs testing)
+     * ? Proper x64 header export size (need x64 file reference)
+     * ? User input (CLI/GUI?)
+     * ? PS3/X360 header formats
+     * > Header parsing logic
+     * 
+     * LOW PRIORITY
+     * --------------------------
+     * ? Bit accurate BPR headers for other/x64 platforms
+     * > Raw DDS texture importing (bundle manager does this)
+     * 
+     */
+
+    static void Main(string[] args)
     {
-        /*
-         * Right now, the application simply creates
-         * example texture classes akin to what the parser
-         * will interpret from an input format, then write
-         * them out to various platform formatted header files.
-         * 
-         * ! = Completed
-         * ? = WIP/Needs Testing
-         * > = To Do
-         * 
-         * DONE!
-         * --------------------------
-         * ! Bit accurate PC header
-         * 
-         * TODO LIST!
-         * --------------------------
-         * ? Bit accurate BPR (PC) header (needs testing)
-         * ? Proper x64 header export size (need x64 file reference)
-         * > User input (CLI/GUI?)
-         * > Header parsing logic
-         * > PS3/X360 header formats
-         * 
-         * LOW PRIORITY
-         * --------------------------
-         * ? Bit accurate BPR headers for other/x64 platforms
-         * > Raw DDS texture importing (bundle manager does this)
-         * 
-         */
-
-        // TUB Texture data test case
-        TextureHeaderPC textureHeaderPC = new TextureHeaderPC
+        if (args.Length > 0)
         {
-            Format = D3DFORMAT.D3DFMT_DXT1,
-            Width = 1024,
-            Height = 512,
-            MipLevels = 11,
-            GRTexture = true
+            ParseCommand(args);
+        }
+        else 
+        {
+            CommandLine();
+        }
+    }
+
+    static void CommandLine()
+    {
+        while (true)
+        {
+            Console.Write("volatility> ");
+            var input = Console.ReadLine();
+            
+            try
+            {
+                var command = ParseCommand(input);
+                 command.Execute();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    static ICommand ParseCommand(string input)      // Full command
+    {
+        var parts = input.Split(' ');
+        return ParseCommand(parts);
+    }
+
+    static ICommand ParseCommand(string[] input)    // Split command
+    {
+        var commandName = input[0].ToLower();
+        var args = new Dictionary<string, object>();
+
+        for (int i = 1; i < input.Length; i++)
+        {
+            if (input[i].StartsWith("--"))
+            {
+                var equalIndex = input[i].IndexOf('=');
+                if (equalIndex != -1)
+                {
+                    string key = input[i].Substring(2, equalIndex - 2);
+                    string value = input[i].Substring(equalIndex + 1);
+                    if (bool.TryParse(value, out bool boolValue))
+                    {
+                        args[key] = boolValue;
+                    }
+                    else
+                    {
+                        args[key] = value;
+                    }
+                }
+                else
+                {
+                    // Assume the flag is a boolean that defaults to true
+                    args[input[i].Substring(2)] = true;
+                }
+            }
+        }
+
+        bool helpMode = commandName == "help" && input.Length > 1 ? true : false;
+
+        if (helpMode) 
+        {
+            commandName = input[1].ToLower();
+        }
+
+        ICommand command = commandName switch
+        {
+            "hello" => new HelloCommand(),
+            "exit" => new ExitCommand(),
+            "clear" => new ClearCommand(),
+            "importraw" => new ImportRawCommand(),
+            "help" => new HelpCommand(),
+            _ => throw new InvalidOperationException("Unknown command.")
         };
 
-        // Write example texture data to file
-        using (FileStream fs = new FileStream("test_header_PC.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
+        if (helpMode)
         {
-            textureHeaderPC.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
+            command.ShowUsage();     
+            command = new NullCommand();
         }
 
-        // BPR Texture data test case
-        TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
-        {
-            Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
-            Width = 1024,
-            Height = 512,
-            MipLevels = 11,
-            GRTexture = true
-        };
-
-        // Write 32 bit test BPR header
-        using (FileStream fs = new FileStream("test_header_BPR.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
-        {
-            textureHeaderBPR.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
-        }
-
-        textureHeaderBPR.x64Header = true;
-
-        // Write 64 bit test BPR header
-        using (FileStream fs = new FileStream("test_header_BPRx64.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
-        {
-            textureHeaderBPR.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
-        }
-
-        // File name endian flip test case
-        string endianFlipTestName = "12_34_56_78_texture.dat";
-        Console.WriteLine($"Flipped endian {endianFlipTestName} to {DataUtilities.FlipFileNameEndian(endianFlipTestName)}");
+        command.SetArgs(args); // Set arguments before returning the command
+        return command;
     }
 }

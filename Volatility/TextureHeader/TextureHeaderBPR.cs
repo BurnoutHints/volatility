@@ -32,22 +32,14 @@ namespace Volatility.TextureHeader
             set => _Dimension = value; 
         }
 
-        public override void PushInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
-        public override void PullInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
-        public override void PushInternalFlags()
-        {
-            //throw new NotImplementedException();
-        }
-        public override void PullInternalFlags()
-        {
-            throw new NotImplementedException();
-        }
+        public TextureHeaderBPR() : base() {}
+
+        public TextureHeaderBPR(string path) : base(path) { }
+
+        public override void PushInternalFormat() => throw new NotImplementedException();
+        public override void PullInternalFormat() => throw new NotImplementedException();
+        public override void PushInternalFlags() { /* throw new NotImplementedException(); */ }
+        public override void PullInternalFlags() => throw new NotImplementedException();
         public override void WriteToStream(BinaryWriter writer)
         {
             writer.Write(DataUtilities.x64Switch(x64Header, TextureInterfacePtr));              // 64 bit

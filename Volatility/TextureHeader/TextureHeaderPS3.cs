@@ -4,20 +4,11 @@
     {
         CELL_GCM_TEXTURE_DIMENSION CellDimension;
 
-        public override void PullInternalDimension()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalDimension() => throw new NotImplementedException();
 
-        public override void PullInternalFlags()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalFlags() => throw new NotImplementedException();
 
-        public override void PullInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
+        public override void PullInternalFormat() => throw new NotImplementedException();
 
         public override void PushInternalDimension()
         {
@@ -30,25 +21,17 @@
             CellDimension = OutputDimension;
         }
 
-        public override void PushInternalFlags()
-        {
-            throw new NotImplementedException();
-        }
+        public TextureHeaderPS3() : base() {}
 
-        public override void PushInternalFormat()
-        {
-            throw new NotImplementedException();
-        }
+        public TextureHeaderPS3(string path) : base(path) { }
 
-        public override void WriteToStream(BinaryWriter writer)
-        {
-            throw new NotImplementedException();
-        }
+        public override void PushInternalFlags() => throw new NotImplementedException();
 
-        public override void ParseFromStream(BinaryReader reader)
-        {
-            throw new NotImplementedException();
-        }
+        public override void PushInternalFormat() => throw new NotImplementedException();
+
+        public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
+
+        public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
     }
 
     public enum CELL_GCM_COLOR_FORMAT : int
