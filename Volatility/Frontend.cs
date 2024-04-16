@@ -34,7 +34,8 @@ internal class Frontend
     {
         if (args.Length > 0)
         {
-            ParseCommand(args);
+            string fullCommand = string.Join(" ", args);
+            ParseCommand(fullCommand);
         }
         else 
         {
@@ -63,11 +64,38 @@ internal class Frontend
 
     static ICommand ParseCommand(string input)      // Full command
     {
-        var parts = input.Split(' ');
-        return ParseCommand(parts);
+        var parts = new List<string>();
+        var quoteContainer = false;
+        var currentToken = "";
+
+        foreach (var c in input)
+        {
+            if (c == '\"')
+            {
+                quoteContainer = !quoteContainer;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c) && !quoteContainer)
+            {
+                if (!string.IsNullOrEmpty(currentToken))
+                {
+                    parts.Add(currentToken);
+                    currentToken = "";
+                }
+                continue;
+            }
+
+            currentToken += c;
+        }
+
+        if (!string.IsNullOrEmpty(currentToken))
+            parts.Add(currentToken);
+
+        return ParseCommandTokenized(parts.ToArray());
     }
 
-    static ICommand ParseCommand(string[] input)    // Split command
+    static ICommand ParseCommandTokenized(string[] input)    // Split command
     {
         var commandName = input[0].ToLower();
         var args = new Dictionary<string, object>();
