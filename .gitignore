@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# VS Code
+.vscode/
+
+# Mac stuff
+.DS_Store
