@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Volatility;
+﻿namespace Volatility;
 
 internal class Frontend
 {
@@ -14,19 +12,21 @@ internal class Frontend
      * DONE!
      * --------------------------
      * ! Bit accurate PC header
+     * ! User input (CLI)
      * 
      * TODO LIST!
      * --------------------------
      * ? Bit accurate BPR (PC) header (needs testing)
      * ? Proper x64 header export size (need x64 file reference)
-     * ? User input (CLI/GUI?)
      * ? PS3/X360 header formats
-     * > Header parsing logic
-     * 
+     * ? Header parsing logic
+     * > Text-based universal header format
+     *
      * LOW PRIORITY
      * --------------------------
      * ? Bit accurate BPR headers for other/x64 platforms
      * > Raw DDS texture importing (bundle manager does this)
+     * > GUI System
      * 
      */
 
@@ -53,7 +53,7 @@ internal class Frontend
             try
             {
                 var command = ParseCommand(input);
-                 command.Execute();
+                command.Execute();
             }
             catch (Exception ex)
             {
