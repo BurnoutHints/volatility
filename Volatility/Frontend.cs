@@ -139,6 +139,7 @@ internal class Frontend
             "exit" => new ExitCommand(),
             "clear" => new ClearCommand(),
             "importraw" => new ImportRawCommand(),
+            "autotest" => new AutotestCommand(),
             "help" => new HelpCommand(),
             _ => throw new InvalidOperationException("Unknown command.")
         };

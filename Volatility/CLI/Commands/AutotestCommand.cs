@@ -1,9 +1,11 @@
 using Volatility.TextureHeader;
 using Volatility.Utilities;
 
-class Autotest 
+namespace Volatility;
+
+internal class AutotestCommand : ICommand
 {
-    public static void AutotestWriteHeaders()
+    public void Execute()
     {
         /*
          * Right now, the autotest simply creates
@@ -22,14 +24,7 @@ class Autotest
             GRTexture = true
         };
 
-        // Write example texture data to file
-        using (FileStream fs = new FileStream("test_header_PC.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
-        {
-            textureHeaderPC.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
-        }
+        WriteTestHeader("autotest_header_PC.dat", textureHeaderPC);
 
         // BPR Texture data test case
         TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
@@ -42,27 +37,38 @@ class Autotest
         };
 
         // Write 32 bit test BPR header
-        using (FileStream fs = new FileStream("test_header_BPR.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
-        {
-            textureHeaderBPR.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
-        }
+        WriteTestHeader("autotest_header_BPR.dat", textureHeaderPC);
 
         textureHeaderBPR.x64Header = true;
 
         // Write 64 bit test BPR header
-        using (FileStream fs = new FileStream("test_header_BPRx64.dat", FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
-        {
-            textureHeaderBPR.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
-        }
+        WriteTestHeader("autotest_header_BPRx64.dat", textureHeaderPC);
+
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
         Console.WriteLine($"Flipped endian {endianFlipTestName} to {DataUtilities.FlipFileNameEndian(endianFlipTestName)}");
+    }
+
+    public void SetArgs(Dictionary<string, object> args) { }
+
+    public void ShowUsage()
+    {
+        Console.WriteLine
+        (
+            "Usage: autotest" +
+            "\nRuns a series of automatic tests to ensure the application is working correctly."
+        );
+    }
+
+    public void WriteTestHeader(string name, TextureHeaderBase header) 
+    {
+        using (FileStream fs = new FileStream(name, FileMode.Create))
+        using (BinaryWriter writer = new BinaryWriter(fs))
+        {
+            header.WriteToStream(writer);
+            writer.Close();
+            fs.Close();
+        }
     }
 }

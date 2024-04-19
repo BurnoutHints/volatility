@@ -1,6 +1,6 @@
 namespace Volatility;
 
-class HelpCommand : ICommand
+internal class HelpCommand : ICommand
 {
     public void Execute()
     {

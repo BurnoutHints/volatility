@@ -1,6 +1,6 @@
 namespace Volatility;
 
-interface ICommand
+internal interface ICommand
 {
     void Execute();
     void SetArgs(Dictionary<string, object> args);

@@ -1,10 +1,8 @@
 using Volatility.TextureHeader;
 
-using System.Reflection;
-
 namespace Volatility;
 
-class ImportRawCommand : ICommand
+internal class ImportRawCommand : ICommand
 {
     public string? Format { get; set; }
     public string? Path { get; set; }

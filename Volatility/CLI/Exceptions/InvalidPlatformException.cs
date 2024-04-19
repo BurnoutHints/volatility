@@ -1,5 +1,7 @@
 using System.Runtime.Serialization;
 
+namespace Volatility;
+
 [Serializable]
 class InvalidPlatformException : Exception
 {

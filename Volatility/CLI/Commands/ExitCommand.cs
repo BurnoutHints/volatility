@@ -1,6 +1,6 @@
 namespace Volatility;
 
-class ExitCommand : ICommand
+internal class ExitCommand : ICommand
 {
     public void Execute()
     {

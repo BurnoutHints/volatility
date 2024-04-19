@@ -1,6 +1,6 @@
 namespace Volatility;
 
-class NullCommand : ICommand
+internal class NullCommand : ICommand
 {
     public void Execute() { }
     
