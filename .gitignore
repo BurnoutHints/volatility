@@ -402,3 +402,6 @@ FodyWeavers.xsd
 
 # Mac stuff
 .DS_Store
+
+# Burnout texture data
+*.dat
