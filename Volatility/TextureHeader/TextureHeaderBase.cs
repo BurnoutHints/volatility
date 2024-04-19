@@ -55,14 +55,14 @@
         public abstract void PushInternalFlags();
         public abstract void PullInternalFlags();
 
-        public void PullAll()
+        public virtual void PullAll()
         {
             PullInternalDimension();
             PullInternalFormat();
             PullInternalFlags();
         }    
 
-        public void PushAll()
+        public virtual void PushAll()
         {
             PushInternalDimension();
             PushInternalFormat();
