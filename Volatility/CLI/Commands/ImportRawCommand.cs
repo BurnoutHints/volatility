@@ -6,8 +6,8 @@ namespace Volatility;
 
 class ImportRawCommand : ICommand
 {
-    public string Format { get; set; }
-    public string Path { get; set; }
+    public string? Format { get; set; }
+    public string? Path { get; set; }
     
     public void Execute()
     {
@@ -38,45 +38,31 @@ class ImportRawCommand : ICommand
             return;
         }
 
-        Console.WriteLine("Constructing texture property data...");
-
-        TextureHeaderBase header;
-
-        switch (Format)
+        TextureHeaderBase? header = Format switch
         {
-            case "bpr":
-                header = new TextureHeaderBPR(Path);
-                break;
-            case "tub":
-                header = new TextureHeaderPC(Path);
-                break;
-            case "x360":
-                header = new TextureHeaderX360(Path);
-                break;
-            case "ps3":
-                header = new TextureHeaderPS3(Path);
-                break;
-            case "auto":
-                // TODO: Implement auto format detection/parsing
-                Console.WriteLine("Error: Please specify a format! (--format)");
-                return;
-            case "":
-            default:
-                Console.WriteLine("Error: No input format specified! (--format)");
-                return;
-        }
-        var bindingFlags = BindingFlags.Instance |
-                   BindingFlags.NonPublic |
-                   BindingFlags.Public;
+            "BPR" => new TextureHeaderBPR(Path),
+            "TUB" => new TextureHeaderPC(Path),
+            "X360" => new TextureHeaderX360(Path),
+            "PS3" => new TextureHeaderPS3(Path),
+            _ => throw new InvalidPlatformException(),
+        };
 
-        // List the fields for now to ensure we are getting the data.
-        // TODO: Replace with proper serialized format.
-        var fields = header.GetType().GetFields(bindingFlags).Select(field => field.GetValue(header)).ToList();
-        Console.WriteLine(fields);
+        FileStream fileStream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        using (BinaryReader reader = new BinaryReader(fileStream))
+        {
+            Console.WriteLine($"Constructing {Format} texture property data...");
+            header.ParseFromStream(reader);
+            header.PullAll();
+        }
+
+        fileStream.Close();
+
+        Console.WriteLine($"Imported {Path}.");
     }
     public void SetArgs(Dictionary<string, object> args)
     {
-        Format = args.TryGetValue("format", out object? format) ? format as string : "auto";
+        Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
         Path = args.TryGetValue("path", out object? path) ? path as string : "";
     }
 

@@ -3,7 +3,7 @@ namespace Volatility;
 // This is a command to test parsing string and boolean arguments.
 class HelloCommand : ICommand
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public bool Loud { get; set; }
 
     public void Execute()

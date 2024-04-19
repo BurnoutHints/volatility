@@ -55,6 +55,20 @@
         public abstract void PushInternalFlags();
         public abstract void PullInternalFlags();
 
+        public void PullAll()
+        {
+            PullInternalDimension();
+            PullInternalFormat();
+            PullInternalFlags();
+        }    
+
+        public void PushAll()
+        {
+            PushInternalDimension();
+            PushInternalFormat();
+            PushInternalFlags();
+        }
+
         public abstract void WriteToStream(BinaryWriter writer);
         public abstract void ParseFromStream(BinaryReader reader);
 

@@ -36,8 +36,7 @@ namespace Volatility.TextureHeader
 
         public override void WriteToStream(BinaryWriter writer)
         {
-            PushInternalFlags();
-            PushInternalFormat();
+            PushAll();
 
             writer.Write(TextureDataPtr.ToInt32());
             writer.Write(TextureInterfacePtr.ToInt32());
@@ -55,7 +54,22 @@ namespace Volatility.TextureHeader
             writer.Write(new byte[4]);  // Padding
         }
 
-        public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
+        public override void ParseFromStream(BinaryReader reader)
+        {
+            reader.BaseStream.Seek(8, SeekOrigin.Begin);    // Skip over Data & Interface pointers
+            Unknown0 = reader.ReadUInt32();
+            reader.BaseStream.Seek(2, SeekOrigin.Current);  // Skip over MemoryClass
+            Unknown1 = reader.ReadByte();
+            Unknown2 = reader.ReadByte();
+            OutputFormat = reader.ReadBytes(4);
+            Width = reader.ReadUInt16();
+            Height = reader.ReadUInt16();
+            reader.BaseStream.Seek(1, SeekOrigin.Current);            
+            MipLevels = reader.ReadByte();
+            TextureType = (TEXTURETYPE)reader.ReadByte();
+            Flags = reader.ReadByte();
+            // Skip reading 4 byte padding
+        }
 
         public override void PushInternalFormat()
         {
@@ -92,7 +106,17 @@ namespace Volatility.TextureHeader
             Unknown2 = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
             Flags = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
         }
-        public override void PullInternalFlags() => throw new NotImplementedException();
+        public override void PullInternalFlags()
+        {
+            // TODO: More accurate/efficient flag calcuation!
+
+            // Assuming Unknown 2 is probably world, and Unknown 1 is GR?
+            WorldTexture = (Unknown2 != 0);
+            GRTexture = (Unknown1 != 0);
+            
+            // We're just a prop in this cruel game of life
+            PropTexture = (Unknown1 == 0 && Unknown2 != 0 && Flags != 0);
+        }
 
         public override void PushInternalDimension()
         {
