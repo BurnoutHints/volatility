@@ -27,7 +27,10 @@ public class TextureHeaderX360 : TextureHeaderBase
     
     public override void PullInternalFlags() => throw new NotImplementedException();
     
-    public override void PullInternalFormat() => throw new NotImplementedException();
+    public override void PullInternalFormat()
+    {
+        // Not needed for 360
+    }
     
     public override void PushInternalDimension()
     {
@@ -44,7 +47,10 @@ public class TextureHeaderX360 : TextureHeaderBase
     // parse GPUTEXTURE_FETCH_CONSTANT
     public override void PushInternalFlags() => throw new NotImplementedException();
 
-    public override void PushInternalFormat() => throw new NotImplementedException();
+    public override void PushInternalFormat() 
+    {
+        // Not needed for 360
+    }
 
     public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
 

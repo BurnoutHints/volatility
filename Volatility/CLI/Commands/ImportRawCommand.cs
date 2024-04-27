@@ -36,6 +36,7 @@ internal class ImportRawCommand : ICommand
             return;
         }
 
+        Console.WriteLine($"Constructing {Format} texture property data...");
         TextureHeaderBase? header = Format switch
         {
             "BPR" => new TextureHeaderBPR(Path),
@@ -45,16 +46,7 @@ internal class ImportRawCommand : ICommand
             _ => throw new InvalidPlatformException(),
         };
 
-        FileStream fileStream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-        using (BinaryReader reader = new BinaryReader(fileStream))
-        {
-            Console.WriteLine($"Constructing {Format} texture property data...");
-            header.ParseFromStream(reader);
-            header.PullAll();
-        }
-
-        fileStream.Close();
+        header.PullAll();
 
         Console.WriteLine($"Imported {Path}.");
     }
