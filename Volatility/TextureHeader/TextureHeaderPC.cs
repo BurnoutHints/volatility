@@ -36,7 +36,7 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void WriteToStream(BinaryWriter writer)
     {
-        PushAll();
+        PushAll(); // Need to determine if should be moved
 
         writer.Write(TextureDataPtr.ToInt32());
         writer.Write(TextureInterfacePtr.ToInt32());
