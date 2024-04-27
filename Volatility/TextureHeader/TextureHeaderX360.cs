@@ -1,25 +1,19 @@
 ﻿using System.Collections;
+using Volatility.Utilities;
 
 namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
-    // Need to convert this to a GPUTEXTURE_FETCH_CONSTANT struct
-    public BitArray GPUTEXTURE_FETCH_CONSTANT = new BitArray(288);
-    
-    public bool Tiled;      // True when importing retail content
-    public BitArray Pitch = new BitArray(new bool[9] { false, false, false, false, true, false, false, false, false });
-    public BitArray Padding = new BitArray(1);
-    
-    public GPUDIMENSION GPUDimension = GPUDIMENSION.GPUDIMENSION_2D;
-    
+    public GPUTEXTURE_FETCH_CONSTANT GPUTEXTURE_FETCH_CONSTANT;    
+
     public TextureHeaderX360() : base() {}
     
     public TextureHeaderX360(string path) : base(path) { }
     
     public override void PullInternalDimension()
     {
-        DIMENSION OutputDimension = GPUDimension switch
+        DIMENSION OutputDimension = GPUTEXTURE_FETCH_CONSTANT.Dimension switch
         {
             GPUDIMENSION.GPUDIMENSION_1D => DIMENSION.DIMENSION_1D,
             GPUDIMENSION.GPUDIMENSION_3D => DIMENSION.DIMENSION_3D,
@@ -44,7 +38,7 @@ public class TextureHeaderX360 : TextureHeaderBase
             DIMENSION.DIMENSION_CUBE => GPUDIMENSION.GPUDIMENSION_CUBEMAP,
             _ => GPUDIMENSION.GPUDIMENSION_2D,
         };
-        GPUDimension = OutputDimension;
+        GPUTEXTURE_FETCH_CONSTANT.Dimension = OutputDimension;
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
@@ -54,56 +48,114 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
 
-    public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
+    public override void ParseFromStream(BinaryReader reader)
+    {
+        // TODO: Parse everything before
+        reader.BaseStream.Seek(28, SeekOrigin.Begin);
+        GPUTEXTURE_FETCH_CONSTANT = GPUTEXTURE_FETCH_CONSTANT.FromPacked(reader.ReadBytes(24));
+    }
 }
 
 public struct GPUTEXTURE_FETCH_CONSTANT 
 {
-    bool Tiled;                         // 1 bit
-    ushort Pitch;                       // 9 bits + 1 bit padding
-    GPUMULTISAMPLE_TYPE MultiSample;    // 2 bits
-    GPUCLAMP ClampZ;                    // 3 bits
-    GPUCLAMP ClampY;                    // 3 bits
-    GPUCLAMP ClampX;                    // 3 bits
-    GPUSIGN SignW;                      // 2 bits
-    GPUSIGN SignZ;                      // 2 bits
-    GPUSIGN SignY;                      // 2 bits
-    GPUSIGN SignX;                      // 2 bits
-    GPUCONSTANTTYPE Type;               // 2 bits
-    uint BaseAddress;                   // 20 bits
-    GPUCLAMPPOLICY ClampPolicy;         // 1 bit
-    bool Stacked;                       // 1 bit
-    GPUREQUESTSIZE RequestSize;         // 2 bits
-    GPUENDIAN Endian;                   // 2 bits
-    GPUTEXTUREFORMAT DataFormat;        // 6 bits
-    dynamic Size;                       // 32 bits, GPUTEXTURESIZE union
-    byte BorderSize;                    // 1 bit, 3 bit padding
-    GPUANISOFILTER AnisoFilter;         // 3 bits
-    GPUMIPFILTER MipFilter;             // 2 bits
-    GPUMINMAGFILTER MinFilter;          // 2 bits
-    GPUMINMAGFILTER MagFilter;          // 2 bits
-    byte ExpAdjust;                     // 6 bits
-    GPUSWIZZLE SwizzleW;                // 3 bits
-    GPUSWIZZLE SwizzleZ;                // 3 bits
-    GPUSWIZZLE SwizzleY;                // 3 bits
-    GPUSWIZZLE SwizzleX;                // 3 bits
-    GPUNUMFORMAT NumFormat;             // 1 bit
-    byte GradExpAdjustV;                // 5 bits
-    byte GradExpAdjustH;                // 5 bits
-    ushort LODBias;                     // 10 bits
-    bool MinAnisoWalk;                  // 1 bit
-    bool MagAnisoWalk;                  // 1 bit
-    byte MaxMipLevel;                   // 4 bits
-    byte MinMipLevel;                   // 4 bits
-    GPUMINMAGFILTER VolMinFilter;       // 1 bit
-    GPUMINMAGFILTER VolMagFilter;       // 1 bit
-    uint MipAddress;                    // 20 bits
-    bool PackedMips;                    // 1 bit
-    GPUDIMENSION Dimension;             // 2 bits
-    byte AnisoBias;                     // 4 bits
-    GPUTRICLAMP TriClamp;               // 2 bits
-    bool ForceBCWToMax;                 // 1 bit
-    GPUBORDERCOLOR BorderColor;         // 2 bits
+    public bool Tiled;                        // 1 bit
+    public ushort Pitch;                      // 9 bits + 1 bit padding
+    public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
+    public GPUCLAMP ClampZ;                   // 3 bits
+    public GPUCLAMP ClampY;                   // 3 bits
+    public GPUCLAMP ClampX;                   // 3 bits
+    public GPUSIGN SignW;                     // 2 bits
+    public GPUSIGN SignZ;                     // 2 bits
+    public GPUSIGN SignY;                     // 2 bits
+    public GPUSIGN SignX;                     // 2 bits
+    public GPUCONSTANTTYPE Type;              // 2 bits
+    public uint BaseAddress;                  // 20 bits
+    public GPUCLAMPPOLICY ClampPolicy;        // 1 bit
+    public bool Stacked;                      // 1 bit
+    public GPUREQUESTSIZE RequestSize;        // 2 bits
+    public GPUENDIAN Endian;                  // 2 bits
+    public GPUTEXTUREFORMAT DataFormat;       // 6 bits
+    public dynamic Size;                      // 32 bits, GPUTEXTURESIZE union
+    public byte BorderSize;                   // 1 bit, 3 bit padding
+    public GPUANISOFILTER AnisoFilter;        // 3 bits
+    public GPUMIPFILTER MipFilter;            // 2 bits
+    public GPUMINMAGFILTER MinFilter;         // 2 bits
+    public GPUMINMAGFILTER MagFilter;         // 2 bits
+    public byte ExpAdjust;                    // 6 bits
+    public GPUSWIZZLE SwizzleW;               // 3 bits
+    public GPUSWIZZLE SwizzleZ;               // 3 bits
+    public GPUSWIZZLE SwizzleY;               // 3 bits
+    public GPUSWIZZLE SwizzleX;               // 3 bits
+    public GPUNUMFORMAT NumFormat;            // 1 bit
+    public byte GradExpAdjustV;               // 5 bits
+    public byte GradExpAdjustH;               // 5 bits
+    public ushort LODBias;                    // 10 bits
+    public bool MinAnisoWalk;                 // 1 bit
+    public bool MagAnisoWalk;                 // 1 bit
+    public byte MaxMipLevel;                  // 4 bits
+    public byte MinMipLevel;                  // 4 bits
+    public GPUMINMAGFILTER VolMinFilter;      // 1 bit
+    public GPUMINMAGFILTER VolMagFilter;      // 1 bit
+    public uint MipAddress;                   // 20 bits
+    public bool PackedMips;                   // 1 bit
+    public GPUDIMENSION Dimension;            // 2 bits
+    public byte AnisoBias;                    // 4 bits
+    public GPUTRICLAMP TriClamp;              // 2 bits
+    public bool ForceBCWToMax;                // 1 bit
+    public GPUBORDERCOLOR BorderColor;        // 2 bits
+
+    public static GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
+    {
+        BitReader bitReader = new BitReader(bytes);
+        return new GPUTEXTURE_FETCH_CONSTANT
+        {
+            Tiled = bitReader.ReadBits(1) != 0,
+            Pitch = (ushort)bitReader.ReadBits(10), // 9 bits + 1 bit padding
+            MultiSample = (GPUMULTISAMPLE_TYPE)bitReader.ReadBits(2),
+            ClampZ = (GPUCLAMP)bitReader.ReadBits(3),
+            ClampY = (GPUCLAMP)bitReader.ReadBits(3),
+            ClampX = (GPUCLAMP)bitReader.ReadBits(3),
+            SignW = (GPUSIGN)bitReader.ReadBits(2),
+            SignZ = (GPUSIGN)bitReader.ReadBits(2),
+            SignY = (GPUSIGN)bitReader.ReadBits(2),
+            SignX = (GPUSIGN)bitReader.ReadBits(2),
+            Type = (GPUCONSTANTTYPE)bitReader.ReadBits(2),
+            BaseAddress = bitReader.ReadBits(20),
+            ClampPolicy = (GPUCLAMPPOLICY)bitReader.ReadBits(1),
+            Stacked = bitReader.ReadBits(1) != 0,
+            RequestSize = (GPUREQUESTSIZE)bitReader.ReadBits(2),
+            Endian = (GPUENDIAN)bitReader.ReadBits(2),
+            DataFormat = (GPUTEXTUREFORMAT)bitReader.ReadBits(6),
+            Size = bitReader.ReadBits(32), // Assumes dynamic is handled as uint here
+            BorderSize = (byte)bitReader.ReadBits(4), // 1 bit + 3 bits padding
+            AnisoFilter = (GPUANISOFILTER)bitReader.ReadBits(3),
+            MipFilter = (GPUMIPFILTER)bitReader.ReadBits(2),
+            MinFilter = (GPUMINMAGFILTER)bitReader.ReadBits(2),
+            MagFilter = (GPUMINMAGFILTER)bitReader.ReadBits(2),
+            ExpAdjust = (byte)bitReader.ReadBits(6),
+            SwizzleW = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleZ = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleY = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleX = (GPUSWIZZLE)bitReader.ReadBits(3),
+            NumFormat = (GPUNUMFORMAT)bitReader.ReadBits(1),
+            GradExpAdjustV = (byte)bitReader.ReadBits(5),
+            GradExpAdjustH = (byte)bitReader.ReadBits(5),
+            LODBias = (ushort)bitReader.ReadBits(10),
+            MinAnisoWalk = bitReader.ReadBits(1) != 0,
+            MagAnisoWalk = bitReader.ReadBits(1) != 0,
+            MaxMipLevel = (byte)bitReader.ReadBits(4),
+            MinMipLevel = (byte)bitReader.ReadBits(4),
+            VolMinFilter = (GPUMINMAGFILTER)bitReader.ReadBits(1),
+            VolMagFilter = (GPUMINMAGFILTER)bitReader.ReadBits(1),
+            MipAddress = bitReader.ReadBits(20),
+            PackedMips = bitReader.ReadBits(1) != 0,
+            Dimension = (GPUDIMENSION)bitReader.ReadBits(2),
+            AnisoBias = (byte)bitReader.ReadBits(4),
+            TriClamp = (GPUTRICLAMP)bitReader.ReadBits(2),
+            ForceBCWToMax = bitReader.ReadBits(1) != 0,
+            BorderColor = (GPUBORDERCOLOR)bitReader.ReadBits(2)
+        };
+    }
 }
 
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
@@ -295,4 +347,3 @@ public enum GPUDIMENSION : byte         // 2 bit value
     GPUDIMENSION_3D = 2,
     GPUDIMENSION_CUBEMAP = 3
 }
-
