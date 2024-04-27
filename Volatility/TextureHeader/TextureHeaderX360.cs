@@ -57,7 +57,10 @@ public class TextureHeaderX360 : TextureHeaderBase
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
-    public override void PushInternalFlags() => throw new NotImplementedException();
+    public override void PushInternalFlags()
+    {
+        Console.WriteLine("TODO: Parse GPUTEXTURE_FETCH_CONSTANT");
+    }
 
     public override void PushInternalFormat() 
     {
