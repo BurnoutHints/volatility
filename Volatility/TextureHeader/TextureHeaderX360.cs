@@ -1,24 +1,19 @@
 ﻿using System.Collections;
+using Volatility.Utilities;
 
 namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
-    public BitArray GPUTEXTURE_FETCH_CONSTANT = new BitArray(288);
-    
-    public bool Tiled;      // True when importing retail content
-    public BitArray Pitch = new BitArray(new bool[9] { false, false, false, false, true, false, false, false, false });
-    public BitArray Padding = new BitArray(1);
-    
-    public GPUDIMENSION GPUDimension = GPUDIMENSION.GPUDIMENSION_2D;
-    
+    public GPUTEXTURE_FETCH_CONSTANT GPUTEXTURE_FETCH_CONSTANT;    
+
     public TextureHeaderX360() : base() {}
     
     public TextureHeaderX360(string path) : base(path) { }
     
     public override void PullInternalDimension()
     {
-        DIMENSION OutputDimension = GPUDimension switch
+        DIMENSION OutputDimension = GPUTEXTURE_FETCH_CONSTANT.Dimension switch
         {
             GPUDIMENSION.GPUDIMENSION_1D => DIMENSION.DIMENSION_1D,
             GPUDIMENSION.GPUDIMENSION_3D => DIMENSION.DIMENSION_3D,
@@ -43,7 +38,7 @@ public class TextureHeaderX360 : TextureHeaderBase
             DIMENSION.DIMENSION_CUBE => GPUDIMENSION.GPUDIMENSION_CUBEMAP,
             _ => GPUDIMENSION.GPUDIMENSION_2D,
         };
-        GPUDimension = OutputDimension;
+        GPUTEXTURE_FETCH_CONSTANT.Dimension = OutputDimension;
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
@@ -53,7 +48,114 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
 
-    public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
+    public override void ParseFromStream(BinaryReader reader)
+    {
+        // TODO: Parse everything before
+        reader.BaseStream.Seek(28, SeekOrigin.Begin);
+        GPUTEXTURE_FETCH_CONSTANT = GPUTEXTURE_FETCH_CONSTANT.FromPacked(reader.ReadBytes(24));
+    }
+}
+
+public struct GPUTEXTURE_FETCH_CONSTANT 
+{
+    public bool Tiled;                        // 1 bit
+    public ushort Pitch;                      // 9 bits + 1 bit padding
+    public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
+    public GPUCLAMP ClampZ;                   // 3 bits
+    public GPUCLAMP ClampY;                   // 3 bits
+    public GPUCLAMP ClampX;                   // 3 bits
+    public GPUSIGN SignW;                     // 2 bits
+    public GPUSIGN SignZ;                     // 2 bits
+    public GPUSIGN SignY;                     // 2 bits
+    public GPUSIGN SignX;                     // 2 bits
+    public GPUCONSTANTTYPE Type;              // 2 bits
+    public uint BaseAddress;                  // 20 bits
+    public GPUCLAMPPOLICY ClampPolicy;        // 1 bit
+    public bool Stacked;                      // 1 bit
+    public GPUREQUESTSIZE RequestSize;        // 2 bits
+    public GPUENDIAN Endian;                  // 2 bits
+    public GPUTEXTUREFORMAT DataFormat;       // 6 bits
+    public dynamic Size;                      // 32 bits, GPUTEXTURESIZE union
+    public byte BorderSize;                   // 1 bit, 3 bit padding
+    public GPUANISOFILTER AnisoFilter;        // 3 bits
+    public GPUMIPFILTER MipFilter;            // 2 bits
+    public GPUMINMAGFILTER MinFilter;         // 2 bits
+    public GPUMINMAGFILTER MagFilter;         // 2 bits
+    public byte ExpAdjust;                    // 6 bits
+    public GPUSWIZZLE SwizzleW;               // 3 bits
+    public GPUSWIZZLE SwizzleZ;               // 3 bits
+    public GPUSWIZZLE SwizzleY;               // 3 bits
+    public GPUSWIZZLE SwizzleX;               // 3 bits
+    public GPUNUMFORMAT NumFormat;            // 1 bit
+    public byte GradExpAdjustV;               // 5 bits
+    public byte GradExpAdjustH;               // 5 bits
+    public ushort LODBias;                    // 10 bits
+    public bool MinAnisoWalk;                 // 1 bit
+    public bool MagAnisoWalk;                 // 1 bit
+    public byte MaxMipLevel;                  // 4 bits
+    public byte MinMipLevel;                  // 4 bits
+    public GPUMINMAGFILTER VolMinFilter;      // 1 bit
+    public GPUMINMAGFILTER VolMagFilter;      // 1 bit
+    public uint MipAddress;                   // 20 bits
+    public bool PackedMips;                   // 1 bit
+    public GPUDIMENSION Dimension;            // 2 bits
+    public byte AnisoBias;                    // 4 bits
+    public GPUTRICLAMP TriClamp;              // 2 bits
+    public bool ForceBCWToMax;                // 1 bit
+    public GPUBORDERCOLOR BorderColor;        // 2 bits
+
+    public static GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
+    {
+        BitReader bitReader = new BitReader(bytes);
+        return new GPUTEXTURE_FETCH_CONSTANT
+        {
+            Tiled = bitReader.ReadBits(1) != 0,
+            Pitch = (ushort)bitReader.ReadBits(10), // 9 bits + 1 bit padding
+            MultiSample = (GPUMULTISAMPLE_TYPE)bitReader.ReadBits(2),
+            ClampZ = (GPUCLAMP)bitReader.ReadBits(3),
+            ClampY = (GPUCLAMP)bitReader.ReadBits(3),
+            ClampX = (GPUCLAMP)bitReader.ReadBits(3),
+            SignW = (GPUSIGN)bitReader.ReadBits(2),
+            SignZ = (GPUSIGN)bitReader.ReadBits(2),
+            SignY = (GPUSIGN)bitReader.ReadBits(2),
+            SignX = (GPUSIGN)bitReader.ReadBits(2),
+            Type = (GPUCONSTANTTYPE)bitReader.ReadBits(2),
+            BaseAddress = bitReader.ReadBits(20),
+            ClampPolicy = (GPUCLAMPPOLICY)bitReader.ReadBits(1),
+            Stacked = bitReader.ReadBits(1) != 0,
+            RequestSize = (GPUREQUESTSIZE)bitReader.ReadBits(2),
+            Endian = (GPUENDIAN)bitReader.ReadBits(2),
+            DataFormat = (GPUTEXTUREFORMAT)bitReader.ReadBits(6),
+            Size = bitReader.ReadBits(32), // Assumes dynamic is handled as uint here
+            BorderSize = (byte)bitReader.ReadBits(4), // 1 bit + 3 bits padding
+            AnisoFilter = (GPUANISOFILTER)bitReader.ReadBits(3),
+            MipFilter = (GPUMIPFILTER)bitReader.ReadBits(2),
+            MinFilter = (GPUMINMAGFILTER)bitReader.ReadBits(2),
+            MagFilter = (GPUMINMAGFILTER)bitReader.ReadBits(2),
+            ExpAdjust = (byte)bitReader.ReadBits(6),
+            SwizzleW = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleZ = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleY = (GPUSWIZZLE)bitReader.ReadBits(3),
+            SwizzleX = (GPUSWIZZLE)bitReader.ReadBits(3),
+            NumFormat = (GPUNUMFORMAT)bitReader.ReadBits(1),
+            GradExpAdjustV = (byte)bitReader.ReadBits(5),
+            GradExpAdjustH = (byte)bitReader.ReadBits(5),
+            LODBias = (ushort)bitReader.ReadBits(10),
+            MinAnisoWalk = bitReader.ReadBits(1) != 0,
+            MagAnisoWalk = bitReader.ReadBits(1) != 0,
+            MaxMipLevel = (byte)bitReader.ReadBits(4),
+            MinMipLevel = (byte)bitReader.ReadBits(4),
+            VolMinFilter = (GPUMINMAGFILTER)bitReader.ReadBits(1),
+            VolMagFilter = (GPUMINMAGFILTER)bitReader.ReadBits(1),
+            MipAddress = bitReader.ReadBits(20),
+            PackedMips = bitReader.ReadBits(1) != 0,
+            Dimension = (GPUDIMENSION)bitReader.ReadBits(2),
+            AnisoBias = (byte)bitReader.ReadBits(4),
+            TriClamp = (GPUTRICLAMP)bitReader.ReadBits(2),
+            ForceBCWToMax = bitReader.ReadBits(1) != 0,
+            BorderColor = (GPUBORDERCOLOR)bitReader.ReadBits(2)
+        };
+    }
 }
 
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
@@ -74,6 +176,22 @@ public enum GPUCLAMP : byte             // 3 bit value
     GPUCLAMP_MIRROR_ONCE_HALFWAY = 5,
     GPUCLAMP_CLAMP_TO_BORDER = 6,
     GPUCLAMP_MIRROR_TO_BORDER = 7
+}
+
+public enum GPUSIGN : byte              // 2 bit value
+{
+    GPUSIGN_UNSIGNED = 0,
+    GPUSIGN_SIGNED = 1,
+    GPUSIGN_BIAS = 2,
+    GPUSIGN_GAMMA = 3
+}
+
+public enum GPUCONSTANTTYPE : byte      // 2 bit value
+{
+    GPUCONSTANTTYPE_INVALID_TEXTURE = 0,
+    GPUCONSTANTTYPE_INVALID_VERTEX = 1,
+    GPUCONSTANTTYPE_TEXTURE = 2,
+    GPUCONSTANTTYPE_VERTEX = 3
 }
 
 public enum GPUTEXTUREFORMAT : byte     // 6 bit value
@@ -142,6 +260,84 @@ public enum GPUTEXTUREFORMAT : byte     // 6 bit value
     GPUTEXTUREFORMAT_DXT3A_AS_1_1_1_1 = 61,
     GPUTEXTUREFORMAT_8_8_8_8_GAMMA_EDRAM = 62,
     GPUTEXTUREFORMAT_2_10_10_10_FLOAT_EDRAM = 63
+}
+
+public enum GPUCLAMPPOLICY : byte       // 1 bit value
+{
+    GPUCLAMPPOLICY_D3D = 0,
+    GPUCLAMPPOLICY_OGL = 1
+}
+
+public enum GPUREQUESTSIZE : byte       // 2 bit value
+{
+    GPUREQUESTSIZE_256BIT = 0,
+    GPUREQUESTSIZE_512BIT = 1
+}
+
+public enum GPUENDIAN : byte            // 2 bit value
+{
+    GPUENDIAN_NONE = 0,
+    GPUENDIAN_8IN16 = 1,
+    GPUENDIAN_8IN32 = 2,
+    GPUENDIAN_16IN32 = 3
+}
+
+public enum GPUANISOFILTER : byte       // 3 bit value
+{
+    GPUANISOFILTER_DISABLED = 0,
+    GPUANISOFILTER_MAX1TO1 = 1,
+    GPUANISOFILTER_MAX2TO1 = 2,
+    GPUANISOFILTER_MAX4TO1 = 3,
+    GPUANISOFILTER_MAX8TO1 = 4,
+    GPUANISOFILTER_MAX16TO1 = 5,
+    GPUANISOFILTER_KEEP = 7
+}
+
+public enum GPUMIPFILTER : byte         // 2 bit value
+{
+    GPUMIPFILTER_POINT = 0,
+    GPUMIPFILTER_LINEAR = 1,
+    GPUMIPFILTER_BASEMAP = 2,
+    GPUMIPFILTER_KEEP = 3
+}
+
+public enum GPUNUMFORMAT : byte         // 1 bit value
+{
+    GPUNUMFORMAT_FRACTION = 0,
+    GPUNUMFORMAT_INTEGER = 1
+}
+
+public enum GPUSWIZZLE : byte           // 3 bit value
+{
+    GPUSWIZZLE_X = 0,
+    GPUSWIZZLE_Y = 1,
+    GPUSWIZZLE_Z = 2,
+    GPUSWIZZLE_W = 3,
+    GPUSWIZZLE_0 = 4,
+    GPUSWIZZLE_1 = 5
+}
+
+public enum GPUMINMAGFILTER : byte      // 2 bit value
+{
+    GPUMINMAGFILTER_POINT = 0,
+    GPUMINMAGFILTER_LINEAR = 1,
+    GPUMINMAGFILTER_KEEP = 2
+}
+
+public enum GPUBORDERCOLOR : byte       // 2 bit value
+{
+    GPUBORDERCOLOR_ABGR_BLACK = 0, 	
+    GPUBORDERCOLOR_ABGR_WHITE = 1, 	
+    GPUBORDERCOLOR_ACBYCR_BLACK = 2, 	
+    GPUBORDERCOLOR_ACBCRY_BLACK = 3
+}
+
+public enum GPUTRICLAMP : byte          // 2 bit value
+{
+    GPUTRICLAMP_NORMAL = 0,
+    GPUTRICLAMP_ONE_SIXTH = 1,
+    GPUTRICLAMP_ONE_FOURTH = 2,
+    GPUTRICLAMP_THREE_EIGHTHS = 3
 }
 
 public enum GPUDIMENSION : byte         // 2 bit value
