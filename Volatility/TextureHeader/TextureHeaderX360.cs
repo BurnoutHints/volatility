@@ -4,6 +4,7 @@ namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
+    // Need to convert this to a GPUTEXTURE_FETCH_CONSTANT struct
     public BitArray GPUTEXTURE_FETCH_CONSTANT = new BitArray(288);
     
     public bool Tiled;      // True when importing retail content
@@ -56,6 +57,30 @@ public class TextureHeaderX360 : TextureHeaderBase
     public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
 }
 
+public struct GPUTEXTURE_FETCH_CONSTANT 
+{
+    bool Tiled;                         // 1 bit
+    ushort Pitch;                       // 9 bits + 1 bit padding
+    GPUMULTISAMPLE_TYPE MultiSample;    // 2 bits
+    GPUCLAMP ClampZ;                    // 3 bits
+    GPUCLAMP ClampY;                    // 3 bits
+    GPUCLAMP ClampX;                    // 3 bits
+    GPUSIGN SignW;                      // 2 bits
+    GPUSIGN SignZ;                      // 2 bits
+    GPUSIGN SignY;                      // 2 bits
+    GPUSIGN SignX;                      // 2 bits
+    GPUCONSTANTTYPE Type;               // 2 bits
+    uint BaseAddress;                   // 20 bits
+    GPUCLAMPPOLICY ClampPolicy;         // 1 bit
+    bool Stacked;                       // 1 bit
+    GPUREQUESTSIZE RequestSize;         // 2 bits
+    GPUENDIAN Endian;                   // 2 bits
+    GPUTEXTUREFORMAT DataFormat;        // 6 bits
+    dynamic Size;                       // 32 bits, GPUTEXTURESIZE union
+    byte BorderSize;                    // 1 bit, 3 bit padding
+    GPUANISOFILTER AnisoFilter;         // 3 bits
+}
+
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
 {
     D3DMULTISAMPLE_NONE = 0,
@@ -74,6 +99,22 @@ public enum GPUCLAMP : byte             // 3 bit value
     GPUCLAMP_MIRROR_ONCE_HALFWAY = 5,
     GPUCLAMP_CLAMP_TO_BORDER = 6,
     GPUCLAMP_MIRROR_TO_BORDER = 7
+}
+
+public enum GPUSIGN : byte              // 2 bit value
+{
+    GPUSIGN_UNSIGNED = 0,
+    GPUSIGN_SIGNED = 1,
+    GPUSIGN_BIAS = 2,
+    GPUSIGN_GAMMA = 3
+}
+
+public enum GPUCONSTANTTYPE : byte      // 2 bit value
+{
+    GPUCONSTANTTYPE_INVALID_TEXTURE = 0,
+    GPUCONSTANTTYPE_INVALID_VERTEX = 1,
+    GPUCONSTANTTYPE_TEXTURE = 2,
+    GPUCONSTANTTYPE_VERTEX = 3
 }
 
 public enum GPUTEXTUREFORMAT : byte     // 6 bit value
@@ -144,6 +185,37 @@ public enum GPUTEXTUREFORMAT : byte     // 6 bit value
     GPUTEXTUREFORMAT_2_10_10_10_FLOAT_EDRAM = 63
 }
 
+public enum GPUCLAMPPOLICY : byte       // 1 bit value
+{
+    GPUCLAMPPOLICY_D3D = 0,
+    GPUCLAMPPOLICY_OGL = 1
+}
+
+public enum GPUREQUESTSIZE : byte       // 2 bit value
+{
+    GPUREQUESTSIZE_256BIT = 0,
+    GPUREQUESTSIZE_512BIT = 1
+}
+
+public enum GPUENDIAN : byte            // 2 bit value
+{
+    GPUENDIAN_NONE = 0,
+    GPUENDIAN_8IN16 = 1,
+    GPUENDIAN_8IN32 = 2,
+    GPUENDIAN_16IN32 = 3
+}
+
+public enum GPUANISOFILTER : byte       // 3 bit value
+{
+    GPUANISOFILTER_DISABLED = 0,
+    GPUANISOFILTER_MAX1TO1 = 1,
+    GPUANISOFILTER_MAX2TO1 = 2,
+    GPUANISOFILTER_MAX4TO1 = 3,
+    GPUANISOFILTER_MAX8TO1 = 4,
+    GPUANISOFILTER_MAX16TO1 = 5,
+    GPUANISOFILTER_KEEP = 7
+}
+
 public enum GPUDIMENSION : byte         // 2 bit value
 {
     GPUDIMENSION_1D = 0,
@@ -151,3 +223,4 @@ public enum GPUDIMENSION : byte         // 2 bit value
     GPUDIMENSION_3D = 2,
     GPUDIMENSION_CUBEMAP = 3
 }
+
