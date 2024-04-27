@@ -25,7 +25,19 @@ public class TextureHeaderX360 : TextureHeaderBase
         _Dimension = OutputDimension;
     }
     
-    public override void PullInternalFlags() => throw new NotImplementedException();
+    public override void PullInternalFlags()
+    {
+        // TODO: Implement better parser
+        // Not accurate. Only prevents 3D & cubemaps from being GR/Prop Textures
+        GRTexture = PropTexture = GPUTEXTURE_FETCH_CONSTANT.Dimension switch
+        {
+            GPUDIMENSION.GPUDIMENSION_1D => true,
+            GPUDIMENSION.GPUDIMENSION_3D => false,
+            GPUDIMENSION.GPUDIMENSION_CUBEMAP => false,
+            _ => true,
+        };
+        WorldTexture = true;
+    }
     
     public override void PullInternalFormat()
     {
