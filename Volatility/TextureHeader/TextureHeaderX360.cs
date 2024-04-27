@@ -79,6 +79,31 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     dynamic Size;                       // 32 bits, GPUTEXTURESIZE union
     byte BorderSize;                    // 1 bit, 3 bit padding
     GPUANISOFILTER AnisoFilter;         // 3 bits
+    GPUMIPFILTER MipFilter;             // 2 bits
+    GPUMINMAGFILTER MinFilter;          // 2 bits
+    GPUMINMAGFILTER MagFilter;          // 2 bits
+    byte ExpAdjust;                     // 6 bits
+    GPUSWIZZLE SwizzleW;                // 3 bits
+    GPUSWIZZLE SwizzleZ;                // 3 bits
+    GPUSWIZZLE SwizzleY;                // 3 bits
+    GPUSWIZZLE SwizzleX;                // 3 bits
+    GPUNUMFORMAT NumFormat;             // 1 bit
+    byte GradExpAdjustV;                // 5 bits
+    byte GradExpAdjustH;                // 5 bits
+    ushort LODBias;                     // 10 bits
+    bool MinAnisoWalk;                  // 1 bit
+    bool MagAnisoWalk;                  // 1 bit
+    byte MaxMipLevel;                   // 4 bits
+    byte MinMipLevel;                   // 4 bits
+    GPUMINMAGFILTER VolMinFilter;       // 1 bit
+    GPUMINMAGFILTER VolMagFilter;       // 1 bit
+    uint MipAddress;                    // 20 bits
+    bool PackedMips;                    // 1 bit
+    GPUDIMENSION Dimension;             // 2 bits
+    byte AnisoBias;                     // 4 bits
+    GPUTRICLAMP TriClamp;               // 2 bits
+    bool ForceBCWToMax;                 // 1 bit
+    GPUBORDERCOLOR BorderColor;         // 2 bits
 }
 
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
@@ -214,6 +239,53 @@ public enum GPUANISOFILTER : byte       // 3 bit value
     GPUANISOFILTER_MAX8TO1 = 4,
     GPUANISOFILTER_MAX16TO1 = 5,
     GPUANISOFILTER_KEEP = 7
+}
+
+public enum GPUMIPFILTER : byte         // 2 bit value
+{
+    GPUMIPFILTER_POINT = 0,
+    GPUMIPFILTER_LINEAR = 1,
+    GPUMIPFILTER_BASEMAP = 2,
+    GPUMIPFILTER_KEEP = 3
+}
+
+public enum GPUNUMFORMAT : byte         // 1 bit value
+{
+    GPUNUMFORMAT_FRACTION = 0,
+    GPUNUMFORMAT_INTEGER = 1
+}
+
+public enum GPUSWIZZLE : byte           // 3 bit value
+{
+    GPUSWIZZLE_X = 0,
+    GPUSWIZZLE_Y = 1,
+    GPUSWIZZLE_Z = 2,
+    GPUSWIZZLE_W = 3,
+    GPUSWIZZLE_0 = 4,
+    GPUSWIZZLE_1 = 5
+}
+
+public enum GPUMINMAGFILTER : byte      // 2 bit value
+{
+    GPUMINMAGFILTER_POINT = 0,
+    GPUMINMAGFILTER_LINEAR = 1,
+    GPUMINMAGFILTER_KEEP = 2
+}
+
+public enum GPUBORDERCOLOR : byte       // 2 bit value
+{
+    GPUBORDERCOLOR_ABGR_BLACK = 0, 	
+    GPUBORDERCOLOR_ABGR_WHITE = 1, 	
+    GPUBORDERCOLOR_ACBYCR_BLACK = 2, 	
+    GPUBORDERCOLOR_ACBCRY_BLACK = 3
+}
+
+public enum GPUTRICLAMP : byte          // 2 bit value
+{
+    GPUTRICLAMP_NORMAL = 0,
+    GPUTRICLAMP_ONE_SIXTH = 1,
+    GPUTRICLAMP_ONE_FOURTH = 2,
+    GPUTRICLAMP_THREE_EIGHTHS = 3
 }
 
 public enum GPUDIMENSION : byte         // 2 bit value
