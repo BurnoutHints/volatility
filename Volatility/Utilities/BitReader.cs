@@ -1,11 +1,13 @@
 namespace Volatility.Utilities;
 
-public class BitReader
+public class BitReader : IDisposable
 {
     private readonly byte[] buffer;
     private int currentBit = 0;
 
     public BitReader(byte[] data) => buffer = data;
+
+    public void Dispose() { /* Leave it for the garbage collector */ }
 
     public uint ReadBits(int count)
     {
