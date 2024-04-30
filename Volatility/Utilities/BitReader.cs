@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace Volatility.Utilities;
 
 public class BitReader : IDisposable
@@ -7,34 +9,54 @@ public class BitReader : IDisposable
 
     public BitReader(byte[] data) => buffer = data;
 
-    public void Dispose() { /* Leave it for the garbage collector */ }
+    public void Dispose()
+    { 
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
 
-    public uint ReadBits(int count)
+    private bool[] ReadBitsInternal(int count)
     {
-        // Can't read more than 32 bits at a time
-        if (count < 0 || count > 32)
-        {
-            throw new ArgumentOutOfRangeException("count", "Count must be between 0 and 32.");
-        }
-
-        uint result = 0;
+        bool[] bits = new bool[count];
         int bitsRead = 0;
 
         while (bitsRead < count)
         {
             int byteIndex = currentBit / 8;
-            int bitIndex = 7 - (currentBit % 8); // Most significant bit
+            int bitIndex = 7 - (currentBit % 8);
             int bitsLeft = count - bitsRead;
-            int bitsToRead = Math.Min(bitsLeft, 8 - bitIndex);
-
-            uint mask = (uint)((1 << bitsToRead) - 1);
-            result |= (uint)(((buffer[byteIndex] >> (bitIndex + 1 - bitsToRead)) & mask) << bitsRead);
+            int bitsToRead = Math.Min(bitsLeft, bitIndex + 1);
+            
+            for (int i = 0; i < bitsToRead; ++i)
+            {
+                bits[bitsRead + i] = (buffer[byteIndex] & (1 << (bitIndex - i))) != 0;
+            }
 
             bitsRead += bitsToRead;
             currentBit += bitsToRead;
         }
 
+        return bits;
+    }
+
+    public uint ReadBitsToUInt(int count)
+    {
+        bool[] bits = ReadBitsInternal(count);
+        uint result = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (bits[i])
+            {
+                result |= (uint)(1 << (count - 1 - i));
+            }
+        }
         return result;
+    }
+
+    public BitArray ReadBitsToBitArray(int count)
+    {
+        bool[] bits = ReadBitsInternal(count);
+        return new BitArray(bits);
     }
 
     public void Seek(int offset, SeekOrigin origin)
