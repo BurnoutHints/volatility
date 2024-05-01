@@ -1,4 +1,4 @@
-﻿using Volatility.Utilities;
+﻿using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.TextureHeader;
 
@@ -42,12 +42,12 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override void PullInternalFlags() => throw new NotImplementedException();
     public override void WriteToStream(BinaryWriter writer)
     {
-        writer.Write(DataUtilities.x64Switch(x64Header, TextureInterfacePtr));              // 64 bit
+        writer.Write(x64Switch(x64Header, TextureInterfacePtr));              // 64 bit
         writer.Write((uint)Usage);
         writer.Write((uint)Dimension);
-        writer.Write(DataUtilities.x64Switch(x64Header, PixelDataPtr));                     // 64 bit
-        writer.Write(DataUtilities.x64Switch(x64Header, ShaderResourceViewInterface0Ptr));  // 64 bit
-        writer.Write(DataUtilities.x64Switch(x64Header, ShaderResourceViewInterface1Ptr));  // 64 bit
+        writer.Write(x64Switch(x64Header, PixelDataPtr));                     // 64 bit
+        writer.Write(x64Switch(x64Header, ShaderResourceViewInterface0Ptr));  // 64 bit
+        writer.Write(x64Switch(x64Header, ShaderResourceViewInterface1Ptr));  // 64 bit
         writer.Write(Unknown0);
         writer.Write((uint)Format);
         writer.Write(Flags);
@@ -58,10 +58,10 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(MostDetailedMip);
         writer.Write(MipLevels);
         writer.Write(Unknown1);
-        writer.Write(DataUtilities.x64Switch(x64Header, Unknown2));                         // 64 bit
+        writer.Write(x64Switch(x64Header, Unknown2));                         // 64 bit
         writer.Write(ArrayIndex);
         writer.Write(ContentsSize);
-        writer.Write(DataUtilities.x64Switch(x64Header, TextureData));                      // 64 bit
+        writer.Write(x64Switch(x64Header, TextureData));                      // 64 bit
     }
     
     public override void ParseFromStream(BinaryReader reader)

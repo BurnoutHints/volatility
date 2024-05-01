@@ -5,14 +5,14 @@ namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
-    BitArray D3DResourceFlags = new BitArray(28);
-    D3DRESOURCETYPE D3DRESOURCETYPE;
-    uint ReferenceCount;
-    uint Fence;
-    uint ReadFence;
-    uint Identifier;
-    uint BaseFlush;
-    uint MipFlush;
+    public BitArray D3DResourceFlags = new BitArray(28);
+    public D3DRESOURCETYPE D3DRESOURCETYPE;
+    public uint ReferenceCount;
+    public uint Fence;
+    public uint ReadFence;
+    public uint Identifier;
+    public uint BaseFlush;
+    public uint MipFlush;
     public GPUTEXTURE_FETCH_CONSTANT GPUTEXTURE_FETCH_CONSTANT;
 
     public TextureHeaderX360() : base() {}

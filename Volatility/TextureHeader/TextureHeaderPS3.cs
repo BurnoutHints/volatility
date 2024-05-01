@@ -1,23 +1,23 @@
-﻿using Volatility.Utilities;
+﻿using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.TextureHeader;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
-    CELL_GCM_COLOR_FORMAT Format;
-    byte MipmapLevels;
-    CELL_GCM_TEXTURE_DIMENSION CellDimension;
-    bool CubeMapEnable;
-    uint Remap;                 // TODO
-    ushort Width;
-    ushort Height;
-    ushort Depth = 1;           // Always 1 in Burnout
-    CELL_GCM_LOCATION Location;
-    uint Pitch;
-    uint Offset;
-    IntPtr Buffer;
-    StoreType StoreType;
-    uint StoreFlags;            // Seems to be unused
+    public CELL_GCM_COLOR_FORMAT Format;
+    public byte MipmapLevels;
+    public CELL_GCM_TEXTURE_DIMENSION CellDimension;
+    public bool CubeMapEnable;
+    public uint Remap;                 // TODO
+    public ushort Width;
+    public ushort Height;
+    public ushort Depth = 1;           // Always 1 in Burnout
+    public CELL_GCM_LOCATION Location;
+    public uint Pitch;
+    public uint Offset;
+    public IntPtr Buffer;
+    public StoreType StoreType;
+    public uint StoreFlags;            // Seems to be unused
 
     public override void PullInternalDimension() => throw new NotImplementedException();
 
@@ -58,8 +58,8 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                if (!DataUtilities.IsPowerOfTwo(Width) || !DataUtilities.IsPowerOfTwo(Height))
-                    DataUtilities.CalculatePitch(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                if (!IsPowerOfTwo(Width) || !IsPowerOfTwo(Height))
+                    CalculatePitch(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;
@@ -74,20 +74,37 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write(MipmapLevels);
         writer.Write((byte)CellDimension);
         writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
-        writer.Write(Remap);
-        writer.Write(Width);
-        writer.Write(Height);
-        writer.Write(Depth);
+        writer.Write(Remap); // Does this need to be swapped?
+        writer.Write(SwapEndian(Width));
+        writer.Write(SwapEndian(Height));
+        writer.Write(SwapEndian(Depth));
         writer.Write((byte)Location);
         writer.Write((byte)0); // Padding
-        writer.Write(Pitch);
-        writer.Write(Offset);
-        writer.Write(Buffer);
-        writer.Write((int)StoreType);
+        writer.Write(SwapEndian(Pitch));
+        writer.Write(SwapEndian(Offset));
+        writer.Write(SwapEndian((uint)Buffer));
+        writer.Write(SwapEndian((int)StoreType));
         writer.Write(StoreFlags);
     }
 
-    public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
+    public override void ParseFromStream(BinaryReader reader)
+    {
+        Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
+        MipmapLevels = reader.ReadByte();
+        CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();
+        CubeMapEnable = reader.ReadByte() != 0 ? true : false;
+        Remap = reader.ReadUInt32(); // Does this need to be swapped?
+        Width = SwapEndian(reader.ReadUInt16());
+        Height = SwapEndian(reader.ReadUInt16());
+        Depth = SwapEndian(reader.ReadUInt16());
+        Location = (CELL_GCM_LOCATION)reader.ReadByte();
+        reader.BaseStream.Seek(1, SeekOrigin.Current);
+        Pitch = SwapEndian(reader.ReadUInt32());
+        Offset = SwapEndian(reader.ReadUInt32());
+        Buffer = (IntPtr)SwapEndian(reader.ReadUInt32());
+        StoreType = (StoreType)SwapEndian(reader.ReadInt32());
+        StoreFlags = reader.ReadUInt32();   // They're flags, I doubt they need to be swapped
+    }
 }
 
 public enum CELL_GCM_COLOR_FORMAT : byte

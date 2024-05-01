@@ -44,6 +44,17 @@ internal class AutotestCommand : ICommand
         // Write 64 bit test BPR header
         WriteTestHeader("autotest_header_BPRx64.dat", textureHeaderPC);
 
+        // PS3 Texture data test case
+        TextureHeaderPS3 textureHeaderPS3 = new TextureHeaderPS3
+        {
+            Format = CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45,
+            Width = 1024,
+            Height = 512,
+            MipmapLevels = 11,
+            GRTexture = true
+        };
+        WriteTestHeader("autotest_header_PS3.dat", textureHeaderPS3);
+
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";

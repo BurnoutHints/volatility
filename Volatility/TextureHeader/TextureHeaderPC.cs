@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using Volatility.Utilities;
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.TextureHeader;
 
@@ -102,9 +102,9 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void PushInternalFlags()
     {
-        Unknown1 = DataUtilities.TrimIntToByte(WorldTexture || GRTexture ? 1 : 0);
-        Unknown2 = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
-        Flags = DataUtilities.TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
+        Unknown1 = TrimIntToByte(WorldTexture || GRTexture ? 1 : 0);
+        Unknown2 = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
+        Flags = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
     }
     public override void PullInternalFlags()
     {
