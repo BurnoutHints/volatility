@@ -49,4 +49,16 @@ public static class DataUtilities
         }
         return CgsIDElements;
     }
+
+    public static int CalculatePitch(int width, int blockSize)
+    {
+        int adjustedWidth = (width + 3) / 4;
+        int pitch = adjustedWidth * blockSize;
+        return pitch;
+    }
+
+    public static bool IsPowerOfTwo(int x)
+    {
+        return (x > 0) && ((x & (x - 1)) == 0);
+    }
 }
