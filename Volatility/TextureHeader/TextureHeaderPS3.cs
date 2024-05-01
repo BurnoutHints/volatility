@@ -1,8 +1,23 @@
-﻿namespace Volatility.TextureHeader;
+﻿using Volatility.Utilities;
+
+namespace Volatility.TextureHeader;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
+    CELL_GCM_COLOR_FORMAT Format;
+    byte MipmapLevels;
     CELL_GCM_TEXTURE_DIMENSION CellDimension;
+    bool CubeMapEnable;
+    uint Remap;                 // TODO
+    ushort Width;
+    ushort Height;
+    ushort Depth = 1;           // Always 1 in Burnout
+    CELL_GCM_LOCATION Location;
+    uint Pitch;
+    uint Offset;
+    IntPtr Buffer;
+    StoreType StoreType;
+    uint StoreFlags;            // Seems to be unused
 
     public override void PullInternalDimension() => throw new NotImplementedException();
 
@@ -12,29 +27,70 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void PushInternalDimension()
     {
-        var OutputDimension = Dimension switch
+        CellDimension = Dimension switch
         {
             (DIMENSION.DIMENSION_3D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
             (DIMENSION.DIMENSION_1D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1,
             _ => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2,
         };
-        CellDimension = OutputDimension;
+        
+        StoreType = Dimension switch
+        {
+            (DIMENSION.DIMENSION_1D) => StoreType.TYPE_1D,
+            (DIMENSION.DIMENSION_2D) => StoreType.TYPE_2D,
+            (DIMENSION.DIMENSION_3D) => StoreType.TYPE_3D,
+            (DIMENSION.DIMENSION_CUBE) => StoreType.TYPE_CUBE,
+            _ => StoreType.TYPE_2D
+        };
+
+        CubeMapEnable = (StoreType == StoreType.TYPE_CUBE);
     }
 
     public TextureHeaderPS3() : base() {}
 
     public TextureHeaderPS3(string path) : base(path) { }
 
-    public override void PushInternalFlags() => throw new NotImplementedException();
+    public override void PushInternalFlags() 
+    {
+        // Calculate pitch only if DXT and non-power of two texture
+        switch (Format)
+        {
+            case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
+            case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
+            case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
+                if (!DataUtilities.IsPowerOfTwo(Width) || !DataUtilities.IsPowerOfTwo(Height))
+                    DataUtilities.CalculatePitch(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                break;
+            default:
+                break;
+        }
+    }
 
     public override void PushInternalFormat() => throw new NotImplementedException();
 
-    public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
+    public override void WriteToStream(BinaryWriter writer)
+    {
+        writer.Write((byte)Format);
+        writer.Write(MipmapLevels);
+        writer.Write((byte)CellDimension);
+        writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
+        writer.Write(Remap);
+        writer.Write(Width);
+        writer.Write(Height);
+        writer.Write(Depth);
+        writer.Write((byte)Location);
+        writer.Write((byte)0); // Padding
+        writer.Write(Pitch);
+        writer.Write(Offset);
+        writer.Write(Buffer);
+        writer.Write((int)StoreType);
+        writer.Write(StoreFlags);
+    }
 
     public override void ParseFromStream(BinaryReader reader) => throw new NotImplementedException();
 }
 
-public enum CELL_GCM_COLOR_FORMAT : int
+public enum CELL_GCM_COLOR_FORMAT : byte
 {
     CELL_GCM_TEXTURE_B8 = 129,
     CELL_GCM_TEXTURE_A1R5G5B5 = 130,
@@ -70,4 +126,20 @@ public enum CELL_GCM_TEXTURE_DIMENSION : byte
     CELL_GCM_TEXTURE_DIMENSION_1 = 1,
     CELL_GCM_TEXTURE_DIMENSION_2 = 2,
     CELL_GCM_TEXTURE_DIMENSION_3 = 3
+}
+
+public enum CELL_GCM_LOCATION : byte
+{
+    CELL_GCM_LOCATION_LOCAL = 1,    // Local memory
+    CELL_GCM_LOCATION_MAIN = 2      // Main memory 
+}
+
+public enum StoreType : int
+{
+    TYPE_NA = -1,
+    TYPE_1D = 1,
+    TYPE_2D = 2,
+    TYPE_3D = 3,
+    TYPE_CUBE = 0x10002,
+    TYPE_FORCEENUMSIZEINT = 0x7FFFFFFF
 }
