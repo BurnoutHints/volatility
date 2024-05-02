@@ -50,7 +50,7 @@ public static class DataUtilities
         return CgsIDElements;
     }
 
-    public static int CalculatePitch(int width, int blockSize)
+    public static int CalculatePitchPS3(int width, int blockSize)
     {
         int adjustedWidth = (width + 3) / 4;
         int pitch = adjustedWidth * blockSize;
