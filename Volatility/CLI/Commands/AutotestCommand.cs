@@ -1,5 +1,8 @@
+using System.Collections;
+using System.Reflection;
 using Volatility.TextureHeader;
-using Volatility.Utilities;
+
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility;
 
@@ -24,7 +27,7 @@ internal class AutotestCommand : ICommand
             GRTexture = true
         };
 
-        WriteTestHeader("autotest_header_PC.dat", textureHeaderPC);
+        TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
 
         // BPR Texture data test case
         TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
@@ -36,13 +39,15 @@ internal class AutotestCommand : ICommand
             GRTexture = true
         };
 
+        // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
+
         // Write 32 bit test BPR header
-        WriteTestHeader("autotest_header_BPR.dat", textureHeaderPC);
+        TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR, true);
 
         textureHeaderBPR.x64Header = true;
 
         // Write 64 bit test BPR header
-        WriteTestHeader("autotest_header_BPRx64.dat", textureHeaderPC);
+        TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR, true);
 
         // PS3 Texture data test case
         TextureHeaderPS3 textureHeaderPS3 = new TextureHeaderPS3
@@ -54,7 +59,7 @@ internal class AutotestCommand : ICommand
             GRTexture = true
         };
         textureHeaderPS3.PushAll();
-        WriteTestHeader("autotest_header_PS3.dat", textureHeaderPS3);
+        TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
 
         // X360 Texture data test case
         TextureHeaderX360 textureHeaderX360 = new TextureHeaderX360
@@ -73,11 +78,11 @@ internal class AutotestCommand : ICommand
             GRTexture = true
         };
         textureHeaderX360.PushAll();
-        WriteTestHeader("autotest_header_X360.dat", textureHeaderX360);
+        TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
-        Console.WriteLine($"Flipped endian {endianFlipTestName} to {DataUtilities.FlipFileNameEndian(endianFlipTestName)}");
+        Console.WriteLine($"Endian Test: Flipped endian {endianFlipTestName} to {FlipFileNameEndian(endianFlipTestName)}");
     }
 
     public void SetArgs(Dictionary<string, object> args) { }
@@ -91,15 +96,107 @@ internal class AutotestCommand : ICommand
         );
     }
 
-    public void WriteTestHeader(string name, TextureHeaderBase header) 
+    public void TestHeaderRW(string name, TextureHeaderBase header, bool skipImport = false) 
     {
         using (FileStream fs = new FileStream(name, FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
         {
-            header.WriteToStream(writer);
-            writer.Close();
-            fs.Close();
+            // Most aren't implemented and we don't
+            // want the command runner to catch the error
+            try
+            {
+                header.PushAll();
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"Error with PushAll: {ex.Message}");
+                Console.ResetColor();
+            }
+
+            using (BinaryWriter writer = new BinaryWriter(fs))
+            {
+                Console.WriteLine($"Writing autotest {name} to working directory...");
+                header.WriteToStream(writer);
+                writer.Close();
+            }
+
+            if (!skipImport)
+            {
+                Type type = header.GetType();
+
+                var newHeaderObject = System.ComponentModel.TypeDescriptor.CreateInstance(
+                                    provider: null,
+                                    objectType: type,
+                                    argTypes: new Type[] { Type.GetType("System.String") },
+                                    args: new object[] { fs.Name });
+
+                TextureHeaderBase? newHeader = (TextureHeaderBase?)newHeaderObject;
+
+                try
+                {
+                    newHeader?.PullAll();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine($"Error with PullAll: {ex.Message}");
+                    Console.ResetColor();
+                }
+
+                TestCompareHeaders(header, newHeader);
+            }
         }
-        Console.WriteLine($"Wrote autotest {name} to working directory.");
+    }
+
+    public static void TestCompareHeaders(object exported, object imported)
+    {
+        Type type = exported.GetType();
+
+        Console.WriteLine("==  Comparing properties and fields of " + type.Name + ":");
+    
+        PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        foreach (PropertyInfo property in properties)
+        {
+            object value1 = property.GetValue(exported, null);
+            object value2 = property.GetValue(imported, null);
+    
+            if (IsComplexType(property.PropertyType))
+            {
+                Console.WriteLine($" = Inspecting nested type {property.Name}:");
+                TestCompareHeaders(value1, value2);
+                Console.WriteLine($" = Finished inspecting nested type {property.Name}");
+            }
+            else if (!Equals(value1, value2))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Mismatch - {property.Name}: Exported = {value1}, Imported = {value2}");
+                Console.ResetColor();
+            }
+        }
+    
+        FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+        foreach (FieldInfo field in fields)
+        {
+            object value1 = field.GetValue(exported);
+            object value2 = field.GetValue(imported);
+    
+            if (IsComplexType(field.FieldType))
+            {
+                Console.WriteLine($" = Inspecting nested type {field.Name}:");
+                TestCompareHeaders(value1, value2);
+                Console.WriteLine($" = Finished inspecting nested type {field.Name}");
+            }
+            else if (!Equals(value1, value2))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Mismatch - {field.Name}: Exported = {value1}, Imported = {value2}");
+                Console.ResetColor();
+            }
+        }
+        Console.WriteLine("==  Finished Comparing properties and fields of " + type.Name);
+    }
+    public static bool IsComplexType(Type type)
+    {
+        return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
     }
 }
