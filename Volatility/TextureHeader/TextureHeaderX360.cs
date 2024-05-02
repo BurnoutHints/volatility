@@ -1,18 +1,20 @@
 ﻿using System.Collections;
 using Volatility.Utilities;
 
+using static Volatility.Utilities.DataUtilities;
+
 namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
     public BitArray D3DResourceFlags = new BitArray(28);
-    public D3DRESOURCETYPE D3DRESOURCETYPE;
-    public uint ReferenceCount;
+    public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
+    public uint ReferenceCount = 1;
     public uint Fence;
     public uint ReadFence;
     public uint Identifier;
-    public uint BaseFlush;
-    public uint MipFlush;
+    public uint BaseFlush = 65535;
+    public uint MipFlush = 65535;
     public GPUTEXTURE_FETCH_CONSTANT Format;
 
     public TextureHeaderX360() : base() {}
@@ -65,23 +67,17 @@ public class TextureHeaderX360 : TextureHeaderBase
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
-    public override void PushInternalFlags()
-    {
-        Console.WriteLine("TODO: Parse GPUTEXTURE_FETCH_CONSTANT");
-    }
+    public override void PushInternalFlags() { }
 
     public override void PushInternalFormat() 
     {
-        // Not needed for 360
+        Format.Pitch = (ushort)(Format.Size.Width / 32); // Not sure if this is accurate
     }
 
     public override void WriteToStream(BinaryWriter writer)
     {
-        // TODO: Move this to a Common structure function
-        int ResourceType = (byte)D3DRESOURCETYPE & 0b_1111;
-
         int Common = 0;
-        for (int i = 0; i < 28; i++)
+        for (int i = 0; i < D3DResourceFlags.Length; i++)
         {
             if (D3DResourceFlags[i])
             {
@@ -90,17 +86,17 @@ public class TextureHeaderX360 : TextureHeaderBase
         }
 
         Common <<= 4;
-        Common |= ResourceType;
+        Common |= (byte)D3DRESOURCETYPE & 0xF;
 
-        writer.Write(Common);
+        writer.Write(SwapEndian(Common));   // Why is this MSB and the others are LSB?
         writer.Write(ReferenceCount);
         writer.Write(Fence);
         writer.Write(ReadFence);
         writer.Write(Identifier);
         writer.Write(BaseFlush);
         writer.Write(MipFlush);
-        writer.Write(MipFlush);
         writer.Write(Format.PackToBytes());
+        writer.Write(new byte[0xC]);        // Padding that's usually just garbage data.
     }
 
     public override void ParseFromStream(BinaryReader reader)
@@ -233,10 +229,11 @@ public struct GPUTEXTURE_FETCH_CONSTANT
 
     public byte[] PackToBytes()
     {
-        BitWriter writer = new BitWriter(192);
+        BitWriter writer = new BitWriter(0x18);
 
         writer.Write(Tiled ? (uint)1 : 0, 1);
-        writer.Write(Pitch, 10);
+        writer.Write(Pitch, 9);
+        writer.Write(0, 1); // Padding
         writer.Write((uint)MultiSample, 2);
         writer.Write((uint)ClampZ, 3);
         writer.Write((uint)ClampY, 3);
@@ -253,7 +250,8 @@ public struct GPUTEXTURE_FETCH_CONSTANT
         writer.Write((uint)Endian, 2);
         writer.Write((uint)DataFormat, 6);
         writer.Write(SizePacked = Size.ToPacked(), 32);
-        writer.Write(BorderSize, 4);
+        writer.Write(BorderSize, 1);
+        writer.Write(0, 3); // Padding
         writer.Write((uint)AnisoFilter, 3);
         writer.Write((uint)MipFilter, 2);
         writer.Write((uint)MinFilter, 2);
