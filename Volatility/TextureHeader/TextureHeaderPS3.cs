@@ -18,6 +18,10 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public IntPtr Buffer;
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
+    
+    public TextureHeaderPS3() : base() {}
+
+    public TextureHeaderPS3(string path) : base(path) { }
 
     public override void PullInternalDimension() => throw new NotImplementedException();
 
@@ -46,10 +50,6 @@ public class TextureHeaderPS3 : TextureHeaderBase
         CubeMapEnable = (StoreType == StoreType.TYPE_CUBE);
     }
 
-    public TextureHeaderPS3() : base() {}
-
-    public TextureHeaderPS3(string path) : base(path) { }
-
     public override void PushInternalFlags() 
     {
         // Calculate pitch only if DXT and non-power of two texture
@@ -58,15 +58,14 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                if (!IsPowerOfTwo(Width) || !IsPowerOfTwo(Height))
-                    CalculatePitch(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                CalculatePitch(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;
         }
     }
 
-    public override void PushInternalFormat() => throw new NotImplementedException();
+    public override void PushInternalFormat() { /* TODO But don't throw an error! */ }
 
     public override void WriteToStream(BinaryWriter writer)
     {
