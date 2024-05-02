@@ -13,7 +13,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     public uint Identifier;
     public uint BaseFlush;
     public uint MipFlush;
-    public GPUTEXTURE_FETCH_CONSTANT GPUTEXTURE_FETCH_CONSTANT;
+    public GPUTEXTURE_FETCH_CONSTANT Format;
 
     public TextureHeaderX360() : base() {}
     
@@ -21,7 +21,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     
     public override void PullInternalDimension()
     {
-        DIMENSION OutputDimension = GPUTEXTURE_FETCH_CONSTANT.Dimension switch
+        DIMENSION OutputDimension = Format.Dimension switch
         {
             GPUDIMENSION.GPUDIMENSION_1D => DIMENSION.DIMENSION_1D,
             GPUDIMENSION.GPUDIMENSION_3D => DIMENSION.DIMENSION_3D,
@@ -37,7 +37,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     {
         // TODO: Implement better parser
         // Not accurate. Only prevents 3D & cubemaps from being GR/Prop Textures
-        GRTexture = PropTexture = GPUTEXTURE_FETCH_CONSTANT.Dimension switch
+        GRTexture = PropTexture = Format.Dimension switch
         {
             GPUDIMENSION.GPUDIMENSION_1D => true,
             GPUDIMENSION.GPUDIMENSION_3D => false,
@@ -61,7 +61,7 @@ public class TextureHeaderX360 : TextureHeaderBase
             DIMENSION.DIMENSION_CUBE => GPUDIMENSION.GPUDIMENSION_CUBEMAP,
             _ => GPUDIMENSION.GPUDIMENSION_2D,
         };
-        GPUTEXTURE_FETCH_CONSTANT.Dimension = OutputDimension;
+        Format.Dimension = OutputDimension;
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
@@ -75,7 +75,33 @@ public class TextureHeaderX360 : TextureHeaderBase
         // Not needed for 360
     }
 
-    public override void WriteToStream(BinaryWriter writer) => throw new NotImplementedException();
+    public override void WriteToStream(BinaryWriter writer)
+    {
+        // TODO: Move this to a Common structure function
+        int ResourceType = (byte)D3DRESOURCETYPE & 0b_1111;
+
+        int Common = 0;
+        for (int i = 0; i < 28; i++)
+        {
+            if (D3DResourceFlags[i])
+            {
+                Common |= 1 << i;
+            }
+        }
+
+        Common <<= 4;
+        Common |= ResourceType;
+
+        writer.Write(Common);
+        writer.Write(ReferenceCount);
+        writer.Write(Fence);
+        writer.Write(ReadFence);
+        writer.Write(Identifier);
+        writer.Write(BaseFlush);
+        writer.Write(MipFlush);
+        writer.Write(MipFlush);
+        writer.Write(Format.PackToBytes());
+    }
 
     public override void ParseFromStream(BinaryReader reader)
     {
@@ -97,7 +123,7 @@ public class TextureHeaderX360 : TextureHeaderBase
         
         // Format
         reader.BaseStream.Seek(28, SeekOrigin.Begin);
-        GPUTEXTURE_FETCH_CONSTANT = GPUTEXTURE_FETCH_CONSTANT.FromPacked(reader.ReadBytes(24));
+        Format = new GPUTEXTURE_FETCH_CONSTANT().FromPacked(reader.ReadBytes(24));
     }
 }
 
@@ -120,7 +146,7 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public GPUREQUESTSIZE RequestSize;        // 2 bits
     public GPUENDIAN Endian;                  // 2 bits
     public GPUTEXTUREFORMAT DataFormat;       // 6 bits
-    public dynamic Size;                      // 32 bits, GPUTEXTURESIZE union
+    public GPUTEXTURESIZE Size;               // 32 bits, GPUTEXTURESIZE union
     public byte BorderSize;                   // 1 bit, 3 bit padding
     public GPUANISOFILTER AnisoFilter;        // 3 bits
     public GPUMIPFILTER MipFilter;            // 2 bits
@@ -149,7 +175,9 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public bool ForceBCWToMax;                // 1 bit
     public GPUBORDERCOLOR BorderColor;        // 2 bits
 
-    public static GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
+    private uint SizePacked;                   // Should only be used when reading/writing
+
+    public GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
     {
         using BitReader bitReader = new BitReader(bytes);
         return new GPUTEXTURE_FETCH_CONSTANT
@@ -171,7 +199,7 @@ public struct GPUTEXTURE_FETCH_CONSTANT
             RequestSize = (GPUREQUESTSIZE)bitReader.ReadBitsToUInt(2),
             Endian = (GPUENDIAN)bitReader.ReadBitsToUInt(2),
             DataFormat = (GPUTEXTUREFORMAT)bitReader.ReadBitsToUInt(6),
-            Size = bitReader.ReadBitsToUInt(32), // Assumes dynamic is handled as uint here
+            SizePacked = bitReader.ReadBitsToUInt(32), // Assumes dynamic is handled as uint here
             BorderSize = (byte)bitReader.ReadBitsToUInt(4), // 1 bit + 3 bits padding
             AnisoFilter = (GPUANISOFILTER)bitReader.ReadBitsToUInt(3),
             MipFilter = (GPUMIPFILTER)bitReader.ReadBitsToUInt(2),
@@ -198,9 +226,128 @@ public struct GPUTEXTURE_FETCH_CONSTANT
             AnisoBias = (byte)bitReader.ReadBitsToUInt(4),
             TriClamp = (GPUTRICLAMP)bitReader.ReadBitsToUInt(2),
             ForceBCWToMax = bitReader.ReadBitsToUInt(1) != 0,
-            BorderColor = (GPUBORDERCOLOR)bitReader.ReadBitsToUInt(2)
+            BorderColor = (GPUBORDERCOLOR)bitReader.ReadBitsToUInt(2),
+            Size = Size.FromPacked(SizePacked, Dimension)
         };
     }
+
+    public byte[] PackToBytes()
+    {
+        BitWriter writer = new BitWriter(192);
+
+        writer.Write(Tiled ? (uint)1 : 0, 1);
+        writer.Write(Pitch, 10);
+        writer.Write((uint)MultiSample, 2);
+        writer.Write((uint)ClampZ, 3);
+        writer.Write((uint)ClampY, 3);
+        writer.Write((uint)ClampX, 3);
+        writer.Write((uint)SignW, 2);
+        writer.Write((uint)SignZ, 2);
+        writer.Write((uint)SignY, 2);
+        writer.Write((uint)SignX, 2);
+        writer.Write((uint)Type, 2);
+        writer.Write(BaseAddress, 20);
+        writer.Write((uint)ClampPolicy, 1);
+        writer.Write(Stacked ? (uint)1 : 0, 1);
+        writer.Write((uint)RequestSize, 2);
+        writer.Write((uint)Endian, 2);
+        writer.Write((uint)DataFormat, 6);
+        writer.Write(SizePacked = Size.ToPacked(), 32);
+        writer.Write(BorderSize, 4);
+        writer.Write((uint)AnisoFilter, 3);
+        writer.Write((uint)MipFilter, 2);
+        writer.Write((uint)MinFilter, 2);
+        writer.Write((uint)MagFilter, 2);
+        writer.Write(ExpAdjust, 6);
+        writer.Write((uint)SwizzleW, 3);
+        writer.Write((uint)SwizzleZ, 3);
+        writer.Write((uint)SwizzleY, 3);
+        writer.Write((uint)SwizzleX, 3);
+        writer.Write((uint)NumFormat, 1);
+        writer.Write(GradExpAdjustV, 5);
+        writer.Write(GradExpAdjustH, 5);
+        writer.Write(LODBias, 10);
+        writer.Write(MinAnisoWalk ? (uint)1 : 0, 1);
+        writer.Write(MagAnisoWalk ? (uint)1 : 0, 1);
+        writer.Write(MaxMipLevel, 4);
+        writer.Write(MinMipLevel, 4);
+        writer.Write((uint)VolMinFilter, 1);
+        writer.Write((uint)VolMagFilter, 1);
+        writer.Write(MipAddress, 20);
+        writer.Write(PackedMips ? (uint)1 : 0, 1);
+        writer.Write((uint)Dimension, 2);
+        writer.Write(AnisoBias, 4);
+        writer.Write((uint)TriClamp, 2);
+        writer.Write(ForceBCWToMax ? (uint)1 : 0, 1);
+        writer.Write((uint)BorderColor, 2);
+
+        return writer.ToArray();
+    }
+}
+
+public struct GPUTEXTURESIZE
+{
+    public GPUTEXTURESIZE_TYPE Type;
+    public uint Width;
+    public uint Height;
+    public uint Depth;
+
+    public GPUTEXTURESIZE FromPacked(uint packed, GPUDIMENSION Dimension)
+    {
+        Type = (GPUTEXTURESIZE_TYPE)Dimension; // May be inaccurate due to STACK
+        switch (Type)
+        {
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D:
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK:
+                Width = packed & 0x1FFF;
+                Height = (packed >> 13) & 0x1FFF;
+                Depth = Type == GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK ? (packed >> 26) & 0x3F : 0;
+                break;
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D:
+                Width = packed & 0xFFFFFF;
+                break;
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D:
+                Width = packed & 0x7FF;
+                Height = (packed >> 11) & 0x7FF;
+                Depth = (packed >> 22) & 0x3FF; 
+                break;
+        }
+        return this;
+    }
+
+    public uint ToPacked()
+    {
+        uint packed = 0;
+        switch (Type)
+        {
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D:
+                packed |= (Width & 0xFFFFFF);
+                break;
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D:
+                packed |= Width & 0x1FFF;
+                packed |= (Height & 0x1FFF) << 13;
+                break;
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D:
+                packed |= Width & 0x7FF;
+                packed |= (Height & 0x7FF) << 11;
+                packed |= (Depth & 0x3FF) << 22;
+                break;
+            case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK:
+                packed |= Width & 0x1FFF;
+                packed |= (Height & 0x1FFF) << 13;
+                packed |= (Depth & 0x3F) << 26;
+                break;
+        }
+        return packed;
+    }
+}
+
+public enum GPUTEXTURESIZE_TYPE : byte
+{
+    GPUTEXTURESIZE_1D = 0,
+    GPUTEXTURESIZE_2D = 1,
+    GPUTEXTURESIZE_3D = 2,
+    GPUTEXTURESIZE_STACK = 3
 }
 
 public enum D3DRESOURCETYPE : byte      // 4 bit value
