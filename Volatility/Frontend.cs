@@ -49,15 +49,18 @@ internal class Frontend
         {
             Console.Write("volatility> ");
             var input = Console.ReadLine();
-            
-            try
+
+            if (!string.IsNullOrEmpty(input)) 
             {
-                var command = ParseCommand(input);
-                command.Execute();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
+                try
+                {
+                    var command = ParseCommand(input);
+                    command.Execute();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
             }
         }
     }
@@ -146,7 +149,7 @@ internal class Frontend
 
         if (helpMode)
         {
-            command.ShowUsage();     
+            command.ShowUsage();
             command = new NullCommand();
         }
 
