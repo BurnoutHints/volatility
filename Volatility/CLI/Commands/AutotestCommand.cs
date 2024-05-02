@@ -53,8 +53,27 @@ internal class AutotestCommand : ICommand
             MipmapLevels = 11,
             GRTexture = true
         };
+        textureHeaderPS3.PushAll();
         WriteTestHeader("autotest_header_PS3.dat", textureHeaderPS3);
 
+        // X360 Texture data test case
+        TextureHeaderX360 textureHeaderX360 = new TextureHeaderX360
+        {
+            Format = new GPUTEXTURE_FETCH_CONSTANT
+            {
+                Size = new GPUTEXTURESIZE
+                {
+                    Width = 1024,
+                    Height = 512,
+                    Type = GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D
+                },
+                MaxMipLevel = 10,
+                MinMipLevel = 0,
+            },
+            GRTexture = true
+        };
+        textureHeaderX360.PushAll();
+        WriteTestHeader("autotest_header_X360.dat", textureHeaderX360);
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
@@ -81,5 +100,6 @@ internal class AutotestCommand : ICommand
             writer.Close();
             fs.Close();
         }
+        Console.WriteLine($"Wrote autotest {name} to working directory.");
     }
 }
