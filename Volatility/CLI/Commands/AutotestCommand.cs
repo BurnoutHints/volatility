@@ -8,8 +8,29 @@ namespace Volatility;
 
 internal class AutotestCommand : ICommand
 {
+    public string? Format { get; set; }
+    public string? Path { get; set; }
+
     public void Execute()
     {
+        if (!string.IsNullOrEmpty(Path))
+        {
+            TextureHeaderBase? header = Format switch
+            {
+                "BPR" => new TextureHeaderBPR(Path),
+                "TUB" => new TextureHeaderPC(Path),
+                "X360" => new TextureHeaderX360(Path),
+                "PS3" => new TextureHeaderPS3(Path),
+                _ => throw new InvalidPlatformException(),
+            };
+
+            header.PullAll();
+
+            TestHeaderRW($"autotest_{System.IO.Path.GetFileName(Path)}", header);
+
+            return;
+        }
+
         /*
          * Right now, the autotest simply creates
          * example texture classes akin to what the parser
@@ -74,6 +95,7 @@ internal class AutotestCommand : ICommand
                 },
                 MaxMipLevel = 10,
                 MinMipLevel = 0,
+                Tiled = true,
             },
             GRTexture = true
         };
@@ -85,14 +107,19 @@ internal class AutotestCommand : ICommand
         Console.WriteLine($"Endian Test: Flipped endian {endianFlipTestName} to {FlipFileNameEndian(endianFlipTestName)}");
     }
 
-    public void SetArgs(Dictionary<string, object> args) { }
+    public void SetArgs(Dictionary<string, object> args)
+    {
+        Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
+        Path = args.TryGetValue("path", out object? path) ? path as string : "";
+    }
 
     public void ShowUsage()
     {
         Console.WriteLine
         (
-            "Usage: autotest" +
-            "\nRuns a series of automatic tests to ensure the application is working correctly."
+            "Usage: autotest [--format=<tub,bpr,x360,ps3>] [--path=<file path>]" +
+            "\nRuns a series of automatic tests to ensure the application is working correctly." +
+            "\nWhen provided a path and format, will import, export, then reimport file to ensure IO parity."
         );
     }
 

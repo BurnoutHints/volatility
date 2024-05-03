@@ -172,6 +172,8 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public GPUBORDERCOLOR BorderColor;        // 2 bits
 
     private uint SizePacked;                   // Should only be used when reading/writing
+    private byte Padding1;
+    private byte Padding2;
 
     public GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
     {
@@ -179,7 +181,8 @@ public struct GPUTEXTURE_FETCH_CONSTANT
         return new GPUTEXTURE_FETCH_CONSTANT
         {
             Tiled = bitReader.ReadBitsToUInt(1) != 0,
-            Pitch = (ushort)bitReader.ReadBitsToUInt(10), // 9 bits + 1 bit padding
+            Pitch = (ushort)bitReader.ReadBitsToUInt(9), // 9 bits + 1 bit padding
+            Padding1 = (byte)bitReader.ReadBitsToUInt(1),
             MultiSample = (GPUMULTISAMPLE_TYPE)bitReader.ReadBitsToUInt(2),
             ClampZ = (GPUCLAMP)bitReader.ReadBitsToUInt(3),
             ClampY = (GPUCLAMP)bitReader.ReadBitsToUInt(3),
@@ -195,8 +198,9 @@ public struct GPUTEXTURE_FETCH_CONSTANT
             RequestSize = (GPUREQUESTSIZE)bitReader.ReadBitsToUInt(2),
             Endian = (GPUENDIAN)bitReader.ReadBitsToUInt(2),
             DataFormat = (GPUTEXTUREFORMAT)bitReader.ReadBitsToUInt(6),
-            SizePacked = bitReader.ReadBitsToUInt(32), // Assumes dynamic is handled as uint here
-            BorderSize = (byte)bitReader.ReadBitsToUInt(4), // 1 bit + 3 bits padding
+            SizePacked = bitReader.ReadBitsToUInt(32),
+            BorderSize = (byte)bitReader.ReadBitsToUInt(1), // 1 bit + 3 bits padding
+            Padding2 = (byte)bitReader.ReadBitsToUInt(3),
             AnisoFilter = (GPUANISOFILTER)bitReader.ReadBitsToUInt(3),
             MipFilter = (GPUMIPFILTER)bitReader.ReadBitsToUInt(2),
             MinFilter = (GPUMINMAGFILTER)bitReader.ReadBitsToUInt(2),
