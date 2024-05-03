@@ -119,7 +119,7 @@ internal class AutotestCommand : ICommand
         (
             "Usage: autotest [--format=<tub,bpr,x360,ps3>] [--path=<file path>]" +
             "\nRuns a series of automatic tests to ensure the application is working correctly." +
-            "\nWhen provided a path and format, will import, export, then reimport file to ensure IO parity."
+            "\nWhen provided a path & format, will import, export, then reimport specified file to ensure IO parity."
         );
     }
 
