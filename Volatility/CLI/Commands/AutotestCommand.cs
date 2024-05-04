@@ -4,10 +4,15 @@ using Volatility.TextureHeader;
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility;
+namespace Volatility.CLI.Commands;
 
 internal class AutotestCommand : ICommand
 {
+    public string CommandToken => "autotest";
+    public string CommandDescription => "Runs a series of automatic tests to ensure the application is working correctly." +
+            "\nWhen provided a path & format, will import, export, then reimport specified file to ensure IO parity.";
+    public string CommandParameters => "[--format=<tub,bpr,x360,ps3>] [--path=<file path>]";
+
     public string? Format { get; set; }
     public string? Path { get; set; }
 
@@ -44,7 +49,7 @@ internal class AutotestCommand : ICommand
             Format = D3DFORMAT.D3DFMT_DXT1,
             Width = 1024,
             Height = 512,
-            MipLevels = 11,
+            MipmapLevels = 11,
             GRTexture = true
         };
 
@@ -111,16 +116,6 @@ internal class AutotestCommand : ICommand
     {
         Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
         Path = args.TryGetValue("path", out object? path) ? path as string : "";
-    }
-
-    public void ShowUsage()
-    {
-        Console.WriteLine
-        (
-            "Usage: autotest [--format=<tub,bpr,x360,ps3>] [--path=<file path>]" +
-            "\nRuns a series of automatic tests to ensure the application is working correctly." +
-            "\nWhen provided a path & format, will import, export, then reimport specified file to ensure IO parity."
-        );
     }
 
     public void TestHeaderRW(string name, TextureHeaderBase header, bool skipImport = false) 

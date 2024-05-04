@@ -5,13 +5,9 @@ namespace Volatility.TextureHeader;
 public class TextureHeaderPS3 : TextureHeaderBase
 {
     public CELL_GCM_COLOR_FORMAT Format;
-    public byte MipmapLevels;
     public CELL_GCM_TEXTURE_DIMENSION CellDimension;
     public bool CubeMapEnable;
     public uint Remap;                 // TODO
-    public ushort Width;
-    public ushort Height;
-    public ushort Depth = 1;           // Always 1 in Burnout
     public CELL_GCM_LOCATION Location;
     public uint Pitch;
     public uint Offset;
@@ -25,7 +21,10 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void PullInternalDimension() => throw new NotImplementedException();
 
-    public override void PullInternalFlags() => throw new NotImplementedException();
+    public override void PullInternalFlags()
+    {
+        base.PullInternalFlags();
+    }
 
     public override void PullInternalFormat() => throw new NotImplementedException();
 
@@ -58,7 +57,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                CalculatePitchPS3((int)Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;
@@ -74,9 +73,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write((byte)CellDimension);
         writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
         writer.Write(Remap); // Does this need to be swapped?
-        writer.Write(SwapEndian(Width));
-        writer.Write(SwapEndian(Height));
-        writer.Write(SwapEndian(Depth));
+        writer.Write(SwapEndian((ushort)Width));
+        writer.Write(SwapEndian((ushort)Height));
+        writer.Write(SwapEndian((ushort)Depth));
         writer.Write((byte)Location);
         writer.Write((byte)0); // Padding
         writer.Write(SwapEndian(Pitch));

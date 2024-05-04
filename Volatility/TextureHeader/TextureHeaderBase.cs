@@ -2,6 +2,13 @@
 
 public abstract class TextureHeaderBase
 {
+    public uint Width { get; set; }
+    public uint Height { get; set; }
+    public uint Depth { get; set; }
+    public byte MipmapLevels { get; set; }
+
+    public string ImportPath;
+
     protected bool _GRTexture = false;
     public bool GRTexture       // Vehicle & Wheel GRs 
     {
@@ -47,7 +54,18 @@ public abstract class TextureHeaderBase
     public abstract void PushInternalFormat();
     public abstract void PullInternalFormat();
     public abstract void PushInternalFlags();
-    public abstract void PullInternalFlags();
+    public virtual void PullInternalFlags()
+    {
+        if (!string.IsNullOrEmpty(ImportPath))
+        {
+            // Two directories up
+            string Folder = new DirectoryInfo(path: ImportPath).Parent.Parent.Name;
+            WorldTexture = Folder.StartsWith("TRK_") || Folder.Contains("BACKDROP") || Folder.Contains("WORLDTEX");
+            GRTexture = Folder.EndsWith("_GR");
+            PropTexture = Folder.Contains("PROPS");
+        }
+    }
+
     public virtual void PullAll()
     {
         PullInternalDimension();
@@ -66,6 +84,7 @@ public abstract class TextureHeaderBase
     
     public TextureHeaderBase(string path)
     {
+        ImportPath = path;
         using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
         {
             ParseFromStream(reader);

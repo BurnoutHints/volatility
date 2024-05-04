@@ -39,7 +39,11 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override void PushInternalFormat() => throw new NotImplementedException();
     public override void PullInternalFormat() => throw new NotImplementedException();
     public override void PushInternalFlags() { /* throw new NotImplementedException(); */ }
-    public override void PullInternalFlags() => throw new NotImplementedException();
+    public override void PullInternalFlags() 
+    {
+        base.PullInternalFlags();
+    }
+
     public override void WriteToStream(BinaryWriter writer)
     {
         writer.Write(x64Switch(x64Header, TextureInterfacePtr));              // 64 bit

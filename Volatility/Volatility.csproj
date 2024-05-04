@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -11,5 +11,17 @@
   <ItemGroup>
     <Content Include="volatility_icon.ico" />
   </ItemGroup>
+
+	<PropertyGroup>
+		<BuildTimestamp>$([System.DateTime]::Now.ToString("yyyy/MM/dd HH:mm:ss"))</BuildTimestamp>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>BuildTimestamp</_Parameter1>
+			<_Parameter2>$(BuildTimestamp)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
+
 
 </Project>

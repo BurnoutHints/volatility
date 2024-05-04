@@ -1,4 +1,7 @@
-﻿namespace Volatility;
+﻿using System.Reflection;
+using Volatility.CLI.Commands;
+
+namespace Volatility;
 
 internal class Frontend
 {
@@ -45,6 +48,20 @@ internal class Frontend
 
     static void CommandLine()
     {
+        var buildTimestamp = "";
+
+        var assembly = Assembly.GetExecutingAssembly();
+        foreach (var attribute in assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
+        {
+            if (attribute.Key == "BuildTimestamp")
+            {
+                buildTimestamp = attribute.Value;
+                break;
+            }
+        }
+
+        Console.WriteLine($"Volatility {assembly.GetName().Version} - Build Date: {buildTimestamp}\n");
+
         while (true)
         {
             Console.Write("volatility> ");
@@ -144,6 +161,7 @@ internal class Frontend
             "importraw" => new ImportRawCommand(),
             "autotest" => new AutotestCommand(),
             "help" => new HelpCommand(),
+            "porttexture" => new PortTextureCommand(),
             _ => throw new InvalidOperationException("Unknown command.")
         };
 

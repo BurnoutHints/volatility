@@ -1,4 +1,5 @@
 ﻿using System.Text;
+
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.TextureHeader;
@@ -23,10 +24,6 @@ public class TextureHeaderPC : TextureHeaderBase
     public byte Unknown1;                       // Flags
     public byte Unknown2;                       // Flags
     private byte[] OutputFormat = new byte[4];  // Needs to be 4 bytes long
-    public ushort Width;                        // Width in px
-    public ushort Height;                       // Height in px
-    public readonly byte Depth = 1;             // Always 1 for Burnout textures
-    public byte MipLevels;                      // Amount of mipmaps
     public TEXTURETYPE TextureType;             // Dimension in BPR
     public byte Flags;                          // Flags
 
@@ -45,10 +42,14 @@ public class TextureHeaderPC : TextureHeaderBase
         writer.Write(Unknown1);     // Unknown
         writer.Write(Unknown2);     // Unknown
         writer.Write(OutputFormat);
-        writer.Write(Width);
-        writer.Write(Height);
-        writer.Write(Depth);
-        writer.Write(MipLevels);
+
+        // Not validated!!
+        // TODO: Validate correct variable size
+        writer.Write((ushort)Width);
+        writer.Write((ushort)Height);
+        writer.Write((byte)Depth);
+        writer.Write((byte)MipmapLevels);
+
         writer.Write((byte)TextureType);
         writer.Write(Flags);
         writer.Write(new byte[4]);  // Padding
@@ -65,7 +66,7 @@ public class TextureHeaderPC : TextureHeaderBase
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();
         reader.BaseStream.Seek(1, SeekOrigin.Current);            
-        MipLevels = reader.ReadByte();
+        MipmapLevels = reader.ReadByte();
         TextureType = (TEXTURETYPE)reader.ReadByte();
         Flags = reader.ReadByte();
         // Skip reading 4 byte padding
@@ -116,6 +117,9 @@ public class TextureHeaderPC : TextureHeaderBase
         
         // We're just a prop in this cruel game of life
         PropTexture = (Unknown1 == 0 && Unknown2 != 0 && Flags != 0);
+
+        // Run after, if directory exists then we use that instead
+        base.PullInternalFlags();
     }
 
     public override void PushInternalDimension()

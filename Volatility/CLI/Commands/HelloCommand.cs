@@ -1,8 +1,12 @@
-namespace Volatility;
+namespace Volatility.CLI.Commands;
 
 // This is a command to test parsing string and boolean arguments.
 internal class HelloCommand : ICommand
 {
+    public string CommandToken => "hello";
+    public string CommandDescription => "NOTE: This is a test command, and will be removed later.";
+    public string CommandParameters => "[--name <name>] [--loud]";
+
     public string? Name { get; set; }
     public bool Loud { get; set; }
 
@@ -19,14 +23,5 @@ internal class HelloCommand : ICommand
     {
         Name = args.TryGetValue("name", out object? name) ? name as string : "World";
         Loud = args.TryGetValue("loud", out var loud) && (bool)loud;
-    }
-
-    public void ShowUsage()
-    {
-        Console.WriteLine
-        (
-            "Usage: hello [--name <name>] [--loud]" +
-            "\nNOTE: This is a test command, and will be removed later."
-        );
     }
 }
