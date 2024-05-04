@@ -14,6 +14,9 @@
 
 	<PropertyGroup>
 		<BuildTimestamp>$([System.DateTime]::Now.ToString("yyyy/MM/dd HH:mm:ss"))</BuildTimestamp>
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishTrimmed>true</PublishTrimmed>
+		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
 	</PropertyGroup>
 
 	<ItemGroup>
