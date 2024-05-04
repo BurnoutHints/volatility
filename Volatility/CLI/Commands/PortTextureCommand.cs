@@ -34,19 +34,36 @@ internal class PortTextureCommand : ICommand
 
         // Manual header format conversion
         var technique = $"{SourceFormat}>>{DestinationFormat}";
-        ((TextureHeaderPC)DestinationTexture).Format = technique switch
+        bool flipEndian = false;
+        switch (technique) 
         {
-            "X360>>TUB" => GPUTEXTUREFORMATtoD3DFORMAT(((TextureHeaderX360)SourceTexture).Format.DataFormat),
-            _ => throw new NotImplementedException($"Conversion technique {technique} is not yet implemented."),
+            case "PS3>>BPR":
+                PS3toBPRMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out DXGI_FORMAT ps3bprFormat);
+                (DestinationTexture as TextureHeaderBPR).Format = ps3bprFormat;
+                flipEndian = true;
+                break;
+            case "PS3>>TUB":
+                PS3toTUBMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out D3DFORMAT ps3tubFormat);
+                (DestinationTexture as TextureHeaderPC).Format = ps3tubFormat;
+                flipEndian = true;
+                break;
+            case "X360>>TUB":
+                X360ToTUBMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out D3DFORMAT x360tubFormat);
+                (DestinationTexture as TextureHeaderPC).Format = x360tubFormat;
+                flipEndian = true;
+                break;
+            default:
+                throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
         };
-        ;
 
         // Finalize Destination
         DestinationTexture.PushAll();
 
+        string outCgsFilename = flipEndian ? FlipFileNameEndian(Path.GetFileName(DestinationPath)) : Path.GetFileName(DestinationPath);
+
         if (DestinationPath == SourcePath)
         {
-            DestinationPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{FlipFileNameEndian(Path.GetFileName(DestinationPath))}";
+            DestinationPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{outCgsFilename}";
         }
 
         using FileStream fs = new FileStream(DestinationPath, FileMode.Create, FileAccess.Write);
@@ -69,7 +86,7 @@ internal class PortTextureCommand : ICommand
 
         try
         {
-            if (((TextureHeaderX360)SourceTexture).Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
+            if ((SourceTexture as TextureHeaderX360).Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
             {
                 Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
                 X360TextureUtilities.WriteUntiled360TextureFile((TextureHeaderX360)SourceTexture, sourceBitmapPath, destinationBitmapPath);
@@ -79,6 +96,7 @@ internal class PortTextureCommand : ICommand
                 Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
                 File.Copy(sourceBitmapPath, destinationBitmapPath, true);
             }
+            Console.WriteLine($"Wrote texture bitmap data to destination directory.");
         }
         catch (Exception ex)
         {
@@ -86,7 +104,6 @@ internal class PortTextureCommand : ICommand
             Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(SourcePath)}: {ex.Message}");
             Console.ResetColor();
         }
-        Console.WriteLine($"Wrote texture bitmap data to destination directory.");
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(SourcePath)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(DestinationPath)}.");
@@ -132,19 +149,39 @@ internal class PortTextureCommand : ICommand
     }
 
 
-    private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> formatMappings = new Dictionary<GPUTEXTUREFORMAT, D3DFORMAT>
+    private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> X360ToTUBMapping = new Dictionary<GPUTEXTUREFORMAT, D3DFORMAT>
     {
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, D3DFORMAT.D3DFMT_DXT1 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, D3DFORMAT.D3DFMT_DXT3 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5, D3DFORMAT.D3DFMT_DXT5 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8, D3DFORMAT.D3DFMT_A8 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_16_16, D3DFORMAT.D3DFMT_A16B16G16R16 },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8, D3DFORMAT.D3DFMT_A8R8G8B8 },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, D3DFORMAT> PS3toTUBMapping = new Dictionary<CELL_GCM_COLOR_FORMAT, D3DFORMAT>
+    {
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, D3DFORMAT.D3DFMT_DXT1 },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, D3DFORMAT.D3DFMT_DXT3 },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45, D3DFORMAT.D3DFMT_DXT5 },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8, D3DFORMAT.D3DFMT_A8 },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8, D3DFORMAT.D3DFMT_A8R8G8B8 },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT> PS3toBPRMapping = new Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT>
+    {
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45, DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM },
+        { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8, DXGI_FORMAT.DXGI_FORMAT_A8_UNORM },
         // TODO: Add more mappings
     };
 
     public static D3DFORMAT GPUTEXTUREFORMATtoD3DFORMAT(GPUTEXTUREFORMAT gpuFormat)
     {
-        if (formatMappings.TryGetValue(gpuFormat, out D3DFORMAT d3dFormat))
+        if (X360ToTUBMapping.TryGetValue(gpuFormat, out D3DFORMAT d3dFormat))
         {
             return d3dFormat;
         }
