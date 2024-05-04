@@ -87,6 +87,8 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void ParseFromStream(BinaryReader reader)
     {
+        base.ParseFromStream(reader);
+
         Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();

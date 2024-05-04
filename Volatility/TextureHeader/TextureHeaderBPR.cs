@@ -67,6 +67,7 @@ public class TextureHeaderBPR : TextureHeaderBase
     
     public override void ParseFromStream(BinaryReader reader)
     {
+        base.ParseFromStream(reader);
         throw new NotImplementedException();
     }
     

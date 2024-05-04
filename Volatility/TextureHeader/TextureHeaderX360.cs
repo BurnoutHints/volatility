@@ -119,6 +119,8 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public override void ParseFromStream(BinaryReader reader)
     {
+        base.ParseFromStream(reader);
+
         // Common
         using (BitReader bitReader = new BitReader(reader.ReadBytes(4)))
         {

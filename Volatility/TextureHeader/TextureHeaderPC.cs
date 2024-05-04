@@ -57,6 +57,8 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void ParseFromStream(BinaryReader reader)
     {
+        base.ParseFromStream(reader);
+
         reader.BaseStream.Seek(8, SeekOrigin.Begin);    // Skip over Data & Interface pointers
         Unknown0 = reader.ReadUInt32();
         reader.BaseStream.Seek(2, SeekOrigin.Current);  // Skip over MemoryClass

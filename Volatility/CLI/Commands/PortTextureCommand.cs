@@ -20,20 +20,26 @@ internal class PortTextureCommand : ICommand
 
     public void Execute()
     {
-        var SourceTexture = ConstructHeader(SourcePath, SourceFormat);
-        var DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat);
+        TextureHeaderBase SourceTexture = ConstructHeader(SourcePath, SourceFormat);
+        TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat);
+        
+        if (SourceTexture == null || DestinationTexture == null)
+        {
+            throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
+        }
 
         SourceTexture.PullAll();
 
         CopyBaseClassProperties(SourceTexture, DestinationTexture);
 
         // Manual header format conversion
-        switch ($"{SourceFormat}>>{DestinationFormat}")
+        var technique = $"{SourceFormat}>>{DestinationFormat}";
+        ((TextureHeaderPC)DestinationTexture).Format = technique switch
         {
-            case "X360>>TUB":
-                ((TextureHeaderPC)DestinationTexture).Format = GPUTEXTUREFORMATtoD3DFORMAT(((TextureHeaderX360)SourceTexture).Format.DataFormat);
-                break;
+            "X360>>TUB" => GPUTEXTUREFORMATtoD3DFORMAT(((TextureHeaderX360)SourceTexture).Format.DataFormat),
+            _ => throw new NotImplementedException($"Conversion technique {technique} is not yet implemented."),
         };
+        ;
 
         // Finalize Destination
         DestinationTexture.PushAll();

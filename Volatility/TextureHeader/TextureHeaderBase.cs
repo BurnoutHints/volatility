@@ -1,4 +1,6 @@
-﻿namespace Volatility.TextureHeader;
+﻿using System.IO;
+
+namespace Volatility.TextureHeader;
 
 public abstract class TextureHeaderBase
 {
@@ -7,7 +9,7 @@ public abstract class TextureHeaderBase
     public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
-    public string ImportPath;
+    public string? ImportPath;
 
     protected bool _GRTexture = false;
     public bool GRTexture       // Vehicle & Wheel GRs 
@@ -56,13 +58,21 @@ public abstract class TextureHeaderBase
     public abstract void PushInternalFlags();
     public virtual void PullInternalFlags()
     {
+        
         if (!string.IsNullOrEmpty(ImportPath))
         {
+            string folder = "";
+            var directoryInfo = new DirectoryInfo(ImportPath);
+
             // Two directories up
-            string Folder = new DirectoryInfo(path: ImportPath).Parent.Parent.Name;
-            WorldTexture = Folder.StartsWith("TRK_") || Folder.Contains("BACKDROP") || Folder.Contains("WORLDTEX");
-            GRTexture = Folder.EndsWith("_GR");
-            PropTexture = Folder.Contains("PROPS");
+            if (directoryInfo.Parent?.Parent != null)
+            {
+                folder = directoryInfo.Parent.Parent.Name;
+
+                WorldTexture = folder.StartsWith("TRK_") || folder.Contains("BACKDROP") || folder.Contains("WORLDTEX");
+                GRTexture = folder.EndsWith("_GR");
+                PropTexture = folder.Contains("PROPS");
+            }
         }
     }
 
@@ -79,12 +89,9 @@ public abstract class TextureHeaderBase
         PushInternalFlags();
     }
     public abstract void WriteToStream(BinaryWriter writer);
-    public abstract void ParseFromStream(BinaryReader reader);
-    public TextureHeaderBase() 
-    {
-        Depth = 1;
-    }
-    
+    public virtual void ParseFromStream(BinaryReader reader) { }
+    public TextureHeaderBase() => Depth = 1;
+
     public TextureHeaderBase(string path)
     {
         ImportPath = path;
