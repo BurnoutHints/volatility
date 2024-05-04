@@ -52,8 +52,15 @@ internal class PortTextureCommand : ICommand
         using FileStream fs = new FileStream(DestinationPath, FileMode.Create, FileAccess.Write);
         using (BinaryWriter writer = new BinaryWriter(fs))
         {
-            Console.WriteLine($"Writing converted texture property data to destination...");
-            DestinationTexture.WriteToStream(writer);
+            Console.WriteLine($"Writing converted texture property data to destination file...");
+            try 
+            {
+                DestinationTexture.WriteToStream(writer);
+            }
+            catch 
+            {
+                throw new IOException("Failed to write converted texture property data to stream.");
+            }
         }
 
         // Detile bitmap data
@@ -69,7 +76,7 @@ internal class PortTextureCommand : ICommand
             }
             else
             {
-                Console.WriteLine($"Writing associated bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
+                Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
                 File.Copy(sourceBitmapPath, destinationBitmapPath, true);
             }
         }
@@ -79,6 +86,11 @@ internal class PortTextureCommand : ICommand
             Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(SourcePath)}: {ex.Message}");
             Console.ResetColor();
         }
+        Console.WriteLine($"Wrote texture bitmap data to destination directory.");
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(SourcePath)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(DestinationPath)}.");
+        Console.ResetColor();
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -98,7 +110,7 @@ internal class PortTextureCommand : ICommand
 
     public static TextureHeaderBase? ConstructHeader(string Path, string Format) 
     {
-        Console.WriteLine($"Reading {Format} texture property data...");
+        Console.WriteLine($"Constructing {Format} texture property data...");
         return Format switch
         {
             "BPR" => new TextureHeaderBPR(Path),
