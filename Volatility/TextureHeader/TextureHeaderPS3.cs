@@ -73,9 +73,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write((byte)CellDimension);
         writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
         writer.Write(Remap); // Does this need to be swapped?
-        writer.Write(SwapEndian((ushort)Width));
-        writer.Write(SwapEndian((ushort)Height));
-        writer.Write(SwapEndian((ushort)Depth));
+        writer.Write(SwapEndian(Width));
+        writer.Write(SwapEndian(Height));
+        writer.Write(SwapEndian(Depth));
         writer.Write((byte)Location);
         writer.Write((byte)0); // Padding
         writer.Write(SwapEndian(Pitch));

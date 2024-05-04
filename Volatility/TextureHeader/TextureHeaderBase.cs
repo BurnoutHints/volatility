@@ -2,9 +2,9 @@
 
 public abstract class TextureHeaderBase
 {
-    public uint Width { get; set; }
-    public uint Height { get; set; }
-    public uint Depth { get; set; }
+    public ushort Width { get; set; }
+    public ushort Height { get; set; }
+    public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
     public string ImportPath;
@@ -80,7 +80,10 @@ public abstract class TextureHeaderBase
     }
     public abstract void WriteToStream(BinaryWriter writer);
     public abstract void ParseFromStream(BinaryReader reader);
-    public TextureHeaderBase() {}
+    public TextureHeaderBase() 
+    {
+        Depth = 1;
+    }
     
     public TextureHeaderBase(string path)
     {

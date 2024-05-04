@@ -14,9 +14,6 @@ public class TextureHeaderBPR : TextureHeaderBase
     public uint Unknown0 = 0;                                   // Seems to be 0
     public DXGI_FORMAT Format;                                  // Format
     public byte[] Flags = new byte[4];                          // Unknown flags, 0
-    public ushort Width;                                        // Width in px
-    public ushort Height;                                       // Height in px
-    public ushort Depth = 1;                                    // 1 on everything but 3D volume textures
     public ushort ArraySize = 1;                                // Unknown, seems to be 1
     public byte MostDetailedMip;                                // The highest detailed mip to use
     public byte MipLevels;                                      // Amount of mipmaps

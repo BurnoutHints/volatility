@@ -45,10 +45,10 @@ public class TextureHeaderPC : TextureHeaderBase
 
         // Not validated!!
         // TODO: Validate correct variable size
-        writer.Write((ushort)Width);
-        writer.Write((ushort)Height);
+        writer.Write(Width);
+        writer.Write(Height);
         writer.Write((byte)Depth);
-        writer.Write((byte)MipmapLevels);
+        writer.Write(MipmapLevels);
 
         writer.Write((byte)TextureType);
         writer.Write(Flags);

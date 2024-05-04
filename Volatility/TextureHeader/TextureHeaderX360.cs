@@ -34,9 +34,12 @@ public class TextureHeaderX360 : TextureHeaderBase
         // Is this good a good practice?
         _Dimension = OutputDimension;
 
-        Width = Format.Size.Width;
-        Height = Format.Size.Height;
-        Depth = Format.Size.Depth;
+        // Technically 1D textures can hold a width longer than 
+        // a ushort, but the possibility of a Xbox 360 texture 
+        // being more than 65535 px long is nearly impossible.
+        Width = (ushort)Format.Size.Width;
+        Height = (ushort)Format.Size.Height;
+        Depth = (ushort)Format.Size.Depth;
         MipmapLevels = (byte)(Format.MaxMipLevel - Format.MinMipLevel + 1);
     }
     
