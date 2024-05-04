@@ -19,20 +19,34 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public TextureHeaderPS3(string path) : base(path) { }
 
-    public override void PullInternalDimension() => throw new NotImplementedException();
+    public override void PullInternalDimension()
+    {
+        if (CubeMapEnable)
+        {
+            Dimension = DIMENSION.DIMENSION_CUBE;
+        }
+        else Dimension = CellDimension switch
+        {
+            CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1 => DIMENSION.DIMENSION_1D,
+            CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2 => DIMENSION.DIMENSION_2D,
+            CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3 => DIMENSION.DIMENSION_3D, // May need to be cube
+            _ => DIMENSION.DIMENSION_2D,
+        };
+    }
 
     public override void PullInternalFlags()
     {
         base.PullInternalFlags();
     }
 
-    public override void PullInternalFormat() => throw new NotImplementedException();
+    public override void PullInternalFormat() { }
 
     public override void PushInternalDimension()
     {
         CellDimension = Dimension switch
         {
             (DIMENSION.DIMENSION_3D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
+            (DIMENSION.DIMENSION_CUBE) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
             (DIMENSION.DIMENSION_1D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1,
             _ => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2,
         };

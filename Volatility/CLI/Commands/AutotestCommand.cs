@@ -61,7 +61,7 @@ internal class AutotestCommand : ICommand
             Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
             Width = 1024,
             Height = 512,
-            MipLevels = 11,
+            MipmapLevels = 11,
             GRTexture = true
         };
 

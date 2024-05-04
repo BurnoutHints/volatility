@@ -11,7 +11,7 @@ internal class PortTextureCommand : ICommand
     public string CommandToken => "PortTexture";
     public string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
         "\nNOTE: TUB & BPR format options are for the PC releases of the title.";
-    public string CommandParameters => "--informat=<tub,bpr,x360,ps3> --inpath=<file path> --outformat=<tub,bpr,x360,ps3> --outpath=<file path>";
+    public string CommandParameters => "--informat=<tub,bpr,x360,ps3> --inpath=<file path> --outformat=<tub,bpr,x360,ps3> [--outpath=<file path>]";
 
     public string? SourceFormat { get; set; }
     public string? SourcePath { get; set; }
@@ -59,7 +59,13 @@ internal class PortTextureCommand : ICommand
         // Finalize Destination
         DestinationTexture.PushAll();
 
-        string outCgsFilename = flipEndian ? FlipFileNameEndian(Path.GetFileName(DestinationPath)) : Path.GetFileName(DestinationPath);
+        string outCgsFilename = flipEndian ? FlipFileNameEndian(Path.GetFileName(SourcePath)) : Path.GetFileName(SourcePath);
+
+        // If we're going to a directory
+        if (new DirectoryInfo(DestinationPath).Exists)
+        {
+            DestinationPath += Path.DirectorySeparatorChar + outCgsFilename;
+        }
 
         if (DestinationPath == SourcePath)
         {
@@ -86,10 +92,13 @@ internal class PortTextureCommand : ICommand
 
         try
         {
-            if ((SourceTexture as TextureHeaderX360).Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
+            if (SourceTexture is TextureHeaderX360)
             {
-                Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
-                X360TextureUtilities.WriteUntiled360TextureFile((TextureHeaderX360)SourceTexture, sourceBitmapPath, destinationBitmapPath);
+                if ((SourceTexture as TextureHeaderX360).Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath)) 
+                {
+                    Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(DestinationPath)}_texture.dat...");
+                    X360TextureUtilities.WriteUntiled360TextureFile((TextureHeaderX360)SourceTexture, sourceBitmapPath, destinationBitmapPath);
+                }
             }
             else
             {

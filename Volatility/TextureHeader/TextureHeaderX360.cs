@@ -87,10 +87,8 @@ public class TextureHeaderX360 : TextureHeaderBase
     // parse GPUTEXTURE_FETCH_CONSTANT
     public override void PushInternalFlags() { }
 
-    public override void PushInternalFormat() 
-    {
-        Format.Pitch = (ushort)(Format.Size.Width / 32); // Not sure if this is accurate
-    }
+    // Not sure if this is accurate
+    public override void PushInternalFormat() => Format.Pitch = (ushort)(Format.Size.Width / 32); 
 
     public override void WriteToStream(BinaryWriter writer)
     {

@@ -14,9 +14,8 @@ public class TextureHeaderBPR : TextureHeaderBase
     public uint Unknown0 = 0;                                   // Seems to be 0
     public DXGI_FORMAT Format;                                  // Format
     public byte[] Flags = new byte[4];                          // Unknown flags, 0
-    public ushort ArraySize = 1;                                // Unknown, seems to be 1
-    public byte MostDetailedMip;                                // The highest detailed mip to use
-    public byte MipLevels;                                      // Amount of mipmaps
+    public ushort ArraySize = 1;                                // Generally 1, likely for stacked textures
+    public byte MostDetailedMip = 0;                            // The highest detailed mip to use
     public ushort Unknown1 = 0;                                 // Seems to be 0
     public ulong Unknown2 = 0;                                  // Seems to be 0
     public uint ArrayIndex = 377024;                            // Doc says < 32 but it's always 377024 (C0 C0 05 00)?
@@ -33,13 +32,10 @@ public class TextureHeaderBPR : TextureHeaderBase
     
     public TextureHeaderBPR(string path) : base(path) { }
     
-    public override void PushInternalFormat() => throw new NotImplementedException();
-    public override void PullInternalFormat() => throw new NotImplementedException();
-    public override void PushInternalFlags() { /* throw new NotImplementedException(); */ }
-    public override void PullInternalFlags() 
-    {
-        base.PullInternalFlags();
-    }
+    public override void PushInternalFormat() { }
+    public override void PullInternalFormat() { }
+    public override void PushInternalFlags() { }
+    public override void PullInternalFlags() => base.PullInternalFlags();
 
     public override void WriteToStream(BinaryWriter writer)
     {
@@ -57,7 +53,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(Depth);
         writer.Write(ArraySize);
         writer.Write(MostDetailedMip);
-        writer.Write(MipLevels);
+        writer.Write(MipmapLevels);
         writer.Write(Unknown1);
         writer.Write(x64Switch(x64Header, Unknown2));                         // 64 bit
         writer.Write(ArrayIndex);

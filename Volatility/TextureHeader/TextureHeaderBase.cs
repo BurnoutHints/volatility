@@ -94,6 +94,10 @@ public abstract class TextureHeaderBase
 
     public TextureHeaderBase(string path)
     {
+        // Don't parse a directory
+        if (new DirectoryInfo(path).Exists)
+            return;
+
         ImportPath = path;
         using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
         {
