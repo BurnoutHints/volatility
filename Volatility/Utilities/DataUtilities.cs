@@ -80,4 +80,29 @@ public static class DataUtilities
         return (ushort)(((value & 0x00FF) << 8) | 
                         ((value & 0xFF00) >> 8));
     }
+
+    public static string ConcatBitString(string inString, int value, int bits)
+    {
+        return inString += Convert.ToString(value, 2).PadLeft(bits, '0');
+    }
+    
+    public static string ConcatBitString(string inString, uint value, int bits)
+    {
+        return inString += Convert.ToString(value, 2).PadLeft(bits, '0');
+    }
+
+    public static string ConcatBitString(string inString, bool value, int bits)
+    {
+        return ConcatBitString(inString, (value ? 1 : 0), bits);
+    }
+
+    public static byte[] BinaryStringToBytes(string inString, int byteLength) 
+    {
+        byte[] bytes = new byte[byteLength];
+        for (int i = 0; i < byteLength; i++)
+        {
+            bytes[i] = Convert.ToByte(inString.Substring(i * 8, 8), 2);
+        }
+        return bytes;
+    }
 }

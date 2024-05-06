@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+
 using Volatility.TextureHeader;
 
 using static Volatility.Utilities.DataUtilities;
@@ -92,16 +93,16 @@ internal class AutotestCommand : ICommand
         {
             Format = new GPUTEXTURE_FETCH_CONSTANT
             {
-                Size = new GPUTEXTURESIZE
-                {
-                    Width = 1024,
-                    Height = 512,
-                    Type = GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D
-                },
-                MaxMipLevel = 10,
-                MinMipLevel = 0,
                 Tiled = true,
+                SwizzleW = GPUSWIZZLE.GPUSWIZZLE_W,
+                SwizzleX = GPUSWIZZLE.GPUSWIZZLE_X,
+                SwizzleY = GPUSWIZZLE.GPUSWIZZLE_Y,
+                SwizzleZ = GPUSWIZZLE.GPUSWIZZLE_Z,
             },
+            Width = 1024,
+            Height = 512,
+            Depth = 1,
+            MipmapLevels = 11,
             GRTexture = true
         };
         textureHeaderX360.PushAll();
@@ -137,7 +138,7 @@ internal class AutotestCommand : ICommand
 
             using (BinaryWriter writer = new BinaryWriter(fs))
             {
-                Console.WriteLine($"Writing autotest {name} to working directory...");
+                Console.WriteLine($"AUTOTEST - Writing autotest {name} to working directory...");
                 header.WriteToStream(writer);
                 writer.Close();
             }
@@ -174,22 +175,26 @@ internal class AutotestCommand : ICommand
     {
         Type type = exported.GetType();
 
-        Console.WriteLine("==  Comparing properties and fields of " + type.Name + ":");
+        Console.WriteLine(">> Comparing properties and fields of " + type.Name + ":");
     
         PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        int mismatches = 0;
         foreach (PropertyInfo property in properties)
         {
+            
             object value1 = property.GetValue(exported, null);
             object value2 = property.GetValue(imported, null);
     
             if (IsComplexType(property.PropertyType))
             {
-                Console.WriteLine($" = Inspecting nested type {property.Name}:");
+                Console.WriteLine($" >  Inspecting nested type {property.Name}:");
                 TestCompareHeaders(value1, value2);
-                Console.WriteLine($" = Finished inspecting nested type {property.Name}");
+                Console.WriteLine($" >  Finished inspecting nested type {property.Name}");
             }
             else if (!Equals(value1, value2))
             {
+                mismatches++;
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Mismatch - {property.Name}: Exported = {value1}, Imported = {value2}");
                 Console.ResetColor();
@@ -204,18 +209,24 @@ internal class AutotestCommand : ICommand
     
             if (IsComplexType(field.FieldType))
             {
-                Console.WriteLine($" = Inspecting nested type {field.Name}:");
+                Console.WriteLine($" >  Inspecting nested type {field.Name}:");
                 TestCompareHeaders(value1, value2);
-                Console.WriteLine($" = Finished inspecting nested type {field.Name}");
+                Console.WriteLine($" >  Finished inspecting nested type {field.Name}");
             }
             else if (!Equals(value1, value2))
             {
+                mismatches++;
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Mismatch - {field.Name}: Exported = {value1}, Imported = {value2}");
                 Console.ResetColor();
             }
         }
-        Console.WriteLine("==  Finished Comparing properties and fields of " + type.Name);
+
+        if (mismatches == 0) 
+            Console.ForegroundColor = ConsoleColor.Green;
+
+        Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
+        Console.ResetColor();
     }
     public static bool IsComplexType(Type type)
     {

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Text;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
@@ -80,6 +81,12 @@ public class TextureHeaderX360 : TextureHeaderBase
         Format.Size.Width = Width;
         Format.Size.Height = Height;
         Format.Size.Depth = Depth;
+
+        Format.Size.Type = 
+            (Height > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D : GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D;
+        Format.Size.Type =
+            (Depth > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D : Format.Size.Type;
+
         Format.MaxMipLevel = (byte)(MipmapLevels - 1);
         Format.MinMipLevel = 0;
     }
@@ -92,19 +99,14 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public override void WriteToStream(BinaryWriter writer)
     {
-        int Common = 0;
-        for (int i = 0; i < D3DResourceFlags.Length; i++)
+        StringBuilder sb = new StringBuilder();
+
+        foreach (bool bit in D3DResourceFlags)
         {
-            if (D3DResourceFlags[i])
-            {
-                Common |= 1 << i;
-            }
+            sb.Append(bit ? '1' : '0');
         }
 
-        Common <<= 4;
-        Common |= (byte)D3DRESOURCETYPE & 0xF;
-
-        writer.Write(SwapEndian(Common));   // Why is this MSB and the others are LSB?
+        writer.Write(BinaryStringToBytes(ConcatBitString(sb.ToString(), (byte)D3DRESOURCETYPE, 4), 4)); // Common
         writer.Write(ReferenceCount);
         writer.Write(Fence);
         writer.Write(ReadFence);
@@ -248,57 +250,56 @@ public struct GPUTEXTURE_FETCH_CONSTANT
 
     public byte[] PackToBytes()
     {
-        BitWriter writer = new BitWriter(0x18);
+        string bitString = "";
+        bitString = ConcatBitString(bitString, Tiled, 1);
+        bitString = ConcatBitString(bitString, Pitch, 9);
+        bitString = ConcatBitString(bitString, 0, 1);
+        bitString = ConcatBitString(bitString, (byte)MultiSample, 2);
+        bitString = ConcatBitString(bitString, (byte)ClampZ, 3);
+        bitString = ConcatBitString(bitString, (byte)ClampY, 3);
+        bitString = ConcatBitString(bitString, (byte)ClampX, 3);
+        bitString = ConcatBitString(bitString, (byte)SignW, 2);
+        bitString = ConcatBitString(bitString, (byte)SignZ, 2);
+        bitString = ConcatBitString(bitString, (byte)SignY, 2);
+        bitString = ConcatBitString(bitString, (byte)SignX, 2);
+        bitString = ConcatBitString(bitString, (byte)Type, 2);
+        bitString = ConcatBitString(bitString, BaseAddress, 20);
+        bitString = ConcatBitString(bitString, (byte)ClampPolicy, 1);
+        bitString = ConcatBitString(bitString, Stacked, 1);
+        bitString = ConcatBitString(bitString, (byte)RequestSize, 2);
+        bitString = ConcatBitString(bitString, (byte)Endian, 2);
+        bitString = ConcatBitString(bitString, (byte)DataFormat, 6);
+        bitString = ConcatBitString(bitString, (int)Size.ToPacked(), 32);
+        bitString = ConcatBitString(bitString, BorderSize, 1);
+        bitString = ConcatBitString(bitString, 0, 3);
+        bitString = ConcatBitString(bitString, (byte)AnisoFilter, 3);
+        bitString = ConcatBitString(bitString, (byte)MipFilter, 2);
+        bitString = ConcatBitString(bitString, (byte)MinFilter, 2);
+        bitString = ConcatBitString(bitString, (byte)MagFilter, 2);
+        bitString = ConcatBitString(bitString, ExpAdjust, 6);
+        bitString = ConcatBitString(bitString, (byte)SwizzleW, 3);
+        bitString = ConcatBitString(bitString, (byte)SwizzleZ, 3);
+        bitString = ConcatBitString(bitString, (byte)SwizzleY, 3);
+        bitString = ConcatBitString(bitString, (byte)SwizzleX, 3);
+        bitString = ConcatBitString(bitString, (byte)NumFormat, 1);
+        bitString = ConcatBitString(bitString, GradExpAdjustV, 5);
+        bitString = ConcatBitString(bitString, GradExpAdjustH, 5);
+        bitString = ConcatBitString(bitString, LODBias, 10);
+        bitString = ConcatBitString(bitString, MinAnisoWalk, 1);
+        bitString = ConcatBitString(bitString, MagAnisoWalk, 1);
+        bitString = ConcatBitString(bitString, MaxMipLevel, 4);
+        bitString = ConcatBitString(bitString, MinMipLevel, 4);
+        bitString = ConcatBitString(bitString, (byte)VolMinFilter, 1);
+        bitString = ConcatBitString(bitString, (byte)VolMagFilter, 1);
+        bitString = ConcatBitString(bitString, MipAddress, 20);
+        bitString = ConcatBitString(bitString, PackedMips, 1);
+        bitString = ConcatBitString(bitString, (uint)Dimension, 2);
+        bitString = ConcatBitString(bitString, AnisoBias, 4);
+        bitString = ConcatBitString(bitString, (uint)TriClamp, 2);
+        bitString = ConcatBitString(bitString, ForceBCWToMax, 1);
+        bitString = ConcatBitString(bitString, (uint)BorderColor, 2);
 
-        writer.Write(Tiled ? (uint)1 : 0, 1);
-        writer.Write(Pitch, 9);
-        writer.Write(0, 1); // Padding
-        writer.Write((uint)MultiSample, 2);
-        writer.Write((uint)ClampZ, 3);
-        writer.Write((uint)ClampY, 3);
-        writer.Write((uint)ClampX, 3);
-        writer.Write((uint)SignW, 2);
-        writer.Write((uint)SignZ, 2);
-        writer.Write((uint)SignY, 2);
-        writer.Write((uint)SignX, 2);
-        writer.Write((uint)Type, 2);
-        writer.Write(BaseAddress, 20);
-        writer.Write((uint)ClampPolicy, 1);
-        writer.Write(Stacked ? (uint)1 : 0, 1);
-        writer.Write((uint)RequestSize, 2);
-        writer.Write((uint)Endian, 2);
-        writer.Write((uint)DataFormat, 6);
-        writer.Write(Size.ToPacked(), 32);
-        writer.Write(BorderSize, 1);
-        writer.Write(0, 3); // Padding
-        writer.Write((uint)AnisoFilter, 3);
-        writer.Write((uint)MipFilter, 2);
-        writer.Write((uint)MinFilter, 2);
-        writer.Write((uint)MagFilter, 2);
-        writer.Write(ExpAdjust, 6);
-        writer.Write((uint)SwizzleW, 3);
-        writer.Write((uint)SwizzleZ, 3);
-        writer.Write((uint)SwizzleY, 3);
-        writer.Write((uint)SwizzleX, 3);
-        writer.Write((uint)NumFormat, 1);
-        writer.Write(GradExpAdjustV, 5);
-        writer.Write(GradExpAdjustH, 5);
-        writer.Write(LODBias, 10);
-        writer.Write(MinAnisoWalk ? (uint)1 : 0, 1);
-        writer.Write(MagAnisoWalk ? (uint)1 : 0, 1);
-        writer.Write(MaxMipLevel, 4);
-        writer.Write(MinMipLevel, 4);
-        writer.Write((uint)VolMinFilter, 1);
-        writer.Write((uint)VolMagFilter, 1);
-        writer.Write(MipAddress, 20);
-        writer.Write(PackedMips ? (uint)1 : 0, 1);
-        writer.Write((uint)Dimension, 2);
-        writer.Write(AnisoBias, 4);
-        writer.Write((uint)TriClamp, 2);
-        writer.Write(ForceBCWToMax ? (uint)1 : 0, 1);
-        writer.Write((uint)BorderColor, 2);
-
-        return writer.ToArray();
+        return BinaryStringToBytes(bitString, 0x18);  
     }
 }
 
