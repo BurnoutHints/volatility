@@ -62,18 +62,19 @@ internal class AutotestCommand : ICommand
             Width = 1024,
             Height = 512,
             MipmapLevels = 11,
+
             GRTexture = true
         };
 
         // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
 
         // Write 32 bit test BPR header
-        TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR, true);
+        TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
 
         textureHeaderBPR.x64Header = true;
 
         // Write 64 bit test BPR header
-        TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR, true);
+        TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
 
         // PS3 Texture data test case
         TextureHeaderPS3 textureHeaderPS3 = new TextureHeaderPS3

@@ -64,7 +64,27 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override void ParseFromStream(BinaryReader reader)
     {
         base.ParseFromStream(reader);
-        throw new NotImplementedException();
+
+        x64Header = (reader.BaseStream.Length > 0x40);
+
+        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
+        Usage = (D3D11_USAGE)reader.ReadInt32();
+        Dimension = (DIMENSION)reader.ReadInt32();
+        reader.BaseStream.Seek(x64Header ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
+        reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
+        Format = (DXGI_FORMAT)reader.ReadInt32();
+        reader.Read(Flags);
+        Width = reader.ReadUInt16();
+        Height = reader.ReadUInt16();
+        Depth = reader.ReadUInt16();
+        ArraySize = reader.ReadUInt16();
+        MostDetailedMip = reader.ReadByte();
+        MipmapLevels = reader.ReadByte();
+        reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
+        reader.Read(x64Switch(x64Header, Unknown2));                        // 64 bit
+        ArrayIndex = (uint)reader.ReadInt32();
+        ContentsSize = (uint)reader.ReadInt32();
+        reader.Read(x64Switch(x64Header, TextureData));                     // 64 bit
     }
     
     public override void PushInternalDimension()
