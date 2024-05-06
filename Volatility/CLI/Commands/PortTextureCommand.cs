@@ -11,7 +11,7 @@ internal class PortTextureCommand : ICommand
     public string CommandToken => "PortTexture";
     public string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
         "\nNOTE: TUB & BPR format options are for the PC releases of the title.";
-    public string CommandParameters => "--informat=<tub,bpr,x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr,x360,ps3> [--outpath=<file/folder path>]";
+    public string CommandParameters => "--informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
 
     public string? SourceFormat { get; set; }
     public string? SourcePath { get; set; }
@@ -48,6 +48,10 @@ internal class PortTextureCommand : ICommand
                 throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
             }
 
+            // TODO: Cleanup!!
+            SourceFormat = BPRx64Hack(SourceTexture, SourceFormat);
+            DestinationFormat = BPRx64Hack(DestinationTexture, DestinationFormat);
+
             SourceTexture.PullAll();
 
             CopyBaseClassProperties(SourceTexture, DestinationTexture);
@@ -57,6 +61,31 @@ internal class PortTextureCommand : ICommand
             bool flipEndian = false;
             switch (technique) 
             {
+                // ==== Console <> Console (no endian flip)
+
+                case "PS3>>X360":
+                    PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
+                    (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
+                    break;
+                case "X360>>PS3":
+                    X360toPS3Mapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
+                    (DestinationTexture as TextureHeaderPS3).Format = x360ps3Format;
+                    break;
+
+                // ==== PC/BPR <> PC/BPR (no endian flip)
+
+                case "TUB>>BPR":
+                    TUBToBPRMapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out DXGI_FORMAT tubbprFormat);
+                    (DestinationTexture as TextureHeaderBPR).Format = tubbprFormat;
+                    break;
+                case "BPR>>TUB":
+                    BPRtoTUBMapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out D3DFORMAT bprtubFormat);
+                    (DestinationTexture as TextureHeaderPC).Format = bprtubFormat;
+                    break;
+
+                // ==== Console <> PC/BPR (endian flip)
+
+                // = PS3 Source
                 case "PS3>>BPR":
                     PS3toBPRMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out DXGI_FORMAT ps3bprFormat);
                     (DestinationTexture as TextureHeaderBPR).Format = ps3bprFormat;
@@ -67,16 +96,26 @@ internal class PortTextureCommand : ICommand
                     (DestinationTexture as TextureHeaderPC).Format = ps3tubFormat;
                     flipEndian = true;
                     break;
-                case "PS3>>X360":
-                    PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
-                    (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
-                    flipEndian = true;
-                    break;
+
+                // = X360 Source
                 case "X360>>TUB":
                     X360ToTUBMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out D3DFORMAT x360tubFormat);
                     (DestinationTexture as TextureHeaderPC).Format = x360tubFormat;
                     flipEndian = true;
                     break;
+                case "X360>>BPR":
+                    X360ToBPRMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out DXGI_FORMAT x360bprFormat);
+                    (DestinationTexture as TextureHeaderBPR).Format = x360bprFormat;
+                    flipEndian = true;
+                    break;
+
+                // = TUB Source
+                case "TUB>>X360":
+                    TUBtoX360Mapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out GPUTEXTUREFORMAT tubx360Format);
+                    (DestinationTexture as TextureHeaderX360).Format.DataFormat = tubx360Format;
+                    flipEndian = true;
+                    break;
+
                 default:
                     throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
             };
@@ -161,6 +200,16 @@ internal class PortTextureCommand : ICommand
                 : args.TryGetValue("op", out object? opp) ? opp as string : SourcePath;
     }
 
+    public string BPRx64Hack(TextureHeaderBase header, string format)
+    {
+        if (header is TextureHeaderBPR && format.EndsWith("x64"))
+        {
+            (header as TextureHeaderBPR).x64Header = true;
+            return "BPR";
+        }
+        return format;
+    }
+
     public static TextureHeaderBase? ConstructHeader(string Path, string Format) 
     {
         Console.WriteLine($"Constructing {Format} texture property data...");
@@ -184,7 +233,6 @@ internal class PortTextureCommand : ICommand
         }
     }
 
-
     private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> X360ToTUBMapping = new Dictionary<GPUTEXTUREFORMAT, D3DFORMAT>
     {
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, D3DFORMAT.D3DFMT_DXT1 },
@@ -193,6 +241,35 @@ internal class PortTextureCommand : ICommand
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8, D3DFORMAT.D3DFMT_A8 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_16_16, D3DFORMAT.D3DFMT_A16B16G16R16 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8, D3DFORMAT.D3DFMT_A8R8G8B8 },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<GPUTEXTUREFORMAT, DXGI_FORMAT> X360ToBPRMapping = new Dictionary<GPUTEXTUREFORMAT, DXGI_FORMAT>
+    {
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5, DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8, DXGI_FORMAT.DXGI_FORMAT_A8_UNORM },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_16_16, DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_UNORM },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8, DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<D3DFORMAT, DXGI_FORMAT> TUBToBPRMapping = new Dictionary<D3DFORMAT, DXGI_FORMAT>
+    {
+        { D3DFORMAT.D3DFMT_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
+        { D3DFORMAT.D3DFMT_DXT3, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
+        { D3DFORMAT.D3DFMT_DXT5, DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM },
+        { D3DFORMAT.D3DFMT_A8, DXGI_FORMAT.DXGI_FORMAT_A8_UNORM },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<DXGI_FORMAT, D3DFORMAT> BPRtoTUBMapping = new Dictionary<DXGI_FORMAT, D3DFORMAT>
+    {
+        { DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM, D3DFORMAT.D3DFMT_DXT1 },
+        { DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM, D3DFORMAT.D3DFMT_DXT3 },
+        { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, D3DFORMAT.D3DFMT_DXT5 },
+        { DXGI_FORMAT.DXGI_FORMAT_A8_UNORM, D3DFORMAT.D3DFMT_A8 },
         // TODO: Add more mappings
     };
 
@@ -216,6 +293,24 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
+    private static readonly Dictionary<D3DFORMAT, GPUTEXTUREFORMAT> TUBtoX360Mapping = new Dictionary<D3DFORMAT, GPUTEXTUREFORMAT>
+    {
+        { D3DFORMAT.D3DFMT_DXT1, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1 },
+        { D3DFORMAT.D3DFMT_DXT3, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3 },
+        { D3DFORMAT.D3DFMT_DXT5, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5 },
+        // TODO: Add more mappings
+    };
+
+    private static readonly Dictionary<GPUTEXTUREFORMAT, CELL_GCM_COLOR_FORMAT> X360toPS3Mapping = new Dictionary<GPUTEXTUREFORMAT, CELL_GCM_COLOR_FORMAT>
+    {
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23 },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45 },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_B, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8 },
+        { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8 },
+        // TODO: Add more mappings
+    };
+
     private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT> PS3toBPRMapping = new Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT>
     {
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
@@ -224,17 +319,5 @@ internal class PortTextureCommand : ICommand
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8, DXGI_FORMAT.DXGI_FORMAT_A8_UNORM },
         // TODO: Add more mappings
     };
-
-    public static D3DFORMAT GPUTEXTUREFORMATtoD3DFORMAT(GPUTEXTUREFORMAT gpuFormat)
-    {
-        if (X360ToTUBMapping.TryGetValue(gpuFormat, out D3DFORMAT d3dFormat))
-        {
-            return d3dFormat;
-        }
-        else
-        {
-            return D3DFORMAT.D3DFMT_UNKNOWN;  // Default case if no mapping is found
-        }
-    }
 }
 

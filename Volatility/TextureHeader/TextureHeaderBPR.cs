@@ -89,12 +89,12 @@ public class TextureHeaderBPR : TextureHeaderBase
     
     public override void PushInternalDimension()
     {
-        // Not needed for BPR
+        // Not needed for BPR; base dimension is BPR formatted
     }
-    
+
     public override void PullInternalDimension()
     {
-        // Not needed for BPR
+        // Not needed for BPR; base dimension is BPR formatted
     }
 }
 

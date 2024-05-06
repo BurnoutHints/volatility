@@ -62,7 +62,6 @@ internal class AutotestCommand : ICommand
             Width = 1024,
             Height = 512,
             MipmapLevels = 11,
-
             GRTexture = true
         };
 
