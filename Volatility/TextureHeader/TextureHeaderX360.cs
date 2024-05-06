@@ -115,7 +115,10 @@ public class TextureHeaderX360 : TextureHeaderBase
         writer.Write(BaseFlush);
         writer.Write(MipFlush);
         writer.Write(Format.PackToBytes());
-        writer.Write(new byte[0xC]);        // Padding that's usually just garbage data.
+
+        // Padding that's usually just garbage data.
+        writer.Write(Encoding.UTF8.GetBytes("Volatility"));
+        writer.Write(new byte[0x2]);        
     }
 
     public override void ParseFromStream(BinaryReader reader)
