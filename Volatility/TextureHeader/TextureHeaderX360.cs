@@ -8,12 +8,13 @@ namespace Volatility.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
+    // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
     public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
     public uint ReferenceCount = 1;
-    public uint Fence;
-    public uint ReadFence;
-    public uint Identifier;
+    public uint Fence = 0;
+    public uint ReadFence = 0;
+    public uint Identifier = 0;
     public uint BaseFlush = 65535;
     public uint MipFlush = 65535;
     public GPUTEXTURE_FETCH_CONSTANT Format;
@@ -190,6 +191,14 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public GPUTRICLAMP TriClamp;              // 2 bits
     public bool ForceBCWToMax;                // 1 bit
     public GPUBORDERCOLOR BorderColor;        // 2 bits
+
+    public GPUTEXTURE_FETCH_CONSTANT()
+    {
+        SwizzleW = GPUSWIZZLE.GPUSWIZZLE_W;
+        SwizzleZ = GPUSWIZZLE.GPUSWIZZLE_Z;
+        SwizzleY = GPUSWIZZLE.GPUSWIZZLE_Y;
+        SwizzleX = GPUSWIZZLE.GPUSWIZZLE_X;
+    }
 
     public GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
     {
