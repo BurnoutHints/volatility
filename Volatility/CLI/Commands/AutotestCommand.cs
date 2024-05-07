@@ -110,7 +110,7 @@ internal class AutotestCommand : ICommand
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
-        Console.WriteLine($"Endian Test: Flipped endian {endianFlipTestName} to {FlipFileNameEndian(endianFlipTestName)}");
+        Console.WriteLine($"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipFileNameEndian(endianFlipTestName)}");
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -123,16 +123,15 @@ internal class AutotestCommand : ICommand
     {
         using (FileStream fs = new FileStream(name, FileMode.Create))
         {
-            // Most aren't implemented and we don't
-            // want the command runner to catch the error
+            // We don't want the command runner to catch the error
             try
             {
                 header.PushAll();
             }
-            catch (Exception ex)
+            catch (NotImplementedException)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"Error with PushAll: {ex.Message}");
+                Console.WriteLine($"A push isn't implemented for {header.GetType().Name}!");
                 Console.ResetColor();
             }
 
@@ -143,31 +142,27 @@ internal class AutotestCommand : ICommand
                 writer.Close();
             }
 
-            if (!skipImport)
+            if (skipImport)
+                return;
+            
+            TextureHeaderBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
+                                provider: null,
+                                objectType: header.GetType(),
+                                argTypes: new Type[] { typeof(string) },
+                                args: new object[] { fs.Name }) as TextureHeaderBase;
+
+            try
             {
-                Type type = header.GetType();
-
-                var newHeaderObject = System.ComponentModel.TypeDescriptor.CreateInstance(
-                                    provider: null,
-                                    objectType: type,
-                                    argTypes: new Type[] { Type.GetType("System.String") },
-                                    args: new object[] { fs.Name });
-
-                TextureHeaderBase? newHeader = (TextureHeaderBase?)newHeaderObject;
-
-                try
-                {
-                    newHeader?.PullAll();
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine($"Error with PullAll: {ex.Message}");
-                    Console.ResetColor();
-                }
-
-                TestCompareHeaders(header, newHeader);
+                newHeader?.PullAll();
             }
+            catch (NotImplementedException)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"A pull isn't implemented for {newHeader?.GetType().Name}!");
+                Console.ResetColor();
+            }
+
+            TestCompareHeaders(header, newHeader);
         }
     }
 
@@ -227,9 +222,5 @@ internal class AutotestCommand : ICommand
 
         Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
         Console.ResetColor();
-    }
-    public static bool IsComplexType(Type type)
-    {
-        return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
     }
 }
