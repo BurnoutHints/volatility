@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace Volatility.TextureHeader;
+﻿namespace Volatility.TextureHeader;
 
 public abstract class TextureHeaderBase
 {

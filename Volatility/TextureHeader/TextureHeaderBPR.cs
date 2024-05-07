@@ -6,21 +6,13 @@ public class TextureHeaderBPR : TextureHeaderBase
 {
     public bool x64Header;                                      // For platforms like PS4
 
-    public readonly ulong TextureInterfacePtr;                  // Set at game runtime, 0 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT; // Usually default, implemented for parity sake
-    public ulong PixelDataPtr = 1;                              // Always 1 on PC? Unknown on other platforms
-    public readonly ulong ShaderResourceViewInterface0Ptr = 0;  // Set at game runtime, 0 
-    public readonly ulong ShaderResourceViewInterface1Ptr = 0;  // Set at game runtime, 0 
-    public uint Unknown0 = 0;                                   // Seems to be 0
     public DXGI_FORMAT Format;                                  // Format
     public byte[] Flags = new byte[4];                          // Unknown flags, 0
     public ushort ArraySize = 1;                                // Generally 1, likely for stacked textures
     public byte MostDetailedMip = 0;                            // The highest detailed mip to use
-    public ushort Unknown1 = 0;                                 // Seems to be 0
-    public ulong Unknown2 = 0;                                  // Seems to be 0
     public uint ArrayIndex = 377024;                            // Doc says < 32 but it's always 377024 (C0 C0 05 00)?
     public uint ContentsSize;                                   // PS4/Switch specific field, TODO: Calculate this
-    public readonly ulong TextureData;                          // PS4/Switch, Set at game runtime
     
     public override DIMENSION Dimension 
     { 
@@ -39,13 +31,13 @@ public class TextureHeaderBPR : TextureHeaderBase
 
     public override void WriteToStream(BinaryWriter writer)
     {
-        writer.Write(x64Switch(x64Header, TextureInterfacePtr));              // 64 bit
+        writer.Write(x64Switch(x64Header, 0));  // TextureInterfacePtr, 64 bit
         writer.Write((uint)Usage);
         writer.Write((uint)Dimension);
-        writer.Write(x64Switch(x64Header, PixelDataPtr));                     // 64 bit
-        writer.Write(x64Switch(x64Header, ShaderResourceViewInterface0Ptr));  // 64 bit
-        writer.Write(x64Switch(x64Header, ShaderResourceViewInterface1Ptr));  // 64 bit
-        writer.Write(Unknown0);
+        writer.Write(x64Switch(x64Header, 0));  // PixelDataPtr, 64 bit
+        writer.Write(x64Switch(x64Header, 0));  // ShaderResourceViewInterface0Ptr, 64 bit
+        writer.Write(x64Switch(x64Header, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
+        writer.Write((uint)0);                  // Unknown0
         writer.Write((uint)Format);
         writer.Write(Flags);
         writer.Write(Width);
@@ -54,11 +46,11 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(ArraySize);
         writer.Write(MostDetailedMip);
         writer.Write(MipmapLevels);
-        writer.Write(Unknown1);
-        writer.Write(x64Switch(x64Header, Unknown2));                         // 64 bit
+        writer.Write((ushort)0);                // Unknown1
+        writer.Write(x64Switch(x64Header, 0));  // Unknown2, 64 bit
         writer.Write(ArrayIndex);
         writer.Write(ContentsSize);
-        writer.Write(x64Switch(x64Header, TextureData));                      // 64 bit
+        writer.Write(x64Switch(x64Header, 0));  // TextureData, 64 bit
     }
     
     public override void ParseFromStream(BinaryReader reader)
@@ -81,10 +73,10 @@ public class TextureHeaderBPR : TextureHeaderBase
         MostDetailedMip = reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
-        reader.Read(x64Switch(x64Header, Unknown2));                        // 64 bit
+        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
         ArrayIndex = (uint)reader.ReadInt32();
         ContentsSize = (uint)reader.ReadInt32();
-        reader.Read(x64Switch(x64Header, TextureData));                     // 64 bit
+        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
     }
     
     public override void PushInternalDimension()

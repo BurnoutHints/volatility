@@ -87,16 +87,24 @@ public class TextureHeaderX360 : TextureHeaderBase
             (Height > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D : GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D;
         Format.Size.Type =
             (Depth > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D : Format.Size.Type;
-
-        Format.MaxMipLevel = (byte)(MipmapLevels - 1);
-        Format.MinMipLevel = 0;
     }
     
     // parse GPUTEXTURE_FETCH_CONSTANT
     public override void PushInternalFlags() { }
 
     // Not sure if this is accurate
-    public override void PushInternalFormat() => Format.Pitch = CalculatePitchX360(Width, Height); 
+    public override void PushInternalFormat() 
+    {
+        Format.Pitch = CalculatePitchX360(Width, Height);
+
+        Format.MaxMipLevel = (byte)(MipmapLevels - 1);
+        Format.MinMipLevel = 0;
+
+        Format.PackedMips = (Format.MaxMipLevel > 0);
+
+        // A complete guess
+        Format.MipAddress = Format.Pitch;
+    } 
 
     public override void WriteToStream(BinaryWriter writer)
     {

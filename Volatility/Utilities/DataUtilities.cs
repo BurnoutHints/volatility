@@ -1,4 +1,6 @@
-﻿namespace Volatility.Utilities;
+﻿using System.Collections;
+
+namespace Volatility.Utilities;
 
 public static class DataUtilities
 {
@@ -108,5 +110,9 @@ public static class DataUtilities
             bytes[i] = Convert.ToByte(inString.Substring(i * 8, 8), 2);
         }
         return bytes;
+    }
+    public static bool IsComplexType(Type type)
+    {
+        return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
     }
 }

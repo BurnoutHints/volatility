@@ -20,25 +20,13 @@ internal class PortTextureCommand : ICommand
 
     public void Execute()
     {
-        string[] files = new string[]
+        if (string.IsNullOrEmpty(SourcePath))
         {
-            SourcePath
-        };
-        if (new DirectoryInfo(SourcePath).Exists)
-        {
-            List<string> f = Directory.GetFiles(SourcePath).ToList();
-            for (int i = 0; i < f.Count(); i++) 
-            {
-                var name = Path.GetFileName(f[i]);
-                if (!name.Contains(".dat") || name.Contains("_texture"))
-                {
-                    f.Remove(f[i]);
-                }
-            }
-            files = f.ToArray();
+            Console.WriteLine("Error: No source path specified! (--inpath)");
+            return;
         }
 
-        foreach (string sourceFile in files)
+        foreach (string sourceFile in ICommand.GetFilesInDirectory(SourcePath))
         { 
             TextureHeaderBase SourceTexture = ConstructHeader(sourceFile, SourceFormat);
             TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat);
