@@ -17,7 +17,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     public uint Identifier = 0;
     public uint BaseFlush = 65535;
     public uint MipFlush = 65535;
-    public GPUTEXTURE_FETCH_CONSTANT Format;
+    public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
     public TextureHeaderX360() : base() {}
     
@@ -201,6 +201,7 @@ public struct GPUTEXTURE_FETCH_CONSTANT
         SwizzleZ = GPUSWIZZLE.GPUSWIZZLE_Z;
         SwizzleY = GPUSWIZZLE.GPUSWIZZLE_Y;
         SwizzleX = GPUSWIZZLE.GPUSWIZZLE_X;
+        Endian = GPUENDIAN.GPUENDIAN_8IN16;
     }
 
     public GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
