@@ -96,7 +96,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     public override void PushInternalFlags() { }
 
     // Not sure if this is accurate
-    public override void PushInternalFormat() => Format.Pitch = (ushort)(Format.Size.Width / 32); 
+    public override void PushInternalFormat() => Format.Pitch = CalculatePitchX360(Width, Height); 
 
     public override void WriteToStream(BinaryWriter writer)
     {

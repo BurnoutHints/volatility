@@ -56,6 +56,10 @@ public static class DataUtilities
         int pitch = adjustedWidth * blockSize;
         return pitch;
     }
+    public static ushort CalculatePitchX360(ushort width, ushort height)
+    {
+        return (ushort)((width > height ? width : height) / 32);
+    }
 
     public static bool IsPowerOfTwo(int x)
     {

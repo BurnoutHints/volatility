@@ -66,10 +66,12 @@ internal class PortTextureCommand : ICommand
                 case "PS3>>X360":
                     PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
                     (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
+                    flipEndian = false;
                     break;
                 case "X360>>PS3":
                     X360toPS3Mapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
                     (DestinationTexture as TextureHeaderPS3).Format = x360ps3Format;
+                    flipEndian = false;
                     break;
 
                 // ==== PC/BPR <> PC/BPR (no endian flip)
