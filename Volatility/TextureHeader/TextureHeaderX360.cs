@@ -214,7 +214,7 @@ public struct GPUTEXTURE_FETCH_CONSTANT
 
     public GPUTEXTURE_FETCH_CONSTANT FromPacked(byte[] bytes)
     {
-        using BitReader bitReader = new BitReader(bytes);
+        using BitReader bitReader = new(bytes);
         uint SizePacked;
 
         Tiled = bitReader.ReadBitsToUInt(1) != 0;
@@ -355,7 +355,7 @@ public struct GPUTEXTURESIZE
         return this;
     }
 
-    public uint ToPacked()
+    public readonly uint ToPacked()
     {
         uint packed = 0;
         switch (Type)

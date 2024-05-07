@@ -21,15 +21,11 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void PullInternalDimension()
     {
-        if (CubeMapEnable)
-        {
-            Dimension = DIMENSION.DIMENSION_CUBE;
-        }
-        else Dimension = CellDimension switch
+        Dimension = CubeMapEnable ? DIMENSION.DIMENSION_CUBE : CellDimension switch
         {
             CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1 => DIMENSION.DIMENSION_1D,
             CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2 => DIMENSION.DIMENSION_2D,
-            CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3 => DIMENSION.DIMENSION_3D, // May need to be cube
+            CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3 => DIMENSION.DIMENSION_3D,
             _ => DIMENSION.DIMENSION_2D,
         };
     }
@@ -71,7 +67,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                CalculatePitchPS3((int)Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;
