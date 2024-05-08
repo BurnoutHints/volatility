@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Text;
 
 namespace Volatility.Utilities;
 
@@ -100,6 +101,20 @@ public static class DataUtilities
     public static string ConcatBitString(string inString, bool value, int bits)
     {
         return ConcatBitString(inString, (value ? 1 : 0), bits);
+    }
+    public static void ConcatBitString(StringBuilder sb, int value, int bits)
+    {
+        sb.Append(Convert.ToString(value, 2).PadLeft(bits, '0'));
+    }
+
+    public static void ConcatBitString(StringBuilder sb, uint value, int bits)
+    {
+        sb.Append(Convert.ToString(value, 2).PadLeft(bits, '0'));
+    }
+
+    public static void ConcatBitString(StringBuilder sb, bool value, int bits)
+    {
+        ConcatBitString(sb, value ? 1 : 0, bits);
     }
 
     public static byte[] BinaryStringToBytes(string inString, int byteLength) 

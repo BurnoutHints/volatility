@@ -126,24 +126,22 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void PushInternalDimension()
     {
-        var outputDimension = Dimension switch
+        TextureType = Dimension switch
         {
             DIMENSION.DIMENSION_1D or DIMENSION.DIMENSION_CUBE => TEXTURETYPE.TEXTURETYPE_1D,
             DIMENSION.DIMENSION_3D => TEXTURETYPE.TEXTURETYPE_3D,
             _ => TEXTURETYPE.TEXTURETYPE_2D,
         };
-        TextureType = outputDimension;
     }
 
     public override void PullInternalDimension()
     {
-        var outputDimension = TextureType switch    // Idk how to handle 1D textures, doc says 1D is cube in TUB
+        Dimension = TextureType switch    // Idk how to handle 1D textures, doc says 1D is cube in TUB
         {
             TEXTURETYPE.TEXTURETYPE_1D => DIMENSION.DIMENSION_CUBE,
             TEXTURETYPE.TEXTURETYPE_3D => DIMENSION.DIMENSION_3D,
             _ => DIMENSION.DIMENSION_2D,
         };
-        Dimension = outputDimension;
     }
 }
 
