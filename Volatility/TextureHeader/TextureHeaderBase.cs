@@ -1,4 +1,6 @@
-﻿namespace Volatility.TextureHeader;
+﻿using static Volatility.Utilities.DataUtilities;
+
+namespace Volatility.TextureHeader;
 
 public abstract class TextureHeaderBase
 {
@@ -7,6 +9,8 @@ public abstract class TextureHeaderBase
     public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
+    public string CgsID = "";
+    public string AssetName = "invalid";
     public string? ImportPath;
 
     protected bool _GRTexture = false;
@@ -92,11 +96,22 @@ public abstract class TextureHeaderBase
 
     public TextureHeaderBase(string path)
     {
+        ImportPath = path;
+
         // Don't parse a directory
         if (new DirectoryInfo(path).Exists)
             return;
 
-        ImportPath = path;
+        string? name = Path.GetFileNameWithoutExtension(ImportPath);
+
+        if (!string.IsNullOrEmpty(name))
+        {
+            AssetName = name;
+
+            if (ValidateCgsID(name))
+                CgsID = AssetName;
+        }
+
         using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
         {
             ParseFromStream(reader);

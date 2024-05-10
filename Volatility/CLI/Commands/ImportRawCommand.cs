@@ -1,8 +1,10 @@
 using System.Reflection;
+
+using Newtonsoft.Json;
+
 using Volatility.TextureHeader;
 
 using static Volatility.Utilities.DataUtilities;
-
 
 namespace Volatility.CLI.Commands;
 
@@ -13,22 +15,22 @@ internal class ImportRawCommand : ICommand
     public string CommandParameters => "--format=<tub,bpr,x360,ps3> --path=<file path>";
 
     public string? Format { get; set; }
-    public string? Path { get; set; }
+    public string? ImportPath { get; set; }
 
     public void Execute()
     {
-        if (string.IsNullOrEmpty(Path))
+        if (string.IsNullOrEmpty(ImportPath))
         {
             Console.WriteLine("Error: No import path specified! (--path)");
             return;
         }
 
-        foreach (string sourceFile in ICommand.GetFilesInDirectory(Path))
+        foreach (string sourceFile in ICommand.GetFilesInDirectory(ImportPath))
         {
             FileAttributes fileAttributes;
             try
             {
-                fileAttributes = File.GetAttributes(Path);
+                fileAttributes = File.GetAttributes(ImportPath);
             }
             catch (FileNotFoundException)
             {
@@ -49,24 +51,45 @@ internal class ImportRawCommand : ICommand
             Console.WriteLine($"Constructing {Format} texture property data...");
             TextureHeaderBase? header = Format switch
             {
-                "BPR" => new TextureHeaderBPR(Path),
-                "TUB" => new TextureHeaderPC(Path),
-                "X360" => new TextureHeaderX360(Path),
-                "PS3" => new TextureHeaderPS3(Path),
+                "BPR" => new TextureHeaderBPR(ImportPath),
+                "TUB" => new TextureHeaderPC(ImportPath),
+                "X360" => new TextureHeaderX360(ImportPath),
+                "PS3" => new TextureHeaderPS3(ImportPath),
                 _ => throw new InvalidPlatformException(),
             };
 
             header.PullAll();
 
-            SerializeFields(header);
+            var SerializeString = JsonConvert.SerializeObject(header);
 
-            Console.WriteLine($"Imported {Path}.");
+            string directoryPath = Path.Combine
+            (
+                Directory.GetCurrentDirectory(),
+                "data",
+                Directory.GetParent(header.ImportPath).Parent.Name,
+                Directory.GetParent(header.ImportPath).Name
+            );
+
+            string filePath = Path.Combine(directoryPath, $"{header.AssetName}.json");
+
+            Directory.CreateDirectory(directoryPath);
+
+            using (StreamWriter streamWriter = new(filePath))
+            {
+                streamWriter.Write(SerializeString);
+            };
+            
+            Console.WriteLine(SerializeString);
+
+            // SerializeFields(header);
+
+            Console.WriteLine($"Imported {ImportPath}.");
         }
     }
     public void SetArgs(Dictionary<string, object> args)
     {
         Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
-        Path = args.TryGetValue("path", out object? path) ? path as string : "";
+        ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
     }
 
     public static void SerializeFields(object exported, int tabs = 0)

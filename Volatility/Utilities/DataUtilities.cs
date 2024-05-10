@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Volatility.Utilities;
 
@@ -14,17 +15,51 @@ public static class DataUtilities
     {
         return x64 ? BitConverter.GetBytes(value) : BitConverter.GetBytes((uint)value);
     }
+    private static bool IsHexadecimal(string input)
+    {
+        foreach (char c in input)
+        {
+            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+                return false;
+        }
+        return true;
+    }
 
     public static string FlipFileNameEndian(string filePath)
     {
-        string baseName = Path.GetFileNameWithoutExtension(filePath);
         string extension = Path.GetExtension(filePath);
 
-        string[] segments = baseName.Split('_');
+        return string.Join("_", FlipAssetEndian(PathToCgsID(filePath))) + extension;
+    }
 
-        FlipAssetEndian(segments);
+    public static string[] PathToCgsID(string filePath, bool strip = false)
+    {
+        string baseName = Path.GetFileNameWithoutExtension(filePath);
+        string[] split = baseName.Split("_");
 
-        return string.Join("_", segments) + extension;
+        if (!strip)
+            return split;
+
+        string[] firstFour = new string[4];
+        Array.Copy(split, firstFour, 4);
+
+        return firstFour;
+    }
+
+    public static bool ValidateCgsID(string CgsID)
+    {
+        string[] id = PathToCgsID(CgsID);
+        
+        if (id.Length != 4)
+            return false;
+
+        foreach (string part in id)
+        {
+            if (part.Length != 2 || !IsHexadecimal(part))
+                return false;
+        }
+
+        return true;
     }
 
     public static byte[] FlipAssetEndian(byte[] CgsIDElements)
