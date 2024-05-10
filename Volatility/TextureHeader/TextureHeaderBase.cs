@@ -1,4 +1,4 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using static Volatility.Utilities.CgsIDUtilities;
 
 namespace Volatility.TextureHeader;
 

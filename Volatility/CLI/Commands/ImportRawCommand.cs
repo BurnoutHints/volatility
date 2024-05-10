@@ -1,10 +1,9 @@
-using System.Reflection;
-
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 using Volatility.TextureHeader;
 
-using static Volatility.Utilities.DataUtilities;
+using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -60,7 +59,16 @@ internal class ImportRawCommand : ICommand
 
             header.PullAll();
 
-            var SerializeString = JsonConvert.SerializeObject(header);
+            var settings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter>
+                {
+                    new TextureHeaderJsonConverter(),
+                    new StringEnumConverter()
+                },
+                Formatting = Formatting.Indented
+            };
+            var serializedString = JsonConvert.SerializeObject(header, settings);
 
             string directoryPath = Path.Combine
             (
@@ -76,70 +84,20 @@ internal class ImportRawCommand : ICommand
 
             using (StreamWriter streamWriter = new(filePath))
             {
-                streamWriter.Write(SerializeString);
+                streamWriter.Write(serializedString);
             };
             
-            Console.WriteLine(SerializeString);
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine(serializedString);
 
-            // SerializeFields(header);
-
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Imported {ImportPath}.");
+            Console.ResetColor();
         }
     }
     public void SetArgs(Dictionary<string, object> args)
     {
         Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
         ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
-    }
-
-    public static void SerializeFields(object exported, int tabs = 0)
-    {
-        string tabbed = new string('\t', tabs);
-
-        Type type = exported.GetType();
-
-        Console.Write($"{type.Name}\n{tabbed}{{\n");
-
-        tabbed = new string('\t', ++tabs);
-
-        PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        foreach (PropertyInfo property in properties)
-        {
-            object value1 = property.GetValue(exported, null);
-
-            if (IsComplexType(property.PropertyType))
-            {
-                Console.Write(tabbed + $"{property.Name} = ");
-                SerializeFields(value1, tabs);
-            }
-            else
-            {
-                Console.WriteLine(tabbed + $"{property.Name} = {value1},");
-            }
-        }
-
-        FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-        foreach (FieldInfo field in fields)
-        {
-            object value1 = field.GetValue(exported);
-
-            if (IsComplexType(field.FieldType))
-            {
-                Console.Write(tabbed + $"{field.Name} = ");
-                SerializeFields(value1, tabs);
-            }
-            else
-            {
-                Console.WriteLine(tabbed + $"{field.Name} = {value1},");
-            }
-        }
-        tabbed = new string('\t', --tabs);
-        Console.WriteLine(tabbed + $"}}  // {type.Name}");
-        Console.ResetColor();
-    }
-
-    public static string MoveTabLevel(int amount) 
-    {
-        return new string('\t', amount);
     }
 }

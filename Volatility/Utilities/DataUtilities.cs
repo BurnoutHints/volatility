@@ -15,7 +15,8 @@ public static class DataUtilities
     {
         return x64 ? BitConverter.GetBytes(value) : BitConverter.GetBytes((uint)value);
     }
-    private static bool IsHexadecimal(string input)
+
+    public static bool IsHexadecimal(string input)
     {
         foreach (char c in input)
         {
@@ -25,75 +26,11 @@ public static class DataUtilities
         return true;
     }
 
-    public static string FlipFileNameEndian(string filePath)
-    {
-        string extension = Path.GetExtension(filePath);
-
-        return string.Join("_", FlipAssetEndian(PathToCgsID(filePath))) + extension;
-    }
-
-    public static string[] PathToCgsID(string filePath, bool strip = false)
-    {
-        string baseName = Path.GetFileNameWithoutExtension(filePath);
-        string[] split = baseName.Split("_");
-
-        if (!strip)
-            return split;
-
-        string[] firstFour = new string[4];
-        Array.Copy(split, firstFour, 4);
-
-        return firstFour;
-    }
-
-    public static bool ValidateCgsID(string CgsID)
-    {
-        string[] id = PathToCgsID(CgsID);
-        
-        if (id.Length != 4)
-            return false;
-
-        foreach (string part in id)
-        {
-            if (part.Length != 2 || !IsHexadecimal(part))
-                return false;
-        }
-
-        return true;
-    }
-
-    public static byte[] FlipAssetEndian(byte[] CgsIDElements)
-    {
-        if (CgsIDElements.Length > 4) // Shouldn't usually happen
-        {
-            Array.Reverse(CgsIDElements, 0, 4);
-        }
-        else
-        {
-            Array.Reverse(CgsIDElements);
-        }
-        return CgsIDElements;
-    }
-
-    public static string[] FlipAssetEndian(string[] CgsIDElements)
-    {
-        if (CgsIDElements.Length > 4) // File names & properties
-        {
-            Array.Reverse(CgsIDElements, 0, 4);
-        }
-        else
-        {
-            Array.Reverse(CgsIDElements);
-        }
-        return CgsIDElements;
-    }
-
     public static int CalculatePitchPS3(int width, int blockSize)
     {
-        int adjustedWidth = (width + 3) / 4;
-        int pitch = adjustedWidth * blockSize;
-        return pitch;
+        return ((width + 3) / 4) * blockSize;
     }
+
     public static ushort CalculatePitchX360(ushort width, ushort height)
     {
         return (ushort)((width > height ? width : height) / 32);
@@ -161,6 +98,7 @@ public static class DataUtilities
         }
         return bytes;
     }
+
     public static bool IsComplexType(Type type)
     {
         return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);

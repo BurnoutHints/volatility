@@ -2,7 +2,7 @@
 using Volatility.TextureHeader;
 using Volatility.Utilities;
 
-using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.CgsIDUtilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -113,7 +113,7 @@ internal class PortTextureCommand : ICommand
             // Finalize Destination
             DestinationTexture.PushAll();
 
-            string outCgsFilename = flipEndian ? FlipFileNameEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
+            string outCgsFilename = flipEndian ? FlipPathCgsIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
 
             string outPath = @"";
 
