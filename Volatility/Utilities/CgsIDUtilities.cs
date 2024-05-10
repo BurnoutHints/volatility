@@ -2,7 +2,7 @@
 
 namespace Volatility.Utilities;
 
-internal class CgsIDUtilities
+public static class CgsIDUtilities
 {
     public static string FlipPathCgsIDEndian(string filePath)
     {
