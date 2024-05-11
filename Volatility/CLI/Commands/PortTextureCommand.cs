@@ -1,5 +1,4 @@
-﻿
-using Volatility.TextureHeader;
+﻿using Volatility.TextureHeader;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.CgsIDUtilities;

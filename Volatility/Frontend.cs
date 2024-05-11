@@ -23,7 +23,8 @@ internal class Frontend
      * ? Proper x64 header export size (need x64 file reference)
      * ? PS3/X360 header formats
      * ? Header parsing logic
-     * > Text-based universal header format
+     * ? Text-based universal header format
+     * > ResourceStringTable importer & reference on asset import
      *
      * LOW PRIORITY
      * --------------------------
@@ -129,14 +130,7 @@ internal class Frontend
                 {
                     string key = input[i].Substring(2, equalIndex - 2);
                     string value = input[i].Substring(equalIndex + 1);
-                    if (bool.TryParse(value, out bool boolValue))
-                    {
-                        args[key] = boolValue;
-                    }
-                    else
-                    {
-                        args[key] = value;
-                    }
+                    args[key] = bool.TryParse(value, out bool boolValue) ? boolValue : value;
                 }
                 else
                 {
@@ -146,7 +140,7 @@ internal class Frontend
             }
         }
 
-        bool helpMode = commandName == "help" && input.Length > 1 ? true : false;
+        bool helpMode = commandName == "help" && input.Length > 1;
 
         if (helpMode) 
         {
