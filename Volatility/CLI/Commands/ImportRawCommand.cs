@@ -24,7 +24,7 @@ internal class ImportRawCommand : ICommand
             return;
         }
 
-        foreach (string sourceFile in ICommand.GetFilesInDirectory(ImportPath))
+        foreach (string sourceFile in ICommand.GetFilesInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader))
         {
             FileAttributes fileAttributes;
             try

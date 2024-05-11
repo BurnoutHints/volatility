@@ -156,6 +156,7 @@ internal class Frontend
             "autotest" => new AutotestCommand(),
             "help" => new HelpCommand(),
             "porttexture" => new PortTextureCommand(),
+            "importstringtable" => new ImportStringTableCommand(),
             _ => throw new InvalidOperationException("Unknown command.")
         };
 

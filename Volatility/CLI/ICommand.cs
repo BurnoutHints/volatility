@@ -8,7 +8,7 @@ internal interface ICommand
     void Execute();
     void SetArgs(Dictionary<string, object> args);
     void ShowUsage() => Console.WriteLine($"Usage: {CommandToken} {CommandParameters}\n{CommandDescription}");
-    static string[] GetFilesInDirectory(string path)
+    static string[] GetFilesInDirectory(string path, TargetFileType filter)
     {
         if (new DirectoryInfo(path).Exists)
         {
@@ -16,13 +16,25 @@ internal interface ICommand
             for (int i = 0; i < f.Count(); i++)
             {
                 var name = System.IO.Path.GetFileName(f[i]);
-                if (!name.Contains(".dat") || name.Contains("_texture"))
+                switch (filter)
                 {
-                    f.Remove(f[i]);
+                    case TargetFileType.TextureHeader:
+                        if (!name.Contains(".dat") || name.Contains("_texture"))
+                            f.Remove(f[i]);
+                        break;
+                    default:
+                        break;
                 }
+
             }
             return f.ToArray();
         }
         return new string[] { path };
+    }
+
+    public enum TargetFileType
+    {
+        Any,
+        TextureHeader
     }
 }

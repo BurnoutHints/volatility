@@ -25,6 +25,11 @@ public static class CgsIDUtilities
         return firstFour;
     }
 
+    public static string[] ResourceToCgsID(string id)
+    {
+        return Enumerable.Range(0, id.Length / 2).Select(i => id.Substring(i * 2, 2)).ToArray();
+    }
+
     public static bool ValidateCgsID(string CgsID)
     {
         string[] id = PathToCgsID(CgsID);
@@ -65,5 +70,10 @@ public static class CgsIDUtilities
             Array.Reverse(CgsIDElements);
         }
         return CgsIDElements;
+    }
+
+    public static string FlipCgsIDEndian(string CgsID)
+    {
+        return string.Concat(FlipCgsIDEndian(ResourceToCgsID(CgsID)));
     }
 }
