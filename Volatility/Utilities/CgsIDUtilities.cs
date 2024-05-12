@@ -1,4 +1,5 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using Newtonsoft.Json;
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Utilities;
 
@@ -75,5 +76,25 @@ public static class CgsIDUtilities
     public static string FlipCgsIDEndian(string CgsID)
     {
         return string.Concat(FlipCgsIDEndian(ResourceToCgsID(CgsID)));
+    }
+
+    public static string GetNameByCgsID(string id, string type)
+    {
+        string path = Path.Combine
+        (
+            Directory.GetCurrentDirectory(), 
+            "data", 
+            "ResourceDB", 
+            $"{type}.json"
+        );
+
+        if (File.Exists(path))
+        {
+            Dictionary<string, string>? data = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+
+            return data.TryGetValue(id.Replace("_", "").ToLower(), out string? value) ? value : "invalid";
+        }
+
+        return "";
     }
 }

@@ -106,10 +106,18 @@ public abstract class TextureHeaderBase
 
         if (!string.IsNullOrEmpty(name))
         {
-            AssetName = name;
-
             if (ValidateCgsID(name))
-                CgsID = AssetName;
+            {
+                name = name.Replace("_", "");
+                CgsID = this is TextureHeaderBPR || this is TextureHeaderPC ? FlipCgsIDEndian(name) : name;
+                string newName = GetNameByCgsID(CgsID, "Texture");
+                AssetName = !string.IsNullOrEmpty(newName) ? newName : CgsID;
+            }
+            else
+            {
+                AssetName = name;
+            }
+
         }
 
         using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))

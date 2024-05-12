@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -15,6 +17,7 @@ internal class ImportRawCommand : ICommand
 
     public string? Format { get; set; }
     public string? ImportPath { get; set; }
+    public bool Overwrite { get; set; }
 
     public void Execute()
     {
@@ -50,10 +53,10 @@ internal class ImportRawCommand : ICommand
             Console.WriteLine($"Constructing {Format} texture property data...");
             TextureHeaderBase? header = Format switch
             {
-                "BPR" => new TextureHeaderBPR(ImportPath),
-                "TUB" => new TextureHeaderPC(ImportPath),
-                "X360" => new TextureHeaderX360(ImportPath),
-                "PS3" => new TextureHeaderPS3(ImportPath),
+                "BPR" => new TextureHeaderBPR(sourceFile),
+                "TUB" => new TextureHeaderPC(sourceFile),
+                "X360" => new TextureHeaderX360(sourceFile),
+                "PS3" => new TextureHeaderPS3(sourceFile),
                 _ => throw new InvalidPlatformException(),
             };
 
@@ -70,15 +73,15 @@ internal class ImportRawCommand : ICommand
             };
             var serializedString = JsonConvert.SerializeObject(header, settings);
 
-            string directoryPath = Path.Combine
+            string dataPath = Path.Combine
             (
                 Directory.GetCurrentDirectory(),
-                "data",
-                Directory.GetParent(header.ImportPath).Parent.Name,
-                Directory.GetParent(header.ImportPath).Name
+                "data"
             );
 
-            string filePath = Path.Combine(directoryPath, $"{header.AssetName}.json");
+            string filePath = Path.Combine(dataPath, $"{Regex.Replace(header.AssetName, @"(\?ID=\d+)|:", "")}.json");
+
+            string directoryPath = Path.GetDirectoryName(filePath);
 
             Directory.CreateDirectory(directoryPath);
 
@@ -86,12 +89,29 @@ internal class ImportRawCommand : ICommand
             {
                 streamWriter.Write(serializedString);
             };
-            
+
+            string texturePath = Path.Combine
+            (
+                Path.GetDirectoryName(sourceFile),
+                Path.GetFileNameWithoutExtension(sourceFile)+ "_texture.dat"
+            );
+
+            if (File.Exists(texturePath))
+            {
+                string outPath = Path.Combine
+                (
+                    directoryPath, 
+                    Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                );
+
+                File.Copy(texturePath, $"{outPath}.Texture", Overwrite);
+            }
+
             Console.ForegroundColor = ConsoleColor.DarkCyan;
             Console.WriteLine(serializedString);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Imported {ImportPath}.");
+            Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
             Console.ResetColor();
         }
     }
