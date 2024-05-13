@@ -25,7 +25,7 @@ internal class PortTextureCommand : ICommand
             return;
         }
 
-        foreach (string sourceFile in ICommand.GetFilesInDirectory(SourcePath, ICommand.TargetFileType.TextureHeader))
+        foreach (string sourceFile in ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.TextureHeader))
         { 
             TextureHeaderBase SourceTexture = ConstructHeader(sourceFile, SourceFormat);
             TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat);

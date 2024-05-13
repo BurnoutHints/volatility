@@ -18,6 +18,7 @@ internal class ImportRawCommand : ICommand
     public string? Format { get; set; }
     public string? ImportPath { get; set; }
     public bool Overwrite { get; set; }
+    public bool Recursive { get; set; }
 
     public void Execute()
     {
@@ -27,7 +28,7 @@ internal class ImportRawCommand : ICommand
             return;
         }
 
-        foreach (string sourceFile in ICommand.GetFilesInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader))
+        foreach (string sourceFile in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive))
         {
             FileAttributes fileAttributes;
             try
@@ -119,5 +120,7 @@ internal class ImportRawCommand : ICommand
     {
         Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
         ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
+        Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
+        Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
     }
 }

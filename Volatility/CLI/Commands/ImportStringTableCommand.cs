@@ -16,6 +16,7 @@ internal class ImportStringTableCommand : ICommand
     public string? Endian { get; set; }
     public string? ImportPath { get; set; }
     public bool Overwrite { get; set; }
+    public bool Recursive { get; set; }
 
     public void Execute()
     {
@@ -25,7 +26,7 @@ internal class ImportStringTableCommand : ICommand
             return;
         }
 
-        foreach (string filePath in ICommand.GetFilesInDirectory(ImportPath, ICommand.TargetFileType.Any))
+        foreach (string filePath in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Any, Recursive))
         {
             byte[] fileBytes = File.ReadAllBytes(filePath);
 
@@ -65,7 +66,6 @@ internal class ImportStringTableCommand : ICommand
             var groupedByType = entries.GroupBy(e => e.Type)
                                        .ToDictionary(g => g.Key, g => g.ToDictionary(e => e.Id, e => e.Name));
 
-
             string directoryPath = Path.Combine
             (
                 Directory.GetCurrentDirectory(),
@@ -98,6 +98,8 @@ internal class ImportStringTableCommand : ICommand
                 string json = JsonConvert.SerializeObject(existingData, Formatting.Indented);
                 File.WriteAllText(jsonFileName, json);
             }
+
+            Console.WriteLine($"Finished importing all ResourceStringTable data into the ResourceDB.");
         }
     }
 
@@ -105,7 +107,8 @@ internal class ImportStringTableCommand : ICommand
     {
         Endian = (args.TryGetValue("endian", out object? format) ? format as string : "le").ToLower();
         ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
-        Overwrite = args.TryGetValue("o", out object? overwrite) ? overwrite as string != "false" : false;
+        Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
+        Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
     }
 
 }
