@@ -73,7 +73,11 @@ internal class Frontend
                 try
                 {
                     var command = ParseCommand(input);
-                    command.Execute();
+                    command.Execute().GetAwaiter().GetResult();
+
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
                 }
                 catch (Exception ex)
                 {

@@ -20,7 +20,7 @@ internal class ImportRawCommand : ICommand
     public bool Overwrite { get; set; }
     public bool Recursive { get; set; }
 
-    public void Execute()
+    public async Task Execute()
     {
         if (string.IsNullOrEmpty(ImportPath))
         {
@@ -28,93 +28,101 @@ internal class ImportRawCommand : ICommand
             return;
         }
 
+        var sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive);
+        List<Task> tasks = new List<Task>();
+
         foreach (string sourceFile in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive))
         {
-            FileAttributes fileAttributes;
-            try
+            tasks.Add(Task.Run(async () =>
             {
-                fileAttributes = File.GetAttributes(ImportPath);
-            }
-            catch (FileNotFoundException)
-            {
-                Console.WriteLine("Error: Invalid file import path specified!");
-                return;
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Console.WriteLine("Error: Can not find directory for specified import path!");
-                return;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error: Caught file exception {e.Message}.");
-                return;
-            }
+                FileAttributes fileAttributes;
+                try
+                {
+                    fileAttributes = File.GetAttributes(ImportPath);
+                }
+                catch (FileNotFoundException)
+                {
+                    Console.WriteLine("Error: Invalid file import path specified!");
+                    return;
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    Console.WriteLine("Error: Can not find directory for specified import path!");
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error: Caught file exception {e.Message}.");
+                    return;
+                }
 
-            Console.WriteLine($"Constructing {Format} texture property data...");
-            TextureHeaderBase? header = Format switch
-            {
-                "BPR" => new TextureHeaderBPR(sourceFile),
-                "TUB" => new TextureHeaderPC(sourceFile),
-                "X360" => new TextureHeaderX360(sourceFile),
-                "PS3" => new TextureHeaderPS3(sourceFile),
-                _ => throw new InvalidPlatformException(),
-            };
+                Console.WriteLine($"Constructing {Format} texture property data...");
+                TextureHeaderBase? header = Format switch
+                {
+                    "BPR" => new TextureHeaderBPR(sourceFile),
+                    "TUB" => new TextureHeaderPC(sourceFile),
+                    "X360" => new TextureHeaderX360(sourceFile),
+                    "PS3" => new TextureHeaderPS3(sourceFile),
+                    _ => throw new InvalidPlatformException(),
+                };
 
-            header.PullAll();
+                header.PullAll();
 
-            var settings = new JsonSerializerSettings
-            {
-                Converters = new List<JsonConverter>
+                var settings = new JsonSerializerSettings
+                {
+                    Converters = new List<JsonConverter>
                 {
                     new TextureHeaderJsonConverter(),
                     new StringEnumConverter()
                 },
-                Formatting = Formatting.Indented
-            };
-            var serializedString = JsonConvert.SerializeObject(header, settings);
+                    Formatting = Formatting.Indented
+                };
+                var serializedString = JsonConvert.SerializeObject(header, settings);
 
-            string dataPath = Path.Combine
-            (
-                Directory.GetCurrentDirectory(),
-                "data"
-            );
-
-            string filePath = Path.Combine(dataPath, $"{Regex.Replace(header.AssetName, @"(\?ID=\d+)|:", "")}.json");
-
-            string directoryPath = Path.GetDirectoryName(filePath);
-
-            Directory.CreateDirectory(directoryPath);
-
-            using (StreamWriter streamWriter = new(filePath))
-            {
-                streamWriter.Write(serializedString);
-            };
-
-            string texturePath = Path.Combine
-            (
-                Path.GetDirectoryName(sourceFile),
-                Path.GetFileNameWithoutExtension(sourceFile)+ "_texture.dat"
-            );
-
-            if (File.Exists(texturePath))
-            {
-                string outPath = Path.Combine
+                string dataPath = Path.Combine
                 (
-                    directoryPath, 
-                    Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                    Directory.GetCurrentDirectory(),
+                    "data"
                 );
 
-                File.Copy(texturePath, $"{outPath}.Texture", Overwrite);
-            }
+                string filePath = Path.Combine(dataPath, $"{Regex.Replace(header.AssetName, @"(\?ID=\d+)|:", "")}.json");
 
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.WriteLine(serializedString);
+                string directoryPath = Path.GetDirectoryName(filePath);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
-            Console.ResetColor();
+                Directory.CreateDirectory(directoryPath);
+
+                using (StreamWriter streamWriter = new StreamWriter(filePath))
+                {
+                    await streamWriter.WriteAsync(serializedString);
+                };
+
+                string texturePath = Path.Combine
+                (
+                    Path.GetDirectoryName(sourceFile),
+                    Path.GetFileNameWithoutExtension(sourceFile) + "_texture.dat"
+                );
+
+                if (File.Exists(texturePath))
+                {
+                    string outPath = Path.Combine
+                    (
+                        directoryPath,
+                        Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                    );
+
+                    File.Copy(texturePath, $"{outPath}.Texture", Overwrite);
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine(serializedString);
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
+                Console.ResetColor();
+            }));
         }
+
+        await Task.WhenAll(tasks);
     }
     public void SetArgs(Dictionary<string, object> args)
     {

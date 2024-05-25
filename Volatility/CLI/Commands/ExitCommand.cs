@@ -6,7 +6,7 @@ internal class ExitCommand : ICommand
     public string CommandDescription => "Exits the application.";
     public string CommandParameters => "";
 
-    public void Execute()
+    public async Task Execute()
     {
         Console.WriteLine("Exiting Volatility...");
         Environment.Exit(0);

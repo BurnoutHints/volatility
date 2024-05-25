@@ -6,7 +6,7 @@ internal class NullCommand : ICommand
     public string CommandDescription => "";
     public string CommandParameters => "";
 
-    public void Execute() { }
+    public async Task Execute() { }
     
     public void SetArgs(Dictionary<string, object> args) { }
 

@@ -17,7 +17,8 @@ internal class PortTextureCommand : ICommand
     public string? DestinationFormat { get; set; }
     public string? DestinationPath { get; set; }
 
-    public void Execute()
+    // TODO: Run async!
+    public async Task Execute()
     {
         if (string.IsNullOrEmpty(SourcePath))
         {

@@ -6,7 +6,7 @@ internal interface ICommand
     string CommandDescription { get; }
     string CommandParameters { get; }
 
-    void Execute();
+    async Task Execute() { }
     void SetArgs(Dictionary<string, object> args);
     void ShowUsage() => Console.WriteLine($"Usage: {CommandToken} {CommandParameters}\n{CommandDescription}");
     static string[] GetFilePathsInDirectory(string path, TargetFileType filter, bool recurse = false)
@@ -14,7 +14,7 @@ internal interface ICommand
         if (new DirectoryInfo(path).Exists)
         {
             SearchOption searchOption = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            List<string> files = new List<string>(Directory.EnumerateFiles(path, "*", searchOption));
+            List<string> files = new(Directory.EnumerateFiles(path, "*", searchOption));
 
             for (int i = files.Count - 1; i >= 0; i--)
             {

@@ -18,7 +18,7 @@ internal class ImportStringTableCommand : ICommand
     public bool Overwrite { get; set; }
     public bool Recursive { get; set; }
 
-    public void Execute()
+    public async Task Execute()
     {
         if (string.IsNullOrEmpty(ImportPath))
         {
@@ -26,29 +26,10 @@ internal class ImportStringTableCommand : ICommand
             return;
         }
 
-        ExecuteAsync().GetAwaiter().GetResult();
-
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        Console.WriteLine($"Finished importing all ResourceStringTable data into the ResourceDB.");
-    }
-
-    public void SetArgs(Dictionary<string, object> args)
-    {
-        Endian = (args.TryGetValue("endian", out object? format) ? format as string : "le").ToLower();
-        ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
-        Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
-        Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
-    }
-
-    private async Task ExecuteAsync()
-    {
         var filePaths = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Any, Recursive);
         var allEntries = new Dictionary<string, Dictionary<string, string>>();
 
-        List<Task<Dictionary<string, Dictionary<string, string>>>> tasks = new List<Task<Dictionary<string, Dictionary<string, string>>>>();
+        List<Task<Dictionary<string, Dictionary<string, string>>>> tasks = new();
 
         foreach (string filePath in filePaths)
         {
@@ -87,6 +68,16 @@ internal class ImportStringTableCommand : ICommand
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
+
+        Console.WriteLine($"Finished importing all ResourceStringTable data into the ResourceDB.");
+    }
+
+    public void SetArgs(Dictionary<string, object> args)
+    {
+        Endian = (args.TryGetValue("endian", out object? format) ? format as string : "le").ToLower();
+        ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
+        Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
+        Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
     }
 
     private async Task<Dictionary<string, Dictionary<string, string>>> ProcessFileAsync(string filePath)

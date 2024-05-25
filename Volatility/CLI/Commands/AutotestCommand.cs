@@ -17,7 +17,7 @@ internal class AutotestCommand : ICommand
     public string? Format { get; set; }
     public string? Path { get; set; }
 
-    public void Execute()
+    public async Task Execute()
     {
         if (!string.IsNullOrEmpty(Path))
         {

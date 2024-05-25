@@ -6,7 +6,7 @@ internal class HelpCommand : ICommand
     public string CommandDescription => "Displays all available commands & parameters for individual commands.";
     public string CommandParameters => "[command]";
 
-    public void Execute()
+    public async Task Execute()
     {
         Console.WriteLine("TODO: List all commands (is there a good way to do this?)");
     }
