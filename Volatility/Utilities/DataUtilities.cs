@@ -32,7 +32,7 @@ public static class DataUtilities
 
     public static ushort CalculatePitchX360(ushort width, ushort height)
     {
-        return (ushort)((width > height ? width : height) / 32);
+        return (ushort)(Clamp(width, 128, width) / 32);
     }
 
     public static bool IsPowerOfTwo(int x)
@@ -101,5 +101,21 @@ public static class DataUtilities
     public static bool IsComplexType(Type type)
     {
         return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
+    }
+
+    public static int Clamp(int value, int min, int max)
+    {
+        if (value < min)
+        {
+            return min;
+        }
+        else if (value > max)
+        {
+            return max;
+        }
+        else
+        {
+            return value;
+        }
     }
 }
