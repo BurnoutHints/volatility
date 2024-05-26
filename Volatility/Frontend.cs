@@ -161,6 +161,7 @@ internal class Frontend
             "help" => new HelpCommand(),
             "porttexture" => new PortTextureCommand(),
             "importstringtable" => new ImportStringTableCommand(),
+            "generatepitchmap" => new GeneratePitchMapCommand(),
             _ => throw new InvalidOperationException("Unknown command.")
         };
 
