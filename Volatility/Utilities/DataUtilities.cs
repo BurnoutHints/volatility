@@ -37,9 +37,7 @@ public static class DataUtilities
 
     public static uint CalculateMipAddressX360(uint width, uint height)
     {
-        const uint K = 4096;
-        uint mipAddress = (width * height) / K;
-        return mipAddress;
+        return (width * height) / 4096;
     }
 
     public static bool IsPowerOfTwo(int x)
