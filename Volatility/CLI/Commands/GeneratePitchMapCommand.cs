@@ -8,7 +8,7 @@ internal class GeneratePitchMapCommand : ICommand
 {
     public string CommandToken => "GeneratePitchMap";
     public string CommandDescription => "Generates a map of pitch values from X360 texture headers.";
-    public string CommandParameters => "[--endian=<le,be>] --path=<file path>";
+    public string CommandParameters => "[--recurse] [--overwrite] --path=<file path>";
 
     public string? ImportPath { get; set; }
     public bool Overwrite { get; set; }
@@ -25,7 +25,7 @@ internal class GeneratePitchMapCommand : ICommand
         string[] sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive);
         List<Task> tasks = new List<Task>();
 
-        Dictionary<(int, int), (int, GPUTEXTUREFORMAT)> outPitches = new Dictionary<(int, int), (int, GPUTEXTUREFORMAT)> { };
+        Dictionary<(int, int), (int, int)> outPitches = new Dictionary<(int, int), (int, int)> { };
 
         foreach (string sourceFile in sourceFiles)
         {
@@ -50,9 +50,9 @@ internal class GeneratePitchMapCommand : ICommand
 
                 var header = new TextureHeaderX360(sourceFile);
 
-                Dictionary<(int Width, int Height), (int, GPUTEXTUREFORMAT)> outPitch = new Dictionary<(int, int), (int, GPUTEXTUREFORMAT)>
+                Dictionary<(int Width, int Height), (int, int)> outPitch = new Dictionary<(int, int), (int, int)>
                 {
-                    {((int)header.Format.Size.Width, (int)header.Format.Size.Height), (header.Format.Pitch, header.Format.DataFormat)}
+                    {((int)header.Format.Size.Width, (int)header.Format.Size.Height), (header.Format.Pitch, (int)header.Format.MipAddress)}
                 };
 
                 if (Overwrite || !outPitches.ContainsKey(outPitch.First().Key))
