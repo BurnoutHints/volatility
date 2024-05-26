@@ -102,8 +102,8 @@ public class TextureHeaderX360 : TextureHeaderBase
 
         Format.PackedMips = (Format.MaxMipLevel > 0);
 
-        // A complete guess
-        Format.MipAddress = Format.Pitch;
+        // Not entirely correct but better than just using pitch
+        Format.MipAddress = CalculateMipAddressX360(Width, Height);
     } 
 
     public override void WriteToStream(BinaryWriter writer)

@@ -35,6 +35,13 @@ public static class DataUtilities
         return (ushort)(Clamp(width, 128, width) / 32);
     }
 
+    public static uint CalculateMipAddressX360(uint width, uint height)
+    {
+        const uint K = 4096;
+        uint mipAddress = (width * height) / K;
+        return mipAddress;
+    }
+
     public static bool IsPowerOfTwo(int x)
     {
         return (x > 0) && ((x & (x - 1)) == 0);
