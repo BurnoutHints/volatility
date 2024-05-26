@@ -10,7 +10,7 @@ internal class HelloCommand : ICommand
     public string? Name { get; set; }
     public bool Loud { get; set; }
 
-    public void Execute()
+    public async Task Execute()
     {
         var greeting = $"Hello, {Name}!";
         if (Loud)

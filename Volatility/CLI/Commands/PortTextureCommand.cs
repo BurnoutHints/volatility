@@ -10,14 +10,15 @@ internal class PortTextureCommand : ICommand
     public string CommandToken => "PortTexture";
     public string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
         "\nNOTE: TUB & BPR format options are for the PC releases of the title.";
-    public string CommandParameters => "--informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
+    public string CommandParameters => "[--verbose] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
 
     public string? SourceFormat { get; set; }
     public string? SourcePath { get; set; }
     public string? DestinationFormat { get; set; }
     public string? DestinationPath { get; set; }
+    public bool Verbose { get; set; }
 
-    public void Execute()
+    public async Task Execute()
     {
         if (string.IsNullOrEmpty(SourcePath))
         {
@@ -25,156 +26,164 @@ internal class PortTextureCommand : ICommand
             return;
         }
 
-        foreach (string sourceFile in ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.TextureHeader))
-        { 
-            TextureHeaderBase SourceTexture = ConstructHeader(sourceFile, SourceFormat);
-            TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat);
-            
-            if (SourceTexture == null || DestinationTexture == null)
+        var sourceFiles = ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.TextureHeader);
+        List<Task> tasks = new List<Task>();
+
+        Console.ForegroundColor = ConsoleColor.Blue;
+        Console.WriteLine($"Starting {sourceFiles.Count()} PortTexture tasks...");
+        Console.ResetColor();
+
+        foreach (string sourceFile in sourceFiles)
+        {
+            tasks.Add(Task.Run(async () =>
             {
-                throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
-            }
+                TextureHeaderBase SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
+                TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
 
-            // TODO: Cleanup!!
-            SourceFormat = BPRx64Hack(SourceTexture, SourceFormat);
-            DestinationFormat = BPRx64Hack(DestinationTexture, DestinationFormat);
-
-            SourceTexture.PullAll();
-
-            CopyBaseClassProperties(SourceTexture, DestinationTexture);
-
-            // Manual header format conversion
-            var technique = $"{SourceFormat}>>{DestinationFormat}";
-            bool flipEndian = false;
-            switch (technique) 
-            {
-                // ==== Console <> Console (no endian flip)
-
-                case "PS3>>X360":
-                    PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
-                    (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
-                    flipEndian = false;
-                    break;
-                case "X360>>PS3":
-                    X360toPS3Mapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
-                    (DestinationTexture as TextureHeaderPS3).Format = x360ps3Format;
-                    flipEndian = false;
-                    break;
-
-                // ==== PC/BPR <> PC/BPR (no endian flip)
-
-                case "TUB>>BPR":
-                    TUBToBPRMapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out DXGI_FORMAT tubbprFormat);
-                    (DestinationTexture as TextureHeaderBPR).Format = tubbprFormat;
-                    break;
-                case "BPR>>TUB":
-                    BPRtoTUBMapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out D3DFORMAT bprtubFormat);
-                    (DestinationTexture as TextureHeaderPC).Format = bprtubFormat;
-                    break;
-
-                // ==== Console <> PC/BPR (endian flip)
-
-                // = PS3 Source
-                case "PS3>>BPR":
-                    PS3toBPRMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out DXGI_FORMAT ps3bprFormat);
-                    (DestinationTexture as TextureHeaderBPR).Format = ps3bprFormat;
-                    flipEndian = true;
-                    break;
-                case "PS3>>TUB":
-                    PS3toTUBMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out D3DFORMAT ps3tubFormat);
-                    (DestinationTexture as TextureHeaderPC).Format = ps3tubFormat;
-                    flipEndian = true;
-                    break;
-
-                // = X360 Source
-                case "X360>>TUB":
-                    X360ToTUBMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out D3DFORMAT x360tubFormat);
-                    (DestinationTexture as TextureHeaderPC).Format = x360tubFormat;
-                    flipEndian = true;
-                    break;
-                case "X360>>BPR":
-                    X360ToBPRMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out DXGI_FORMAT x360bprFormat);
-                    (DestinationTexture as TextureHeaderBPR).Format = x360bprFormat;
-                    flipEndian = true;
-                    break;
-
-                // = TUB Source
-                case "TUB>>X360":
-                    TUBtoX360Mapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out GPUTEXTUREFORMAT tubx360Format);
-                    (DestinationTexture as TextureHeaderX360).Format.DataFormat = tubx360Format;
-                    flipEndian = true;
-                    break;
-
-                default:
-                    throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
-            };
-
-            // Finalize Destination
-            DestinationTexture.PushAll();
-
-            string outCgsFilename = flipEndian ? FlipPathCgsIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
-
-            string outPath = @"";
-
-            if (DestinationPath == sourceFile)
-            {
-                outPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{outCgsFilename}";
-            }
-            // If we're outputting to a directory
-            else if (new DirectoryInfo(DestinationPath).Exists)
-            {
-                outPath = DestinationPath + Path.DirectorySeparatorChar + outCgsFilename;
-            }
-
-            using FileStream fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
-            using (BinaryWriter writer = new BinaryWriter(fs))
-            {
-                Console.WriteLine($"Writing converted texture property data to destination file...");
-                try 
+                if (SourceTexture == null || DestinationTexture == null)
                 {
-                    DestinationTexture.WriteToStream(writer);
+                    throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
                 }
-                catch 
+
+                // TODO: Cleanup!!
+                SourceFormat = BPRx64Hack(SourceTexture, SourceFormat);
+                DestinationFormat = BPRx64Hack(DestinationTexture, DestinationFormat);
+
+                SourceTexture.PullAll();
+
+                CopyBaseClassProperties(SourceTexture, DestinationTexture);
+
+                // Manual header format conversion
+                var technique = $"{SourceFormat}>>{DestinationFormat}";
+                bool flipEndian = false;
+                switch (technique)
                 {
-                    throw new IOException("Failed to write converted texture property data to stream.");
+                    // ==== Console <> Console (no endian flip)
+
+                    case "PS3>>X360":
+                        PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
+                        (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
+                        flipEndian = false;
+                        break;
+                    case "X360>>PS3":
+                        X360toPS3Mapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
+                        (DestinationTexture as TextureHeaderPS3).Format = x360ps3Format;
+                        flipEndian = false;
+                        break;
+
+                    // ==== PC/BPR <> PC/BPR (no endian flip)
+
+                    case "TUB>>BPR":
+                        TUBToBPRMapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out DXGI_FORMAT tubbprFormat);
+                        (DestinationTexture as TextureHeaderBPR).Format = tubbprFormat;
+                        break;
+                    case "BPR>>TUB":
+                        BPRtoTUBMapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out D3DFORMAT bprtubFormat);
+                        (DestinationTexture as TextureHeaderPC).Format = bprtubFormat;
+                        break;
+
+                    // ==== Console <> PC/BPR (endian flip)
+
+                    // = PS3 Source
+                    case "PS3>>BPR":
+                        PS3toBPRMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out DXGI_FORMAT ps3bprFormat);
+                        (DestinationTexture as TextureHeaderBPR).Format = ps3bprFormat;
+                        flipEndian = true;
+                        break;
+                    case "PS3>>TUB":
+                        PS3toTUBMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out D3DFORMAT ps3tubFormat);
+                        (DestinationTexture as TextureHeaderPC).Format = ps3tubFormat;
+                        flipEndian = true;
+                        break;
+
+                    // = X360 Source
+                    case "X360>>TUB":
+                        X360ToTUBMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out D3DFORMAT x360tubFormat);
+                        (DestinationTexture as TextureHeaderPC).Format = x360tubFormat;
+                        flipEndian = true;
+                        break;
+                    case "X360>>BPR":
+                        X360ToBPRMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out DXGI_FORMAT x360bprFormat);
+                        (DestinationTexture as TextureHeaderBPR).Format = x360bprFormat;
+                        flipEndian = true;
+                        break;
+
+                    // = TUB Source
+                    case "TUB>>X360":
+                        TUBtoX360Mapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out GPUTEXTUREFORMAT tubx360Format);
+                        (DestinationTexture as TextureHeaderX360).Format.DataFormat = tubx360Format;
+                        flipEndian = true;
+                        break;
+
+                    default:
+                        throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
+                };
+
+                // Finalize Destination
+                DestinationTexture.PushAll();
+
+                string outCgsFilename = flipEndian ? FlipPathCgsIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
+
+                string outPath = @"";
+
+                if (DestinationPath == sourceFile)
+                {
+                    outPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{outCgsFilename}";
                 }
-            }
-
-            // Detile bitmap data
-            string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}_texture.dat";
-            string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat";
-
-            try
-            {
-                if (SourceTexture is TextureHeaderX360)
+                // If we're outputting to a directory
+                else if (new DirectoryInfo(DestinationPath).Exists)
                 {
-                    if ((SourceTexture as TextureHeaderX360).Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath)) 
+                    outPath = DestinationPath + Path.DirectorySeparatorChar + outCgsFilename;
+                }
+
+                using FileStream fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
+                using (BinaryWriter writer = new BinaryWriter(fs))
+                {
+                    try
                     {
-                        Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                        X360TextureUtilities.WriteUntiled360TextureFile((TextureHeaderX360)SourceTexture, sourceBitmapPath, destinationBitmapPath);
+                        if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
+                        DestinationTexture.WriteToStream(writer);
+                    }
+                    catch
+                    {
+                        throw new IOException("Failed to write converted texture property data to stream.");
                     }
                 }
-                else
-                {
-                    Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                    File.Copy(sourceBitmapPath, destinationBitmapPath, true);
-                }
-                Console.WriteLine($"Wrote texture bitmap data to destination directory.");
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}");
-                Console.ResetColor();
-            }
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
-            Console.ResetColor();
+                // Detile bitmap data
+                string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}_texture.dat";
+                string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat";
+
+                try
+                {
+                    if (SourceTexture is TextureHeaderX360 x)
+                    {
+                        if (x.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
+                        {
+                            if (Verbose) Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                            X360TextureUtilities.WriteUntiled360TextureFile(x, sourceBitmapPath, destinationBitmapPath);
+                        }
+                    }
+                    else
+                    {
+                        if (Verbose) Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                        File.Copy(sourceBitmapPath, destinationBitmapPath, true);
+                    }
+                    if (Verbose) Console.WriteLine($"Wrote texture bitmap data to {DestinationFormat} destination directory.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}");
+                }
+
+                Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
+            }));
         }
+
+        await Task.WhenAll(tasks);
     }
 
-    public void SetArgs(Dictionary<string, object> args)
+        public void SetArgs(Dictionary<string, object> args)
     {
         SourceFormat = (args.TryGetValue("informat", out object? informat) ? informat as string
                 : args.TryGetValue("if", out object? iff) ? iff as string : "auto").ToUpper();
@@ -187,6 +196,8 @@ internal class PortTextureCommand : ICommand
 
         DestinationPath = args.TryGetValue("outpath", out object? outpath) ? inpath as string
                 : args.TryGetValue("op", out object? opp) ? opp as string : SourcePath;
+
+        Verbose = args.TryGetValue("verbose", out var verbose) && (bool)verbose;
     }
 
     public string BPRx64Hack(TextureHeaderBase header, string format)
@@ -199,9 +210,9 @@ internal class PortTextureCommand : ICommand
         return format;
     }
 
-    public static TextureHeaderBase? ConstructHeader(string Path, string Format) 
+    public static TextureHeaderBase? ConstructHeader(string Path, string Format, bool Verbose = true) 
     {
-        Console.WriteLine($"Constructing {Format} texture property data...");
+        if (Verbose) Console.WriteLine($"Constructing {Format} texture property data...");
         return Format switch
         {
             "BPR" => new TextureHeaderBPR(Path),
