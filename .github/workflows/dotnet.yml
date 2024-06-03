@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
@@ -40,7 +40,7 @@ jobs:
         prerelease: false
 
     - name: Zip release assets
-      run: zip -r Volatility_win-x64_Release.zip ./volatility_win-x64_release
+      run: Compress-Archive -Path ./volatility_win-x64_release/* -DestinationPath ./Volatility_win-x64_Release.zip
 
     - name: Upload release asset
       uses: actions/upload-release-asset@v1
