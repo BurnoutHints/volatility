@@ -10,9 +10,9 @@ on:
     branches: [ "main" ]
 
 jobs:
-  publish_and_release:
+  build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -22,29 +22,14 @@ jobs:
         dotnet-version: 7.0.x
     - name: Restore dependencies
       run: dotnet restore
-    - name: Publish
-      run: |
-        $version="1.0.$env:GITHUB_RUN_NUMBER"
-        dotnet publish -p:Configuration=Release -p:Version=$version -p:AssemblyVersion=$version -p:FileVersion=$version -p:InformationalVersion=$version -o ./output
-      shell: pwsh
-    - name: Create Tag
-      id: tag
-      run: |
-        $tag_name="v1.$env:GITHUB_RUN_NUMBER"
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag $tag_name
-        git push https://$env:PAT_TOKEN@github.com/BurnoutHints/volatility.git $tag_name
-      env:
-        PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: pwsh
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+    - name: Publish for Windows x64
+      run: dotnet publish -c Release -r win-x64 --self-contained -o ./publish/win-x64
+    - name: Upload Windows x64 artifacts
+      uses: actions/upload-artifact@v3
       with:
-        tag_name: ${{ steps.tag.outputs.tag_name }}
-        files: ./output/**
-      env:
-        DOTNET_ROOT: C:\Program Files\dotnet
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: windows-x64-artifacts
+        path: ./publish/win-x64
