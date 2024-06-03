@@ -62,7 +62,11 @@ internal class PortTextureCommand : ICommand
 
                     case "PS3>>X360":
                         PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
-                        (DestinationTexture as TextureHeaderX360).Format.DataFormat = ps3x360Format;
+                        if (DestinationTexture is TextureHeaderX360 x)
+                        {
+                            x.Format.DataFormat = ps3x360Format;
+                            x.Format.Endian = GPUENDIAN.GPUENDIAN_NONE; // This may need to be the default value for new 360 textures
+                        }
                         flipEndian = false;
                         break;
                     case "X360>>PS3":
@@ -148,6 +152,8 @@ internal class PortTextureCommand : ICommand
                     {
                         throw new IOException("Failed to write converted texture property data to stream.");
                     }
+                    writer.Close();
+                    fs.Close();
                 }
 
                 // Detile bitmap data
@@ -156,12 +162,33 @@ internal class PortTextureCommand : ICommand
 
                 try
                 {
-                    if (SourceTexture is TextureHeaderX360 x)
+                    // Currently requires an external tool. Every texture I've encountered on PS3 is
+                    // already raw DDS anyway, so there's not really any reason to do this as far as I see.
+
+                    // if (SourceTexture is TextureHeaderPS3 && DestinationTexture is not TextureHeaderPS3)
+                    // {
+                    //     PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
+                    // }
+
+                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture is not TextureHeaderX360 && DestinationTexture.MipmapLevels > 0)
                     {
-                        if (x.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
+                        // - Repack Mipmaps (WIP!)
+                        try
+                        {
+                            if (Verbose) Console.WriteLine($"Converting mipmap data to X360 format for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                            X360TextureUtilities.ConvertMipmapsToX360(destX, destX.Format.DataFormat, sourceBitmapPath, destinationBitmapPath);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Error converting mipmap data to X360 format for {Path.GetFileNameWithoutExtension(sourceFile)}: {e.Message}");
+                        }
+                    }
+                    else if (SourceTexture is TextureHeaderX360 sourceX)
+                    {
+                        if (sourceX.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
                         {
                             if (Verbose) Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                            X360TextureUtilities.WriteUntiled360TextureFile(x, sourceBitmapPath, destinationBitmapPath);
+                            X360TextureUtilities.WriteUntiled360TextureFile(sourceX, sourceBitmapPath, destinationBitmapPath);
                         }
                     }
                     else
