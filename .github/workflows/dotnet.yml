@@ -54,7 +54,9 @@ jobs:
 
     - name: Send message to Discord
       run: |
-        curl -H "Content-Type: application/json" \
-        -X POST \
-        -d "{\"content\": \"New release created: v${{ github.run_number }}. Check it out here: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}\"}" \
-        https://discord.com/api/webhooks/1247319165266694197/kCgTl2toHeawHNaqTiuY1xlz7-VTnaud2JqkbCgcFwS6aInreldJ6-fDVvjvZeH3MC-t
+        $webhookUrl = "https://discord.com/api/webhooks/1247319165266694197/kCgTl2toHeawHNaqTiuY1xlz7-VTnaud2JqkbCgcFwS6aInreldJ6-fDVvjvZeH3MC-t"
+        $jsonPayload = @{
+            content = "New release created: v${{ github.run_number }}. Check it out here: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+        } | ConvertTo-Json
+        Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "application/json" -Body $jsonPayload
+      shell: pwsh
