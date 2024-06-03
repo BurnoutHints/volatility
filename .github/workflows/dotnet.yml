@@ -23,9 +23,23 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore Volatility/Volatility.csproj
     - name: Publish for Windows x64
-      run: dotnet publish Volatility/Volatility.csproj -c Release -r win-x64 --self-contained -o ./publish/win-x64
-    - name: Upload Windows x64 artifacts
-      uses: actions/upload-artifact@v4
+      run: dotnet publish Volatility/Volatility.csproj -c Release -r win-x64 --self-contained -o ./publish/win-x64 -p:Configuration=Release
+    - name: Zip Windows x64 artifacts
+      run: zip -r volatility-windows-x64.zip ./publish/win-x64
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
       with:
-        name: volatility-win-x64-build
-        path: ./publish/win-x64
+        tag_name: ${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
+        draft: false
+        prerelease: false
+        token: ${{ secrets.RELEASE_TOKEN }}
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: volatility-windows-x64.zip
+        asset_name: volatility-windows-x64.zip
+        asset_content_type: application/zip
+        token: ${{ secrets.RELEASE_TOKEN }}
