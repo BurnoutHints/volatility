@@ -8,6 +8,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: dotnet restore Volatility/Volatility.csproj
-      
+
     - name: Publish project
       run: dotnet publish --configuration Release --output ./out Volatility/Volatility.csproj
 
@@ -33,10 +34,13 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
-        tag_name: ${{ github.sha }}
-        release_name: Release ${{ github.sha }}
+        tag_name: v${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
         draft: false
         prerelease: false
+
+    - name: Zip release assets
+      run: zip -r Volatility.zip ./out
 
     - name: Upload release asset
       uses: actions/upload-release-asset@v1
@@ -44,7 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./out
+        asset_path: ./Volatility.zip
         asset_name: Volatility.zip
         asset_content_type: application/zip
-          
