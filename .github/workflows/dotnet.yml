@@ -21,15 +21,11 @@ jobs:
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet restore Volatility/Volatility.csproj
     - name: Publish for Windows x64
-      run: dotnet publish -c Release -r win-x64 --self-contained -o ./publish/win-x64
+      run: dotnet publish Volatility/Volatility.csproj -c Release -r win-x64 --self-contained -o ./publish/win-x64
     - name: Upload Windows x64 artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: windows-x64-artifacts
+        name: volatility-win-x64-build
         path: ./publish/win-x64
