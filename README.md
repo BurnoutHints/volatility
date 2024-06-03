@@ -1,3 +1,3 @@
 # Volatility
 ![Logo](volatility_logo.png)
-Burnout Paradise texture platform converter
+Burnout Paradise platform-agnostic resource interface
