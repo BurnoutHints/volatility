@@ -29,6 +29,12 @@ internal class ImportStringTableCommand : ICommand
         var filePaths = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Any, Recursive);
         var allEntries = new Dictionary<string, Dictionary<string, string>>();
 
+        if (filePaths.Length == 0)
+        {
+            Console.WriteLine("Error: No files or folders found within the specified path!");
+            return;
+        }
+
         List<Task<Dictionary<string, Dictionary<string, string>>>> tasks = new();
 
         foreach (string filePath in filePaths)

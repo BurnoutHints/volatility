@@ -12,7 +12,8 @@ namespace Volatility.CLI.Commands;
 internal class ImportRawCommand : ICommand
 {
     public string CommandToken => "ImportRaw";
-    public string CommandDescription => "NOTE: TUB & BPR format options are for the PC releases of the title.";
+    public string CommandDescription => "Imports information and bitmap data from a specified platform's texture into a standardized format." +
+        " NOTE: TUB & BPR format options are for the PC releases of the title.";
     public string CommandParameters => "--format=<tub,bpr,x360,ps3> --path=<file path>";
 
     public string? Format { get; set; }
