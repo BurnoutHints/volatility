@@ -26,7 +26,7 @@ jobs:
       run: dotnet restore Volatility/Volatility.csproj
 
     - name: Publish project
-      run: dotnet publish --configuration Release --output ./out Volatility/Volatility.csproj
+      run: dotnet publish --configuration Release --output ./volatility_win-x64_release -r win-x64 --self-contained
 
     - name: Create release
       id: create_release
@@ -40,7 +40,7 @@ jobs:
         prerelease: false
 
     - name: Zip release assets
-      run: zip -r Volatility.zip ./out
+      run: zip -r Volatility_win-x64_Release.zip ./volatility_win-x64_release
 
     - name: Upload release asset
       uses: actions/upload-release-asset@v1
@@ -48,6 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./Volatility.zip
-        asset_name: Volatility.zip
+        asset_path: ./Volatility_win-x64_Release.zip
+        asset_name: Volatility_win-x64_Release.zip
         asset_content_type: application/zip
