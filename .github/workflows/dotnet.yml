@@ -23,12 +23,23 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Publish
-      run: dotnet publish -p:Configuration=Release -o ./output
+      run: |
+        version=1.0.${{ github.run_number }}
+        dotnet publish -p:Configuration=Release -p:Version=$version -p:AssemblyVersion=$version -p:FileVersion=$version -p:InformationalVersion=$version -o ./output
+    - name: Create Tag
+      id: tag
+      run: |
+        tag_name=v1.${{ github.run_number }}
+        git tag $tag_name
+        git push origin $tag_name
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.tag.outputs.tag_name }}
         files: ./output/**
       env:
+        DOTNET_ROOT: C:\Program Files\dotnet
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
