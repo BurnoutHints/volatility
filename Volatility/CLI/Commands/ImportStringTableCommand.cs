@@ -10,7 +10,7 @@ namespace Volatility.CLI.Commands;
 internal class ImportStringTableCommand : ICommand
 {
     public string CommandToken => "ImportStringTable";
-    public string CommandDescription => "Imports a entries from a file containing a ResourceStringTable.";
+    public string CommandDescription => "Imports a entries from files containing a ResourceStringTable.";
     public string CommandParameters => "[--endian=<le,be>] --path=<file path>";
 
     public string? Endian { get; set; }

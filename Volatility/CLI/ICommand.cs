@@ -11,27 +11,30 @@ internal interface ICommand
     void ShowUsage() => Console.WriteLine($"Usage: {CommandToken} {CommandParameters}\n{CommandDescription}");
     static string[] GetFilePathsInDirectory(string path, TargetFileType filter, bool recurse = false)
     {
-        if (new DirectoryInfo(path).Exists)
+        List<string> files = new();
+        if (File.Exists(path))
+        {
+            files.Add(path);
+        }
+        else if (new DirectoryInfo(path).Exists)
         {
             SearchOption searchOption = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            List<string> files = new(Directory.EnumerateFiles(path, "*", searchOption));
-
-            for (int i = files.Count - 1; i >= 0; i--)
-            {
-                var name = Path.GetFileName(files[i]);
-                switch (filter)
-                {
-                    case TargetFileType.TextureHeader:
-                        if (!name.Contains(".dat") || name.Contains("_texture"))
-                            files.RemoveAt(i);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return files.ToArray();
+            files = new(Directory.EnumerateFiles(path, "*", searchOption));
         }
-        return new string[] { };
+        for (int i = files.Count - 1; i >= 0; i--)
+        {
+            var name = Path.GetFileName(files[i]);
+            switch (filter)
+            {
+                case TargetFileType.TextureHeader:
+                    if (!name.Contains(".dat") || name.Contains("_texture"))
+                        files.RemoveAt(i);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return files.ToArray();
     }
 
     public enum TargetFileType
