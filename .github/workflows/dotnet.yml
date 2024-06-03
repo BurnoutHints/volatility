@@ -24,12 +24,12 @@ jobs:
       run: dotnet restore
     - name: Publish
       run: |
-        version=1.0.${{ github.run_number }}
+        $version="1.0.$env:GITHUB_RUN_NUMBER"
         dotnet publish -p:Configuration=Release -p:Version=$version -p:AssemblyVersion=$version -p:FileVersion=$version -p:InformationalVersion=$version -o ./output
     - name: Create Tag
       id: tag
       run: |
-        tag_name=v1.${{ github.run_number }}
+        $tag_name="v1.$env:GITHUB_RUN_NUMBER"
         git tag $tag_name
         git push origin $tag_name
       env:
