@@ -18,7 +18,7 @@ internal interface ICommand
         var parameters = GetStaticPropertyValue(thisType, "CommandParameters");
         var description = GetStaticPropertyValue(thisType, "CommandDescription");
 
-        Console.WriteLine($"Usage: {token} {parameters}\n{description}"); 
+        Console.WriteLine($"Usage:\n   {token} {parameters}\n{description}"); 
     }
     static string[] GetFilePathsInDirectory(string path, TargetFileType filter, bool recurse = false)
     {
