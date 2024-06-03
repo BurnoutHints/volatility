@@ -2,9 +2,9 @@ namespace Volatility.CLI.Commands;
 
 internal class ExitCommand : ICommand
 {
-    public string CommandToken => "exit";
-    public string CommandDescription => "Exits the application.";
-    public string CommandParameters => "";
+    public static string CommandToken => "exit";
+    public static string CommandDescription => "Exits the application.";
+    public static string CommandParameters => "";
 
     public async Task Execute()
     {

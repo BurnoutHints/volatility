@@ -142,15 +142,13 @@ internal class Frontend
                     args[input[i].Substring(2)] = true;
                 }
             }
+            if (commandName == "help")
+            {
+                args["commandName"] = input[i];
+            }
         }
 
-        bool helpMode = commandName == "help" && input.Length > 1;
-
-        if (helpMode) 
-        {
-            commandName = input[1].ToLower();
-        }
-
+        // Eventually, this may be merged with the Commands Dictionary below.
         ICommand command = commandName switch
         {
             "hello" => new HelloCommand(),
@@ -164,13 +162,19 @@ internal class Frontend
             _ => throw new InvalidOperationException("Unknown command.")
         };
 
-        if (helpMode)
-        {
-            command.ShowUsage();
-            command = new NullCommand();
-        }
-
         command.SetArgs(args); // Set arguments before returning the command
         return command;
     }
+
+    public readonly static Dictionary<string, Type> Commands = new Dictionary<string, Type>
+    {
+        { "hello", typeof(HelloCommand) },
+        { "exit", typeof(ExitCommand) },
+        { "clear", typeof(ClearCommand) },
+        { "importraw", typeof(ImportRawCommand) },
+        { "autotest", typeof(AutotestCommand) },
+        { "help", typeof(HelpCommand) },
+        { "porttexture", typeof(PortTextureCommand) },
+        { "importstringtable", typeof(ImportStringTableCommand) },
+    };
 }

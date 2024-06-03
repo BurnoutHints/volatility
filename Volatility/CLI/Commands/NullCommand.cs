@@ -2,9 +2,9 @@ namespace Volatility.CLI.Commands;
 
 internal class NullCommand : ICommand
 {
-    public string CommandToken => "";
+    public static string CommandToken => "";
     public string CommandDescription => "";
-    public string CommandParameters => "";
+    public static string CommandParameters => "";
 
     public async Task Execute() { }
     

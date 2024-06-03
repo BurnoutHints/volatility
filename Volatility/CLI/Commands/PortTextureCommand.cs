@@ -7,10 +7,10 @@ namespace Volatility.CLI.Commands;
 
 internal class PortTextureCommand : ICommand
 {
-    public string CommandToken => "PortTexture";
-    public string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
-        "\nNOTE: TUB & BPR format options are for the PC releases of the title.";
-    public string CommandParameters => "[--verbose] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
+    public static string CommandToken => "PortTexture";
+    public static string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
+        " NOTE: TUB & BPR format options are for the PC releases of the title.";
+    public static string CommandParameters => "[--verbose] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
 
     public string? SourceFormat { get; set; }
     public string? SourcePath { get; set; }

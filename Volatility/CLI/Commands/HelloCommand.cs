@@ -3,9 +3,9 @@ namespace Volatility.CLI.Commands;
 // This is a command to test parsing string and boolean arguments.
 internal class HelloCommand : ICommand
 {
-    public string CommandToken => "hello";
-    public string CommandDescription => "NOTE: This is a test command, and will be removed later.";
-    public string CommandParameters => "[--name <name>] [--loud]";
+    public static string CommandToken => "hello";
+    public static string CommandDescription => "NOTE: This is a test command, and will be removed later.";
+    public static string CommandParameters => "[--name <name>] [--loud]";
 
     public string? Name { get; set; }
     public bool Loud { get; set; }

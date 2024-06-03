@@ -9,10 +9,10 @@ namespace Volatility.CLI.Commands;
 
 internal class AutotestCommand : ICommand
 {
-    public string CommandToken => "autotest";
-    public string CommandDescription => "Runs a series of automatic tests to ensure the application is working correctly." +
-            "\nWhen provided a path & format, will import, export, then reimport specified file to ensure IO parity.";
-    public string CommandParameters => "[--format=<tub,bpr,x360,ps3>] [--path=<file path>]";
+    public static string CommandToken => "autotest";
+    public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
+        " When provided a path & format, will import, export, then reimport specified file to ensure IO parity.";
+    public static string CommandParameters => "[--format=<tub,bpr,x360,ps3>] [--path=<file path>]";
 
     public string? Format { get; set; }
     public string? Path { get; set; }

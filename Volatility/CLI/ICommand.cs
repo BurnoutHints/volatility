@@ -1,14 +1,25 @@
+using static Volatility.Utilities.ClassUtilities;
+
 namespace Volatility;
 
 internal interface ICommand
 {
-    string CommandToken { get; }
-    string CommandDescription { get; }
-    string CommandParameters { get; }
+    static string CommandToken { get; }
+    static string CommandDescription { get; }
+    static string CommandParameters { get; }
 
     async Task Execute() { }
     void SetArgs(Dictionary<string, object> args);
-    void ShowUsage() => Console.WriteLine($"Usage: {CommandToken} {CommandParameters}\n{CommandDescription}");
+    public void ShowUsage() 
+    {
+        Type thisType = GetType();
+
+        var token = GetStaticPropertyValue(thisType, "CommandToken");
+        var parameters = GetStaticPropertyValue(thisType, "CommandParameters");
+        var description = GetStaticPropertyValue(thisType, "CommandDescription");
+
+        Console.WriteLine($"Usage: {token} {parameters}\n{description}"); 
+    }
     static string[] GetFilePathsInDirectory(string path, TargetFileType filter, bool recurse = false)
     {
         List<string> files = new();
