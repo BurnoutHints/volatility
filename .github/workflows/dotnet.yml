@@ -26,14 +26,19 @@ jobs:
       run: |
         $version="1.0.$env:GITHUB_RUN_NUMBER"
         dotnet publish -p:Configuration=Release -p:Version=$version -p:AssemblyVersion=$version -p:FileVersion=$version -p:InformationalVersion=$version -o ./output
+      shell: pwsh
     - name: Create Tag
       id: tag
       run: |
         $tag_name="v1.$env:GITHUB_RUN_NUMBER"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         git tag $tag_name
-        git push origin $tag_name
+        git push https://$env:PAT_TOKEN@github.com/BurnoutHints/volatility.git $tag_name
       env:
+        PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
