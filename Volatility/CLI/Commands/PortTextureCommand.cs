@@ -30,15 +30,15 @@ internal class PortTextureCommand : ICommand
         List<Task> tasks = new List<Task>();
 
         Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine($"Starting {sourceFiles.Count()} PortTexture tasks...");
+        Console.WriteLine($"Starting {sourceFiles.Length} PortTexture tasks...");
         Console.ResetColor();
 
         foreach (string sourceFile in sourceFiles)
         {
             tasks.Add(Task.Run(async () =>
             {
-                TextureHeaderBase SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
-                TextureHeaderBase DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
+                TextureHeaderBase? SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
+                TextureHeaderBase? DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
 
                 if (SourceTexture == null || DestinationTexture == null)
                 {
@@ -140,22 +140,6 @@ internal class PortTextureCommand : ICommand
                     outPath = DestinationPath + Path.DirectorySeparatorChar + outCgsFilename;
                 }
 
-                using FileStream fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
-                using (BinaryWriter writer = new BinaryWriter(fs))
-                {
-                    try
-                    {
-                        if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
-                        DestinationTexture.WriteToStream(writer);
-                    }
-                    catch
-                    {
-                        throw new IOException("Failed to write converted texture property data to stream.");
-                    }
-                    writer.Close();
-                    fs.Close();
-                }
-
                 // Detile bitmap data
                 string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}_texture.dat";
                 string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat";
@@ -170,18 +154,23 @@ internal class PortTextureCommand : ICommand
                     //     PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
                     // }
 
-                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture is not TextureHeaderX360 && DestinationTexture.MipmapLevels > 0)
+                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture is not TextureHeaderX360)
                     {
-                        // - Repack Mipmaps (WIP!)
-                        try
-                        {
-                            if (Verbose) Console.WriteLine($"Converting mipmap data to X360 format for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                            X360TextureUtilities.ConvertMipmapsToX360(destX, destX.Format.DataFormat, sourceBitmapPath, destinationBitmapPath);
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine($"Error converting mipmap data to X360 format for {Path.GetFileNameWithoutExtension(sourceFile)}: {e.Message}");
-                        }
+                        destX.Format.MaxMipLevel = destX.Format.MinMipLevel;
+
+                        //if (DestinationTexture.MipmapLevels > 0)
+                        //{
+                        //    // - Repack Mipmaps (WIP!)
+                        //    try
+                        //    {
+                        //        if (Verbose) Console.WriteLine($"Converting mipmap data to X360 format for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                        //        X360TextureUtilities.ConvertMipmapsToX360(destX, destX.Format.DataFormat, sourceBitmapPath, destinationBitmapPath);
+                        //    }
+                        //    catch (Exception e)
+                        //    {
+                        //        Console.WriteLine($"Error converting mipmap data to X360 format for {Path.GetFileNameWithoutExtension(sourceFile)}: {e.Message}");
+                        //    }
+                        //}
                     }
                     else if (SourceTexture is TextureHeaderX360 sourceX)
                     {
@@ -203,6 +192,23 @@ internal class PortTextureCommand : ICommand
                     Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}");
                 }
 
+                // Write header data (now after bitmap data to ensure any final edits are included)
+                using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
+                using (BinaryWriter writer = new(fs))
+                {
+                    try
+                    {
+                        if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
+                        DestinationTexture.WriteToStream(writer);
+                    }
+                    catch
+                    {
+                        throw new IOException("Failed to write converted texture property data to stream.");
+                    }
+                    writer.Close();
+                    fs.Close();
+                }
+
                 Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
             }));
         }
@@ -210,7 +216,7 @@ internal class PortTextureCommand : ICommand
         await Task.WhenAll(tasks);
     }
 
-        public void SetArgs(Dictionary<string, object> args)
+    public void SetArgs(Dictionary<string, object> args)
     {
         SourceFormat = (args.TryGetValue("informat", out object? informat) ? informat as string
                 : args.TryGetValue("if", out object? iff) ? iff as string : "auto").ToUpper();
@@ -260,7 +266,7 @@ internal class PortTextureCommand : ICommand
         }
     }
 
-    private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> X360ToTUBMapping = new Dictionary<GPUTEXTUREFORMAT, D3DFORMAT>
+    private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> X360ToTUBMapping = new()
     {
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, D3DFORMAT.D3DFMT_DXT1 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, D3DFORMAT.D3DFMT_DXT3 },
@@ -271,7 +277,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<GPUTEXTUREFORMAT, DXGI_FORMAT> X360ToBPRMapping = new Dictionary<GPUTEXTUREFORMAT, DXGI_FORMAT>
+    private static readonly Dictionary<GPUTEXTUREFORMAT, DXGI_FORMAT> X360ToBPRMapping = new()
     {
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
@@ -282,7 +288,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<D3DFORMAT, DXGI_FORMAT> TUBToBPRMapping = new Dictionary<D3DFORMAT, DXGI_FORMAT>
+    private static readonly Dictionary<D3DFORMAT, DXGI_FORMAT> TUBToBPRMapping = new()
     {
         { D3DFORMAT.D3DFMT_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
         { D3DFORMAT.D3DFMT_DXT3, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
@@ -291,7 +297,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<DXGI_FORMAT, D3DFORMAT> BPRtoTUBMapping = new Dictionary<DXGI_FORMAT, D3DFORMAT>
+    private static readonly Dictionary<DXGI_FORMAT, D3DFORMAT> BPRtoTUBMapping = new()
     {
         { DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM, D3DFORMAT.D3DFMT_DXT1 },
         { DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM, D3DFORMAT.D3DFMT_DXT3 },
@@ -300,7 +306,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, D3DFORMAT> PS3toTUBMapping = new Dictionary<CELL_GCM_COLOR_FORMAT, D3DFORMAT>
+    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, D3DFORMAT> PS3toTUBMapping = new()
     {
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, D3DFORMAT.D3DFMT_DXT1 },
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, D3DFORMAT.D3DFMT_DXT3 },
@@ -310,7 +316,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, GPUTEXTUREFORMAT> PS3toX360Mapping = new Dictionary<CELL_GCM_COLOR_FORMAT, GPUTEXTUREFORMAT>
+    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, GPUTEXTUREFORMAT> PS3toX360Mapping = new()
     {
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1 },
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3 },
@@ -320,7 +326,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<D3DFORMAT, GPUTEXTUREFORMAT> TUBtoX360Mapping = new Dictionary<D3DFORMAT, GPUTEXTUREFORMAT>
+    private static readonly Dictionary<D3DFORMAT, GPUTEXTUREFORMAT> TUBtoX360Mapping = new()
     {
         { D3DFORMAT.D3DFMT_DXT1, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1 },
         { D3DFORMAT.D3DFMT_DXT3, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3 },
@@ -328,7 +334,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<GPUTEXTUREFORMAT, CELL_GCM_COLOR_FORMAT> X360toPS3Mapping = new Dictionary<GPUTEXTUREFORMAT, CELL_GCM_COLOR_FORMAT>
+    private static readonly Dictionary<GPUTEXTUREFORMAT, CELL_GCM_COLOR_FORMAT> X360toPS3Mapping = new()
     {
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 },
         { GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23 },
@@ -338,7 +344,7 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT> PS3toBPRMapping = new Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT>
+    private static readonly Dictionary<CELL_GCM_COLOR_FORMAT, DXGI_FORMAT> PS3toBPRMapping = new()
     {
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1, DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM },
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
