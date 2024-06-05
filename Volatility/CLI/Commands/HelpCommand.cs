@@ -10,35 +10,38 @@ internal class HelpCommand : ICommand
     public static string CommandDescription => "Displays all available commands & parameters for individual commands.";
     public static string CommandParameters => "[command]";
 
-    public string WantedCommand {  get; set; }
+    public string? WantedCommand { get; set; }
 
 
     public async Task Execute()
     {
         if (!string.IsNullOrEmpty(WantedCommand))
         {
-            Frontend.Commands.TryGetValue(WantedCommand, out Type command);
+            Frontend.Commands.TryGetValue(WantedCommand, out Type? command);
             if (command != null)
             {
-                ConstructorInfo constructor = command.GetConstructor(Array.Empty<Type>());
+                ConstructorInfo? constructor = command.GetConstructor(Array.Empty<Type>());
                 if (constructor != null)
                 {
-                    object instance = constructor.Invoke(Array.Empty<object>());
-                    ICommand commandInstance = (ICommand)instance;
-                    commandInstance.ShowUsage();
+                    if (constructor.Invoke(Array.Empty<object>()) is ICommand commandInstance)
+                    {
+                        commandInstance?.ShowUsage();
+                        return;
+                    }
                 }
-                return;
             }
         }
 
         Console.WriteLine("Available commands:");
         foreach (var command in GetDerivedTypes(typeof(ICommand)))
         {
-            string commandName = GetStaticPropertyValue(command, "CommandToken");
-            if (!string.IsNullOrEmpty(commandName))
-            {
-                Console.WriteLine($"    {commandName} - {GetStaticPropertyValue(command, "CommandDescription")}");
-            }
+            string commandName = GetStaticPropertyValue(command, nameof(CommandToken));
+            
+            if (string.IsNullOrEmpty(commandName))
+                continue;
+            
+            Console.WriteLine($"    {commandName} - {GetStaticPropertyValue(command, nameof(CommandDescription))}");
+            
         }
         Console.WriteLine("For information on command arguments, run: help <command name>.");
     }
