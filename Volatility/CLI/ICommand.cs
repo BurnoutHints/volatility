@@ -37,8 +37,12 @@ internal interface ICommand
             var name = Path.GetFileName(files[i]);
             switch (filter)
             {
-                case TargetFileType.TextureHeader:
-                    if (!name.Contains(".dat") || name.Contains("_texture"))
+                case TargetFileType.Header:
+                    if (!name.Contains(".dat") 
+                        || name.Contains("_texture")
+                        || name.Contains("_imports")
+                        || name.Contains("_model")
+                        || name.Contains("_body"))
                         files.RemoveAt(i);
                     break;
                 default:
@@ -51,6 +55,6 @@ internal interface ICommand
     public enum TargetFileType
     {
         Any,
-        TextureHeader
+        Header
     }
 }

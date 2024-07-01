@@ -26,7 +26,7 @@ internal class PortTextureCommand : ICommand
             return;
         }
 
-        var sourceFiles = ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.TextureHeader);
+        var sourceFiles = ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.Header);
         List<Task> tasks = new List<Task>();
 
         Console.ForegroundColor = ConsoleColor.Blue;

@@ -29,10 +29,10 @@ internal class ImportRawCommand : ICommand
             return;
         }
 
-        var sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive);
+        var sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Header, Recursive);
         List<Task> tasks = new List<Task>();
 
-        foreach (string sourceFile in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.TextureHeader, Recursive))
+        foreach (string sourceFile in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Header, Recursive))
         {
             tasks.Add(Task.Run(async () =>
             {
