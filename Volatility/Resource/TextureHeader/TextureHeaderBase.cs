@@ -1,19 +1,18 @@
-﻿using static Volatility.Utilities.CgsIDUtilities;
+﻿namespace Volatility.Resource.TextureHeader;
 
-namespace Volatility.TextureHeader;
-
-public abstract class TextureHeaderBase
+public abstract class TextureHeaderBase : Resource
 {
+    public override Endian ResourceEndian => base.ResourceEndian;
+    public override string ResourceType => "Texture";
+
     public ushort Width { get; set; }
     public ushort Height { get; set; }
     public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
-    public string CgsID = "";
-    public string AssetName = "invalid";
-    public string? ImportPath;
-
     protected bool _GRTexture = false;
+    
+
     public bool GRTexture       // Vehicle & Wheel GRs 
     {
         get => _GRTexture;
@@ -90,41 +89,10 @@ public abstract class TextureHeaderBase
         PushInternalFormat();
         PushInternalFlags();
     }
-    public abstract void WriteToStream(BinaryWriter writer);
-    public virtual void ParseFromStream(BinaryReader reader) { }
+
     public TextureHeaderBase() => Depth = 1;
 
-    public TextureHeaderBase(string path)
-    {
-        ImportPath = path;
-
-        // Don't parse a directory
-        if (new DirectoryInfo(path).Exists)
-            return;
-
-        string? name = Path.GetFileNameWithoutExtension(ImportPath);
-
-        if (!string.IsNullOrEmpty(name))
-        {
-            if (ValidateCgsID(name))
-            {
-                name = name.Replace("_", "");
-                CgsID = this is TextureHeaderBPR || this is TextureHeaderPC ? FlipCgsIDEndian(name) : name;
-                string newName = GetNameByCgsID(CgsID, "Texture");
-                AssetName = !string.IsNullOrEmpty(newName) ? newName : CgsID;
-            }
-            else
-            {
-                AssetName = name;
-            }
-
-        }
-
-        using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
-        {
-            ParseFromStream(reader);
-        }
-    }
+    public TextureHeaderBase(string path) : base(path) { }
 }
 // BPR formatted but converted for each platform
 public enum DIMENSION : int

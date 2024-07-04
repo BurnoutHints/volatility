@@ -2,10 +2,12 @@
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.TextureHeader;
 
 public class TextureHeaderPC : TextureHeaderBase
 {
+    public override Endian ResourceEndian => Endian.LE;
+
     private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
     {

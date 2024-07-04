@@ -1,9 +1,11 @@
 ﻿using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.TextureHeader;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
+    public override Endian ResourceEndian => Endian.BE;
+
     public CELL_GCM_COLOR_FORMAT Format;
     public CELL_GCM_TEXTURE_DIMENSION CellDimension;
     public bool CubeMapEnable;

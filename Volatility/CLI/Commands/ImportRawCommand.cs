@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-using Volatility.TextureHeader;
+using Volatility.Resource.TextureHeader;
 
 using Volatility.Utilities;
 

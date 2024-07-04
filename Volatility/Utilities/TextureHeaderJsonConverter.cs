@@ -3,7 +3,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-using Volatility.TextureHeader;
+using Volatility.Resource.TextureHeader;
 
 namespace Volatility.Utilities;
 

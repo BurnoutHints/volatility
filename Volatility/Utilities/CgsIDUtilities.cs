@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.IO.Hashing;
+using System.Text;
+using Newtonsoft.Json;
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Utilities;
@@ -45,6 +47,14 @@ public static class CgsIDUtilities
         }
 
         return true;
+    }
+
+    public static string CalculateCgsID(string name)
+    {
+        Crc32 crc = new();
+        crc.Append(Encoding.UTF8.GetBytes(name));
+        byte[] hashBytes = crc.GetCurrentHash().ToArray();
+        return string.Join("_", hashBytes.Select(b => b.ToString("x2")));
     }
 
     public static byte[] FlipCgsIDEndian(byte[] CgsIDElements)

@@ -1,9 +1,11 @@
 ﻿using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.TextureHeader;
 
 public class TextureHeaderBPR : TextureHeaderBase
 {
+    public override Endian ResourceEndian => Endian.LE;
+    
     public bool x64Header;                                      // For platforms like PS4
 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT; // Usually default, implemented for parity sake

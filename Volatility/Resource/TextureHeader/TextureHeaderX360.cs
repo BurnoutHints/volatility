@@ -4,10 +4,12 @@ using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.TextureHeader;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
+    public override Endian ResourceEndian => Endian.BE;
+
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
     public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
