@@ -77,6 +77,10 @@ internal class PortTextureCommand : ICommand
 
                     // ==== PC/BPR <> PC/BPR (no endian flip)
 
+                    case "BPR>>BPR":
+                        // I don't know why this is required as base class format should be copied anyway.
+                        (DestinationTexture as TextureHeaderBPR).Format = (SourceTexture as TextureHeaderBPR).Format;
+                        break;
                     case "TUB>>BPR":
                         TUBToBPRMapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out DXGI_FORMAT tubbprFormat);
                         (DestinationTexture as TextureHeaderBPR).Format = tubbprFormat;
@@ -235,7 +239,7 @@ internal class PortTextureCommand : ICommand
 
     public string BPRx64Hack(TextureHeaderBase header, string format)
     {
-        if (header is TextureHeaderBPR && format.EndsWith("x64"))
+        if (header is TextureHeaderBPR && format.EndsWith("X64"))
         {
             (header as TextureHeaderBPR).x64Header = true;
             return "BPR";
@@ -245,10 +249,12 @@ internal class PortTextureCommand : ICommand
 
     public static TextureHeaderBase? ConstructHeader(string Path, string Format, bool Verbose = true) 
     {
+        // TODO: set x64 bool when constructing x64
         if (Verbose) Console.WriteLine($"Constructing {Format} texture property data...");
         return Format switch
         {
             "BPR" => new TextureHeaderBPR(Path),
+            "BPRX64" => new TextureHeaderBPR(Path),
             "TUB" => new TextureHeaderPC(Path),
             "X360" => new TextureHeaderX360(Path),
             "PS3" => new TextureHeaderPS3(Path),
