@@ -1,4 +1,5 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using System.Text;
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.TextureHeader;
 
@@ -93,6 +94,10 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write(SwapEndian((uint)Buffer));
         writer.Write(SwapEndian((int)StoreType));
         writer.Write(StoreFlags);
+
+        // Padding that's usually just garbage data.
+        writer.Write(Encoding.UTF8.GetBytes("Volatility"));
+        writer.Write(new byte[0x2]);
     }
 
     public override void ParseFromStream(BinaryReader reader)
