@@ -123,6 +123,12 @@ internal class PortTextureCommand : ICommand
                         flipEndian = true;
                         break;
 
+                    case "BPR>>PS3":
+                        BPRtoPS3Mapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out CELL_GCM_COLOR_FORMAT bprps3format);
+                        (DestinationTexture as TextureHeaderPS3).Format = bprps3format;
+                        flipEndian = true;
+                        break;
+
                     default:
                         throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
                 };
@@ -356,6 +362,15 @@ internal class PortTextureCommand : ICommand
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23, DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM },
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45, DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM },
         { CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8, DXGI_FORMAT.DXGI_FORMAT_A8_UNORM },
+        // TODO: Add more mappings
+    };
+    
+    private static readonly Dictionary<DXGI_FORMAT, CELL_GCM_COLOR_FORMAT> BPRtoPS3Mapping = new()
+    {
+        { DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 },
+        { DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23 },
+        { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45 },
+        { DXGI_FORMAT.DXGI_FORMAT_A8_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8 },
         // TODO: Add more mappings
     };
 }
