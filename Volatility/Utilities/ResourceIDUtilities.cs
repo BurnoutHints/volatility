@@ -1,18 +1,20 @@
-﻿using Newtonsoft.Json;
+﻿using System.IO.Hashing;
+using System.Text;
+using Newtonsoft.Json;
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Utilities;
 
-public static class CgsIDUtilities
+public static class ResourceIDUtilities
 {
-    public static string FlipPathCgsIDEndian(string filePath)
+    public static string FlipPathResourceIDEndian(string filePath)
     {
         string extension = Path.GetExtension(filePath);
 
-        return string.Join("_", FlipCgsIDEndian(PathToCgsID(filePath))) + extension;
+        return string.Join("_", FlipResourceIDEndian(PathToResourceID(filePath))) + extension;
     }
 
-    public static string[] PathToCgsID(string filePath, bool strip = false)
+    public static string[] PathToResourceID(string filePath, bool strip = false)
     {
         string baseName = Path.GetFileNameWithoutExtension(filePath);
         string[] split = baseName.Split("_");
@@ -26,14 +28,14 @@ public static class CgsIDUtilities
         return firstFour;
     }
 
-    public static string[] ResourceToCgsID(string id)
+    public static string[] ResourceNameToResourceID(string id)
     {
         return Enumerable.Range(0, id.Length / 2).Select(i => id.Substring(i * 2, 2)).ToArray();
     }
 
-    public static bool ValidateCgsID(string CgsID)
+    public static bool ValidateResourceID(string CgsID)
     {
-        string[] id = PathToCgsID(CgsID);
+        string[] id = PathToResourceID(CgsID);
 
         if (id.Length != 4)
             return false;
@@ -47,7 +49,7 @@ public static class CgsIDUtilities
         return true;
     }
 
-    public static byte[] FlipCgsIDEndian(byte[] CgsIDElements)
+    public static byte[] FlipResourceIDEndian(byte[] CgsIDElements)
     {
         if (CgsIDElements.Length > 4) // Shouldn't usually happen
         {
@@ -60,7 +62,7 @@ public static class CgsIDUtilities
         return CgsIDElements;
     }
 
-    public static string[] FlipCgsIDEndian(string[] CgsIDElements)
+    public static string[] FlipResourceIDEndian(string[] CgsIDElements)
     {
         if (CgsIDElements.Length > 4) // File names & properties
         {
@@ -73,12 +75,12 @@ public static class CgsIDUtilities
         return CgsIDElements;
     }
 
-    public static string FlipCgsIDEndian(string CgsID)
+    public static string FlipResourceIDEndian(string CgsID)
     {
-        return string.Concat(FlipCgsIDEndian(ResourceToCgsID(CgsID)));
+        return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(CgsID)));
     }
 
-    public static string GetNameByCgsID(string id, string type)
+    public static string GetNameByResourceID(string id, string type)
     {
         string path = Path.Combine
         (
@@ -96,5 +98,10 @@ public static class CgsIDUtilities
         }
 
         return "";
+    }
+
+    public static string GetResourceIDFromName(string name)
+    {
+        return BitConverter.ToString(Crc32.Hash(Encoding.UTF8.GetBytes(name.ToLower()))).Replace("-", "_").ToUpper();
     }
 }

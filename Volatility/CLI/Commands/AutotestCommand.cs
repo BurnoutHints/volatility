@@ -3,7 +3,7 @@ using System.Reflection;
 using Volatility.TextureHeader;
 
 using static Volatility.Utilities.DataUtilities;
-using static Volatility.Utilities.CgsIDUtilities;
+using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -110,7 +110,7 @@ internal class AutotestCommand : ICommand
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
-        Console.WriteLine($"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipPathCgsIDEndian(endianFlipTestName)}");
+        Console.WriteLine($"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipPathResourceIDEndian(endianFlipTestName)}");
     }
 
     public void SetArgs(Dictionary<string, object> args)

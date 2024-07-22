@@ -1,4 +1,4 @@
-﻿using static Volatility.Utilities.CgsIDUtilities;
+﻿using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.TextureHeader;
 
@@ -9,7 +9,7 @@ public abstract class TextureHeaderBase
     public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
-    public string CgsID = "";
+    public string ResourceID = "";
     public string AssetName = "invalid";
     public string? ImportPath;
 
@@ -106,15 +106,21 @@ public abstract class TextureHeaderBase
 
         if (!string.IsNullOrEmpty(name))
         {
-            if (ValidateCgsID(name))
+            if (ValidateResourceID(name))
             {
                 name = name.Replace("_", "");
-                CgsID = this is TextureHeaderBPR || this is TextureHeaderPC ? FlipCgsIDEndian(name) : name;
-                string newName = GetNameByCgsID(CgsID, "Texture");
-                AssetName = !string.IsNullOrEmpty(newName) ? newName : CgsID;
+                ResourceID = this is TextureHeaderBPR || this is TextureHeaderPC 
+                    ? FlipResourceIDEndian(name) 
+                    : name;
+                string newName = GetNameByResourceID(ResourceID, "Texture");
+                AssetName = !string.IsNullOrEmpty(newName) ? newName : ResourceID;
             }
             else
             {
+                // TODO: Add new entry to ResourceDB
+                ResourceID = this is TextureHeaderBPR || this is TextureHeaderPC 
+                    ? GetResourceIDFromName(name)
+                    : FlipResourceIDEndian(GetResourceIDFromName(name));
                 AssetName = name;
             }
 

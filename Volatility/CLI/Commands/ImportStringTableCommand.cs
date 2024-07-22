@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 using Newtonsoft.Json;
 
-using static Volatility.Utilities.CgsIDUtilities;
+using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -112,7 +112,7 @@ internal class ImportStringTableCommand : ICommand
         var entries = xmlDoc.Descendants("Resource")
                             .Select(x => new
                             {
-                                Id = Endian == "be" ? FlipCgsIDEndian((string)x.Attribute("id")) : (string)x.Attribute("id"),
+                                Id = Endian == "be" ? FlipResourceIDEndian((string)x.Attribute("id")) : (string)x.Attribute("id"),
                                 Type = (string)x.Attribute("type"),
                                 Name = (string)x.Attribute("name")
                             }).ToList();
