@@ -33,9 +33,9 @@ public static class ResourceIDUtilities
         return Enumerable.Range(0, id.Length / 2).Select(i => id.Substring(i * 2, 2)).ToArray();
     }
 
-    public static bool ValidateResourceID(string CgsID)
+    public static bool ValidateResourceID(string ResourceID)
     {
-        string[] id = PathToResourceID(CgsID);
+        string[] id = PathToResourceID(ResourceID);
 
         if (id.Length != 4)
             return false;
@@ -49,35 +49,35 @@ public static class ResourceIDUtilities
         return true;
     }
 
-    public static byte[] FlipResourceIDEndian(byte[] CgsIDElements)
+    public static byte[] FlipResourceIDEndian(byte[] ResourceIDElements)
     {
-        if (CgsIDElements.Length > 4) // Shouldn't usually happen
+        if (ResourceIDElements.Length > 4) // Shouldn't usually happen
         {
-            Array.Reverse(CgsIDElements, 0, 4);
+            Array.Reverse(ResourceIDElements, 0, 4);
         }
         else
         {
-            Array.Reverse(CgsIDElements);
+            Array.Reverse(ResourceIDElements);
         }
-        return CgsIDElements;
+        return ResourceIDElements;
     }
 
-    public static string[] FlipResourceIDEndian(string[] CgsIDElements)
+    public static string[] FlipResourceIDEndian(string[] ResourceIDElements)
     {
-        if (CgsIDElements.Length > 4) // File names & properties
+        if (ResourceIDElements.Length > 4) // File names & properties
         {
-            Array.Reverse(CgsIDElements, 0, 4);
+            Array.Reverse(ResourceIDElements, 0, 4);
         }
         else
         {
-            Array.Reverse(CgsIDElements);
+            Array.Reverse(ResourceIDElements);
         }
-        return CgsIDElements;
+        return ResourceIDElements;
     }
 
-    public static string FlipResourceIDEndian(string CgsID)
+    public static string FlipResourceIDEndian(string ResourceID)
     {
-        return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(CgsID)));
+        return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(ResourceID)));
     }
 
     public static string GetNameByResourceID(string id, string type)

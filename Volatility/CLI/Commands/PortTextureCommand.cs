@@ -142,18 +142,18 @@ internal class PortTextureCommand : ICommand
                 // Finalize Destination
                 DestinationTexture.PushAll();
 
-                string outCgsFilename = flipEndian ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
+                string outResourceFilename = flipEndian ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
 
                 string outPath = @"";
 
                 if (DestinationPath == sourceFile)
                 {
-                    outPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{outCgsFilename}";
+                    outPath = $"{Path.GetDirectoryName(DestinationPath)}{Path.DirectorySeparatorChar}{outResourceFilename}";
                 }
                 // If we're outputting to a directory
                 else if (new DirectoryInfo(DestinationPath).Exists)
                 {
-                    outPath = DestinationPath + Path.DirectorySeparatorChar + outCgsFilename;
+                    outPath = DestinationPath + Path.DirectorySeparatorChar + outResourceFilename;
                 }
 
                 // Detile bitmap data
