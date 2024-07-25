@@ -16,19 +16,19 @@ internal class Frontend
      * --------------------------
      * ! Bit accurate PC header
      * ! User input (CLI)
+     * ! ResourceStringTable importer & reference on asset import
+     * ! Bit accurate BPR (PC) texture header
      * 
      * TODO LIST!
      * --------------------------
-     * ? Bit accurate BPR (PC) header (needs testing)
-     * ? Proper x64 header export size (need x64 file reference)
-     * ? PS3/X360 header formats
-     * ? Header parsing logic
-     * ? Text-based universal header format
-     * > ResourceStringTable importer & reference on asset import
+     * ? Proper x64 texture header export size (need x64 file reference)
+     * ? PS3/X360 texture header formats
+     * ? Texture Header parsing logic
+     * ? Text-based universal resource header format
      *
      * LOW PRIORITY
      * --------------------------
-     * ? Bit accurate BPR headers for other/x64 platforms
+     * ? Bit accurate BPR texture headers for other/x64 platforms
      * > Raw DDS texture importing (bundle manager does this)
      * > GUI System
      * 

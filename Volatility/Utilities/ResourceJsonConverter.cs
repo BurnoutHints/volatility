@@ -3,8 +3,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-using Volatility.Resource;
-
 namespace Volatility.Utilities;
 
 public class ResourceJsonConverter : JsonConverter

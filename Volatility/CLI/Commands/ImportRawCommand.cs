@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 using Volatility.Resource.Texture;
-
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;

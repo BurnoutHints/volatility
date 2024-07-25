@@ -1,5 +1,4 @@
-﻿using System.IO;
-using static Volatility.Utilities.DataUtilities;
+﻿using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resource.Texture;
 
