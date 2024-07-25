@@ -1,24 +1,25 @@
 ﻿using System.Text;
-
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.Texture;
 
 public class TextureHeaderPC : TextureHeaderBase
 {
+    public static new readonly Endian ResourceEndian = Endian.LE;
+
     private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
     {
         get => _Format;
-        set 
+        set
         {
             _Format = value;
-            PushInternalFormat(); 
+            PushInternalFormat();
         }
     }
 
-    public readonly IntPtr TextureDataPtr;      // Set at game runtime, 0
-    public readonly IntPtr TextureInterfacePtr; // Set at game runtime, 0
+    public readonly nint TextureDataPtr;      // Set at game runtime, 0
+    public readonly nint TextureInterfacePtr; // Set at game runtime, 0
     public uint Unknown0;                       // Flags
     public readonly ushort MemoryClass = 1;     // D3DPool, Always 1
     public byte Unknown1;                       // Flags
@@ -27,8 +28,8 @@ public class TextureHeaderPC : TextureHeaderBase
     public TEXTURETYPE TextureType;             // Dimension in BPR
     public byte Flags;                          // Flags
 
-    public TextureHeaderPC() : base() {}
-    
+    public TextureHeaderPC() : base() { }
+
     public TextureHeaderPC(string path) : base(path) { }
 
     public override void WriteToStream(BinaryWriter writer)
@@ -67,7 +68,7 @@ public class TextureHeaderPC : TextureHeaderBase
         OutputFormat = reader.ReadBytes(4);
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();
-        reader.BaseStream.Seek(1, SeekOrigin.Current);            
+        reader.BaseStream.Seek(1, SeekOrigin.Current);
         MipmapLevels = reader.ReadByte();
         TextureType = (TEXTURETYPE)reader.ReadByte();
         Flags = reader.ReadByte();
@@ -76,7 +77,7 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void PushInternalFormat()
     {
-        byte[] outputFormat = Format switch 
+        byte[] outputFormat = Format switch
         {
             D3DFORMAT.D3DFMT_DXT1 => Encoding.UTF8.GetBytes("DXT1"),
             D3DFORMAT.D3DFMT_DXT3 => Encoding.UTF8.GetBytes("DXT3"),
@@ -114,11 +115,11 @@ public class TextureHeaderPC : TextureHeaderBase
         // TODO: More accurate/efficient flag calcuation!
 
         // Assuming Unknown 2 is probably world, and Unknown 1 is GR?
-        WorldTexture = (Unknown2 != 0);
-        GRTexture = (Unknown1 != 0);
-        
+        WorldTexture = Unknown2 != 0;
+        GRTexture = Unknown1 != 0;
+
         // We're just a prop in this cruel game of life
-        PropTexture = (Unknown1 == 0 && Unknown2 != 0 && Flags != 0);
+        PropTexture = Unknown1 == 0 && Unknown2 != 0 && Flags != 0;
 
         // Run after, if directory exists then we use that instead
         base.PullInternalFlags();

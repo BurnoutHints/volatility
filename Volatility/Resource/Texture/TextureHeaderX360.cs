@@ -4,10 +4,12 @@ using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.Texture;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
+    public static new readonly Endian ResourceEndian = Endian.BE;
+
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
     public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
@@ -19,10 +21,10 @@ public class TextureHeaderX360 : TextureHeaderBase
     public uint MipFlush = 65535;
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
-    public TextureHeaderX360() : base() {}
-    
-    public TextureHeaderX360(string path) : base(path) {}
-    
+    public TextureHeaderX360() : base() { }
+
+    public TextureHeaderX360(string path) : base(path) { }
+
     public override void PullInternalDimension()
     {
         DIMENSION OutputDimension = Format.Dimension switch
@@ -44,7 +46,7 @@ public class TextureHeaderX360 : TextureHeaderBase
         Depth = (ushort)Format.Size.Depth;
         MipmapLevels = (byte)(Format.MaxMipLevel - Format.MinMipLevel + 1);
     }
-    
+
     public override void PullInternalFlags()
     {
         // TODO: Implement better parser
@@ -65,7 +67,7 @@ public class TextureHeaderX360 : TextureHeaderBase
     {
         // Not needed for 360
     }
-    
+
     public override void PushInternalDimension()
     {
         var OutputDimension = Dimension switch
@@ -83,28 +85,28 @@ public class TextureHeaderX360 : TextureHeaderBase
         Format.Size.Height = Height;
         Format.Size.Depth = Depth;
 
-        Format.Size.Type = 
-            (Height > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D : GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D;
         Format.Size.Type =
-            (Depth > 1) ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D : Format.Size.Type;
+            Height > 1 ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D : GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D;
+        Format.Size.Type =
+            Depth > 1 ? GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D : Format.Size.Type;
     }
-    
+
     // parse GPUTEXTURE_FETCH_CONSTANT
     public override void PushInternalFlags() { }
 
     // Not sure if this is accurate
-    public override void PushInternalFormat() 
+    public override void PushInternalFormat()
     {
         Format.Pitch = CalculatePitchX360(Width, Height);
 
         Format.MaxMipLevel = (byte)(MipmapLevels - 1);
         Format.MinMipLevel = 0;
 
-        Format.PackedMips = (Format.MaxMipLevel > 0);
+        Format.PackedMips = Format.MaxMipLevel > 0;
 
         // Not entirely correct but better than just using pitch
         Format.MipAddress = CalculateMipAddressX360(Width, Height);
-    } 
+    }
 
     public override void WriteToStream(BinaryWriter writer)
     {
@@ -126,7 +128,7 @@ public class TextureHeaderX360 : TextureHeaderBase
 
         // Padding that's usually just garbage data.
         writer.Write(Encoding.UTF8.GetBytes("Volatility"));
-        writer.Write(new byte[0x2]);        
+        writer.Write(new byte[0x2]);
     }
 
     public override void ParseFromStream(BinaryReader reader)
@@ -148,14 +150,14 @@ public class TextureHeaderX360 : TextureHeaderBase
         Identifier = reader.ReadUInt32();
         BaseFlush = reader.ReadUInt32();
         MipFlush = reader.ReadUInt32();
-        
+
         // Format
         reader.BaseStream.Seek(0x1C, SeekOrigin.Begin);
         Format = new GPUTEXTURE_FETCH_CONSTANT().FromPacked(reader.ReadBytes(0x18));
     }
 }
 
-public struct GPUTEXTURE_FETCH_CONSTANT 
+public struct GPUTEXTURE_FETCH_CONSTANT
 {
     public bool Tiled;                        // 1 bit
     public ushort Pitch;                      // 9 bits + 1 bit padding
@@ -322,7 +324,7 @@ public struct GPUTEXTURE_FETCH_CONSTANT
         ConcatBitString(sb, ForceBCWToMax, 1);
         ConcatBitString(sb, (uint)BorderColor, 2);
 
-        return BinaryStringToBytes(sb.ToString(), 0x18);  
+        return BinaryStringToBytes(sb.ToString(), 0x18);
     }
 }
 
@@ -342,16 +344,16 @@ public struct GPUTEXTURESIZE
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D:
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK:
                 Width += packed & 0x1FFF;
-                Height += (packed >> 13) & 0x1FFF;
-                Depth += Type == GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK ? (packed >> 26) & 0x3F : 0;
+                Height += packed >> 13 & 0x1FFF;
+                Depth += Type == GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_STACK ? packed >> 26 & 0x3F : 0;
                 break;
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D:
                 Width += packed & 0xFFFFFF;
                 break;
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_3D:
                 Width += packed & 0x7FF;
-                Height += (packed >> 11) & 0x7FF;
-                Depth += (packed >> 22) & 0x3FF; 
+                Height += packed >> 11 & 0x7FF;
+                Depth += packed >> 22 & 0x3FF;
                 break;
         }
         return this;
@@ -363,7 +365,7 @@ public struct GPUTEXTURESIZE
         switch (Type)
         {
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_1D:
-                packed |= (Width - 1 & 0xFFFFFF);
+                packed |= Width - 1 & 0xFFFFFF;
                 break;
             case GPUTEXTURESIZE_TYPE.GPUTEXTURESIZE_2D:
                 packed |= Width - 1 & 0x1FFF;
@@ -413,7 +415,7 @@ public enum D3DRESOURCETYPE : byte      // 4 bit value
     D3DRTYPE_ARRAYTEXTURE1 = 19,
     D3DRTYPE_LINETEXTURE2 = 20
     // D3DRTYPE_FORCE_DWORD = 0x7FFFFFFF // Unused
-} 
+}
 
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
 {

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-using Volatility.TextureHeader;
+using Volatility.Resource.Texture;
 
 using static Volatility.Utilities.DataUtilities;
 using static Volatility.Utilities.ResourceIDUtilities;

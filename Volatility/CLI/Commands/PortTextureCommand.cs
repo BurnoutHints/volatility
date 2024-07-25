@@ -1,4 +1,4 @@
-﻿using Volatility.TextureHeader;
+﻿using Volatility.Resource.Texture;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;

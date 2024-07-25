@@ -1,9 +1,12 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using System.IO;
+using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.Texture;
 
 public class TextureHeaderBPR : TextureHeaderBase
 {
+    public static new readonly Endian ResourceEndian = Endian.LE;
+
     public bool x64Header;                                      // For platforms like PS4
 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT; // Usually default, implemented for parity sake
@@ -13,17 +16,25 @@ public class TextureHeaderBPR : TextureHeaderBase
     public byte MostDetailedMip = 0;                            // The highest detailed mip to use
     public uint ArrayIndex = 377024;                            // Doc says < 32 but it's always 377024 (C0 C0 05 00)?
     public uint ContentsSize;                                   // PS4/Switch specific field, TODO: Calculate this
-    
-    public override DIMENSION Dimension 
-    { 
-        get => _Dimension; 
-        set => _Dimension = value; 
+
+    public override DIMENSION Dimension
+    {
+        get => _Dimension;
+        set => _Dimension = value;
     }
-    
-    public TextureHeaderBPR() : base() {}
-    
-    public TextureHeaderBPR(string path) : base(path) { }
-    
+
+    public TextureHeaderBPR() : base() { }
+
+    public TextureHeaderBPR(string path) : base(path) 
+    {
+        // string texturePath = $"{path}_texture.dat";
+        // 
+        // if (!File.Exists(texturePath))
+        //     return;
+        // 
+        // ContentsSize = (uint)new FileInfo(texturePath).Length;
+    }
+
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }
     public override void PushInternalFlags() { }
@@ -52,12 +63,12 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(ContentsSize);
         writer.Write(x64Switch(x64Header, 0));  // TextureData, 64 bit
     }
-    
+
     public override void ParseFromStream(BinaryReader reader)
     {
         base.ParseFromStream(reader);
 
-        x64Header = (reader.BaseStream.Length > 0x40);
+        x64Header = reader.BaseStream.Length > 0x40;
 
         reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
         Usage = (D3D11_USAGE)reader.ReadInt32();
@@ -78,7 +89,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         ContentsSize = (uint)reader.ReadInt32();
         reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
     }
-    
+
     public override void PushInternalDimension()
     {
         // Not needed for BPR; base dimension is BPR formatted

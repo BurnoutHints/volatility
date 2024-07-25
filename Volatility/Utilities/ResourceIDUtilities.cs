@@ -94,7 +94,7 @@ public static class ResourceIDUtilities
         {
             Dictionary<string, string>? data = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
 
-            return data.TryGetValue(id.Replace("_", "").ToLower(), out string? value) ? value : "invalid";
+            return data.TryGetValue(id.Replace("_", "").ToLower(), out string? value) ? value : "";
         }
 
         return "";

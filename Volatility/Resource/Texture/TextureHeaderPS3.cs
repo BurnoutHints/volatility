@@ -1,10 +1,12 @@
 ﻿using System.Text;
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.TextureHeader;
+namespace Volatility.Resource.Texture;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
+    public static new readonly Endian ResourceEndian = Endian.BE;
+
     public CELL_GCM_COLOR_FORMAT Format;
     public CELL_GCM_TEXTURE_DIMENSION CellDimension;
     public bool CubeMapEnable;
@@ -12,11 +14,11 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public CELL_GCM_LOCATION Location;
     public uint Pitch;
     public uint Offset;
-    public IntPtr Buffer;
+    public nint Buffer;
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
-    
-    public TextureHeaderPS3() : base() {}
+
+    public TextureHeaderPS3() : base() { }
 
     public TextureHeaderPS3(string path) : base(path) { }
 
@@ -42,25 +44,25 @@ public class TextureHeaderPS3 : TextureHeaderBase
     {
         CellDimension = Dimension switch
         {
-            (DIMENSION.DIMENSION_3D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
-            (DIMENSION.DIMENSION_CUBE) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
-            (DIMENSION.DIMENSION_1D) => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1,
+            DIMENSION.DIMENSION_3D => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
+            DIMENSION.DIMENSION_CUBE => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3,
+            DIMENSION.DIMENSION_1D => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_1,
             _ => CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_2,
         };
-        
+
         StoreType = Dimension switch
         {
-            (DIMENSION.DIMENSION_1D) => StoreType.TYPE_1D,
-            (DIMENSION.DIMENSION_2D) => StoreType.TYPE_2D,
-            (DIMENSION.DIMENSION_3D) => StoreType.TYPE_3D,
-            (DIMENSION.DIMENSION_CUBE) => StoreType.TYPE_CUBE,
+            DIMENSION.DIMENSION_1D => StoreType.TYPE_1D,
+            DIMENSION.DIMENSION_2D => StoreType.TYPE_2D,
+            DIMENSION.DIMENSION_3D => StoreType.TYPE_3D,
+            DIMENSION.DIMENSION_CUBE => StoreType.TYPE_CUBE,
             _ => StoreType.TYPE_2D
         };
 
-        CubeMapEnable = (StoreType == StoreType.TYPE_CUBE);
+        CubeMapEnable = StoreType == StoreType.TYPE_CUBE;
     }
 
-    public override void PushInternalFlags() 
+    public override void PushInternalFlags()
     {
         // Calculate pitch only if DXT and non-power of two texture
         switch (Format)
@@ -116,7 +118,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
         reader.BaseStream.Seek(1, SeekOrigin.Current);
         Pitch = SwapEndian(reader.ReadUInt32());
         Offset = SwapEndian(reader.ReadUInt32());
-        Buffer = (IntPtr)SwapEndian(reader.ReadUInt32());
+        Buffer = (nint)SwapEndian(reader.ReadUInt32());
         StoreType = (StoreType)SwapEndian(reader.ReadInt32());
         StoreFlags = reader.ReadUInt32();   // They're flags, I doubt they need to be swapped
     }

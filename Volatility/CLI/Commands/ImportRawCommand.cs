@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-using Volatility.TextureHeader;
+using Volatility.Resource.Texture;
 
 using Volatility.Utilities;
 
@@ -73,7 +73,7 @@ internal class ImportRawCommand : ICommand
                 {
                     Converters = new List<JsonConverter>
                 {
-                    new TextureHeaderJsonConverter(),
+                    new ResourceJsonConverter(),
                     new StringEnumConverter()
                 },
                     Formatting = Formatting.Indented
@@ -114,12 +114,12 @@ internal class ImportRawCommand : ICommand
                     File.Copy(texturePath, $"{outPath}.Texture", Overwrite);
                 }
 
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine(serializedString);
+                // Console.ForegroundColor = ConsoleColor.DarkCyan;
+                // Console.WriteLine(serializedString);
 
-                Console.ForegroundColor = ConsoleColor.Green;
+                // Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
-                Console.ResetColor();
+                // Console.ResetColor();
             }));
         }
 

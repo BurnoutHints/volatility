@@ -1,46 +1,42 @@
-﻿using static Volatility.Utilities.ResourceIDUtilities;
+﻿namespace Volatility.Resource.Texture;
 
-namespace Volatility.TextureHeader;
-
-public abstract class TextureHeaderBase
+public abstract class TextureHeaderBase : Resource
 {
+    public static new readonly ResourceType ResourceType = ResourceType.Texture;
+
     public ushort Width { get; set; }
     public ushort Height { get; set; }
     public ushort Depth { get; set; }
     public byte MipmapLevels { get; set; }
 
-    public string ResourceID = "";
-    public string AssetName = "invalid";
-    public string? ImportPath;
-
     protected bool _GRTexture = false;
     public bool GRTexture       // Vehicle & Wheel GRs 
     {
         get => _GRTexture;
-        set 
+        set
         {
             _GRTexture = value;
-            PushInternalFlags(); 
+            PushInternalFlags();
         }
     }
     protected bool _WorldTexture = false;
     public bool WorldTexture    // GlobalBackdrops & WorldTex
     {
         get => _WorldTexture;
-        set 
+        set
         {
             _WorldTexture = value;
-            PushInternalFlags(); 
+            PushInternalFlags();
         }
     }
     protected bool _PropTexture = false;
     public bool PropTexture     // GlobalProps
     {
         get => _PropTexture;
-        set 
+        set
         {
             _PropTexture = value;
-            PushInternalFlags(); 
+            PushInternalFlags();
         }
     }
     protected DIMENSION _Dimension = DIMENSION.DIMENSION_2D;
@@ -60,7 +56,7 @@ public abstract class TextureHeaderBase
     public abstract void PushInternalFlags();
     public virtual void PullInternalFlags()
     {
-        
+
         if (!string.IsNullOrEmpty(ImportPath))
         {
             string folder = "";
@@ -83,54 +79,17 @@ public abstract class TextureHeaderBase
         PullInternalDimension();
         PullInternalFormat();
         PullInternalFlags();
-    }    
+    }
     public virtual void PushAll()
     {
         PushInternalDimension();
         PushInternalFormat();
         PushInternalFlags();
     }
-    public abstract void WriteToStream(BinaryWriter writer);
-    public virtual void ParseFromStream(BinaryReader reader) { }
-    public TextureHeaderBase() => Depth = 1;
 
-    public TextureHeaderBase(string path)
-    {
-        ImportPath = path;
+    public TextureHeaderBase() : base() => Depth = 1;
 
-        // Don't parse a directory
-        if (new DirectoryInfo(path).Exists)
-            return;
-
-        string? name = Path.GetFileNameWithoutExtension(ImportPath);
-
-        if (!string.IsNullOrEmpty(name))
-        {
-            if (ValidateResourceID(name))
-            {
-                name = name.Replace("_", "");
-                ResourceID = this is TextureHeaderBPR || this is TextureHeaderPC 
-                    ? FlipResourceIDEndian(name) 
-                    : name;
-                string newName = GetNameByResourceID(ResourceID, "Texture");
-                AssetName = !string.IsNullOrEmpty(newName) ? newName : ResourceID;
-            }
-            else
-            {
-                // TODO: Add new entry to ResourceDB
-                ResourceID = this is TextureHeaderBPR || this is TextureHeaderPC 
-                    ? GetResourceIDFromName(name)
-                    : FlipResourceIDEndian(GetResourceIDFromName(name));
-                AssetName = name;
-            }
-
-        }
-
-        using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
-        {
-            ParseFromStream(reader);
-        }
-    }
+    public TextureHeaderBase(string path) : base(path) { }
 }
 // BPR formatted but converted for each platform
 public enum DIMENSION : int
