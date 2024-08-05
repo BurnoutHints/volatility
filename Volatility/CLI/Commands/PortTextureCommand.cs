@@ -9,14 +9,16 @@ internal class PortTextureCommand : ICommand
 {
     public static string CommandToken => "PortTexture";
     public static string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
-        " NOTE: TUB & BPR format options are for the PC releases of the title.";
-    public static string CommandParameters => "[--verbose] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
+        " NOTE: TUB & BPR format options are for the PC releases of the title," +
+        " and the --usegtf parameter requires GTF2DDS.exe in the tools folder.";
+    public static string CommandParameters => "[--verbose] [--usegtf] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
 
     public string? SourceFormat { get; set; }
     public string? SourcePath { get; set; }
     public string? DestinationFormat { get; set; }
     public string? DestinationPath { get; set; }
     public bool Verbose { get; set; }
+    public bool UseGTF { get; set; }
 
     public async Task Execute()
     {
@@ -165,10 +167,10 @@ internal class PortTextureCommand : ICommand
                     // Currently requires an external tool. Every texture I've encountered on PS3 is
                     // already raw DDS anyway, so there's not really any reason to do this as far as I see.
 
-                    // if (SourceTexture is TextureHeaderPS3 && DestinationTexture is not TextureHeaderPS3)
-                    // {
-                    //     PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
-                    // }
+                    if (UseGTF && SourceTexture is TextureHeaderPS3)
+                    {
+                        PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
+                    }
 
                     if (DestinationTexture is TextureHeaderX360 destX && SourceTexture is not TextureHeaderX360)
                     {
@@ -247,6 +249,7 @@ internal class PortTextureCommand : ICommand
                 : args.TryGetValue("op", out object? opp) ? opp as string : SourcePath;
 
         Verbose = args.TryGetValue("verbose", out var verbose) && (bool)verbose;
+        Verbose = args.TryGetValue("usegtf", out var usegtf) && (bool)usegtf;
     }
 
     public string BPRx64Hack(TextureHeaderBase header, string format)
