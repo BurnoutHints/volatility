@@ -63,7 +63,11 @@ public abstract class Resource
             ParseFromStream(reader);
         }
     }
+
+    public virtual void PushAll() { }
+    public virtual void PullAll() { }
 }
+
 
 public enum ResourceType
 {

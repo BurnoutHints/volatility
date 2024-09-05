@@ -74,13 +74,13 @@ public abstract class TextureHeaderBase : Resource
         }
     }
 
-    public virtual void PullAll()
+    public override void PullAll()
     {
         PullInternalDimension();
         PullInternalFormat();
         PullInternalFlags();
     }
-    public virtual void PushAll()
+    public override void PushAll()
     {
         PushInternalDimension();
         PushInternalFormat();

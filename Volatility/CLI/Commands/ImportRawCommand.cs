@@ -82,7 +82,8 @@ internal class ImportRawCommand : ICommand
                 string dataPath = Path.Combine
                 (
                     Directory.GetCurrentDirectory(),
-                    "data"
+                    "data",
+                    "Resources"
                 );
 
                 string filePath = Path.Combine(dataPath, $"{Regex.Replace(header.AssetName, @"(\?ID=\d+)|:", "")}.json");
