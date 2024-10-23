@@ -4,7 +4,7 @@ namespace Volatility.Resource.Texture;
 
 public class TextureHeaderBPR : TextureHeaderBase
 {
-    public static new readonly Endian ResourceEndian = Endian.LE;
+    public new static readonly Endian ResourceEndian = Endian.LE;
 
     public bool x64Header;                                      // For platforms like PS4
 

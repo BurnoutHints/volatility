@@ -5,7 +5,7 @@ namespace Volatility.Resource.Texture;
 
 public class TextureHeaderPC : TextureHeaderBase
 {
-    public static new readonly Endian ResourceEndian = Endian.LE;
+    public new static readonly Endian ResourceEndian = Endian.LE;
 
     private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format

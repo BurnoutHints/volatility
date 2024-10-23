@@ -2,7 +2,7 @@
 
 public abstract class TextureHeaderBase : Resource
 {
-    public static new readonly ResourceType ResourceType = ResourceType.Texture;
+    public new static readonly ResourceType ResourceType = ResourceType.Texture;
 
     public ushort Width { get; set; }
     public ushort Height { get; set; }

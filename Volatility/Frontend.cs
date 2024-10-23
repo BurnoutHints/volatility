@@ -166,7 +166,7 @@ internal class Frontend
         return command;
     }
 
-    public readonly static Dictionary<string, Type> Commands = new Dictionary<string, Type>
+    public static readonly Dictionary<string, Type> Commands = new Dictionary<string, Type>
     {
         { "hello", typeof(HelloCommand) },
         { "exit", typeof(ExitCommand) },

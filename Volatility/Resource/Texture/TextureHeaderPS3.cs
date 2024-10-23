@@ -5,7 +5,7 @@ namespace Volatility.Resource.Texture;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
-    public static new readonly Endian ResourceEndian = Endian.BE;
+    public new static readonly Endian ResourceEndian = Endian.BE;
 
     public CELL_GCM_COLOR_FORMAT Format;
     public CELL_GCM_TEXTURE_DIMENSION CellDimension;

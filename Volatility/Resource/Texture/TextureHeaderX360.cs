@@ -8,7 +8,7 @@ namespace Volatility.Resource.Texture;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
-    public static new readonly Endian ResourceEndian = Endian.BE;
+    public new static readonly Endian ResourceEndian = Endian.BE;
 
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
