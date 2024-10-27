@@ -14,7 +14,7 @@ namespace Volatility.CLI.Commands;
 internal partial class ImportRawCommand : ICommand
 {
 	public string CommandToken => "ImportRaw";
-	public string CommandDescription => "Imports information and relevant data from a specified platform's resoruce into a standardized format." +
+	public string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format." +
 		" NOTE: TUB format options are for the PC release of the title.";
 	public string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
 
