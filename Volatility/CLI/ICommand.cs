@@ -23,14 +23,17 @@ internal interface ICommand
     static string[] GetFilePathsInDirectory(string path, TargetFileType filter, bool recurse = false)
     {
         List<string> files = new();
+
+        path = Path.GetFullPath(path);
+
         if (File.Exists(path))
         {
             files.Add(path);
         }
-        else if (new DirectoryInfo(path).Exists)
+        else if (Directory.Exists(path))
         {
             SearchOption searchOption = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            files = new(Directory.EnumerateFiles(path, "*", searchOption));
+            files = new List<string>(Directory.EnumerateFiles(path, "*", searchOption));
         }
         for (int i = files.Count - 1; i >= 0; i--)
         {

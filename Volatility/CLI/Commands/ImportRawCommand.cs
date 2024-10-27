@@ -9,7 +9,7 @@ using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
 
-internal class ImportRawCommand : ICommand
+internal partial class ImportRawCommand : ICommand
 {
 	public string CommandToken => "ImportRaw";
 	public string CommandDescription => "Imports information and relevant data from a specified platform's resoruce into a standardized format." +
@@ -36,10 +36,16 @@ internal class ImportRawCommand : ICommand
 			return;
 		}
 
-		var sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Header, Recursive);
-		List<Task> tasks = new List<Task>();
+		string[] sourceFiles = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Header, Recursive);
 
-		foreach (string sourceFile in ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Header, Recursive))
+		if (sourceFiles.Length == 0)
+		{
+			Console.WriteLine($"Error: No valid file(s) found at the specified path ({ImportPath}). Ensure the path exists and spaces are properly enclosed. (--path)");
+			return;
+		}
+
+		List<Task> tasks = new List<Task>();
+		foreach (string sourceFile in sourceFiles)
 		{
 			tasks.Add(Task.Run(async () =>
 			{
@@ -79,10 +85,12 @@ internal class ImportRawCommand : ICommand
 				var serializedString = new string("");
 				Resource.Resource resource = null;
 				
+				// This method is most definitely temporary.
 				switch (RType)
 				{
+					case "0X0":
 					case "TEXTURE":
-						TextureHeaderBase? header = Format switch
+						resource = Format switch
 						{
 							"BPR" => new TextureHeaderBPR(sourceFile),
 							"TUB" => new TextureHeaderPC(sourceFile),
@@ -90,12 +98,11 @@ internal class ImportRawCommand : ICommand
 							"PS3" => new TextureHeaderPS3(sourceFile),
 							_ => throw new InvalidPlatformException(),
 						};
-						header.PullAll();
-						serializedString = JsonConvert.SerializeObject(header, settings);
-						resource = header;
+						(resource as TextureHeaderBase)?.PullAll();
 						break;
+					case "0XA025":
 					case "SPLICER":
-						SplicerBase? splicer = Format switch
+						resource = Format switch
 						{
 							"BPR" => new SplicerLE(sourceFile),
 							"TUB" => new SplicerLE(sourceFile),
@@ -103,15 +110,14 @@ internal class ImportRawCommand : ICommand
 							"PS3" => new SplicerBE(sourceFile),
 							_ => throw new InvalidPlatformException(),
 						};
-						serializedString = JsonConvert.SerializeObject(splicer, settings);
-						resource = splicer;
 						break;
+					default:
+						Console.WriteLine("Error: Resource type is not supported yet!");
+						return;
 				}
 
-
-				var ResourceClass = resource.GetType();
-				var ResourceType = ResourceClass.GetProperty("ResourceType", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
-
+				var resourceClass = resource.GetType();
+				var resourceType = resourceClass.GetProperty("ResourceType", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
 				
 				string dataPath = Path.Combine
 				(
@@ -120,32 +126,37 @@ internal class ImportRawCommand : ICommand
 					"Resources"
 				);
 
-				string filePath = Path.Combine(dataPath, $"{Regex.Replace(resource.AssetName, @"(\?ID=\d+)|:", "")}.json");
+				string filePath = Path.Combine(dataPath, $"{DBToFileRegex().Replace(resource.AssetName, "")}.json");
 
-				string directoryPath = Path.GetDirectoryName(filePath);
+				string? directoryPath = Path.GetDirectoryName(filePath);
 
 				Directory.CreateDirectory(directoryPath);
 
+				serializedString = JsonConvert.SerializeObject(resource, settings);
 				using (StreamWriter streamWriter = new StreamWriter(filePath))
 				{
 					await streamWriter.WriteAsync(serializedString);
 				};
 
-				string texturePath = Path.Combine
-				(
-					Path.GetDirectoryName(sourceFile),
-					Path.GetFileNameWithoutExtension(sourceFile) + "_texture.dat"
-				);
-
-				if (File.Exists(texturePath))
+				// Texture-specific logic. Will need to refactor this pipeline
+				if (RType == "TEXTURE")
 				{
-					string outPath = Path.Combine
+					string texturePath = Path.Combine
 					(
-						directoryPath,
-						Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+						Path.GetDirectoryName(sourceFile),
+						Path.GetFileNameWithoutExtension(sourceFile) + "_texture.dat"
 					);
 
-					File.Copy(texturePath, $"{outPath}.{ResourceType}", Overwrite);
+					if (File.Exists(texturePath))
+					{
+						string outPath = Path.Combine
+						(
+							directoryPath,
+							Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+						);
+
+						File.Copy(texturePath, $"{outPath}.{resourceType}", Overwrite);
+					}
 				}
 				
 				Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
@@ -154,10 +165,14 @@ internal class ImportRawCommand : ICommand
 
 		await Task.WhenAll(tasks);
 	}
+	
+	[GeneratedRegex(@"(\?ID=\d+)|:")]
+	private static partial Regex DBToFileRegex();
+	
 	public void SetArgs(Dictionary<string, object> args)
 	{
-		RType = (args.TryGetValue("type", out object? rtype) ? rtype as string : "auto").ToUpper();
-		Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
+		RType = (args.TryGetValue("type", out object? rtype) ? rtype as string : "auto")?.ToUpper();
+		Format = (args.TryGetValue("format", out object? format) ? format as string : "auto")?.ToUpper();
 		ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
