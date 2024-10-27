@@ -7,9 +7,9 @@ public abstract class Resource
     public string ResourceID = "";
     public string AssetName = "invalid";
     public string? ImportPath;
-    public static readonly ResourceType ResourceType;
     
-    protected virtual Endian GetResourceEndian() => Endian.LE;
+    public virtual ResourceType GetResourceType() => ResourceType.Invalid;
+    public virtual Endian GetResourceEndian() => Endian.LE;
 
     public virtual void WriteToStream(BinaryWriter writer) { }
     public virtual void ParseFromStream(BinaryReader reader) { }
@@ -42,7 +42,7 @@ public abstract class Resource
                     ? FlipResourceIDEndian(name)
                     : name;
 
-                string newName = GetNameByResourceID(ResourceID, ResourceType.ToString());
+                string newName = GetNameByResourceID(ResourceID, GetResourceType().ToString());
                 AssetName = !string.IsNullOrEmpty(newName)
                     ? newName
                     : ResourceID;
@@ -194,7 +194,8 @@ public enum ResourceType
     BkSoundGunsu = 0x11001,
     BkSoundBulletImpact = 0x11002,
     BkSoundBulletImpactList = 0x11003,
-    BkSoundBulletImpactStream = 0x11004
+    BkSoundBulletImpactStream = 0x11004,
+    Invalid = 0xFFFFFF,
 }
 
 public enum Endian

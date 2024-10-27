@@ -4,7 +4,7 @@ namespace Volatility.Resource.Texture;
 
 public class TextureHeaderBPR : TextureHeaderBase
 {
-    protected override Endian GetResourceEndian() => Endian.LE;
+    public override Endian GetResourceEndian() => Endian.LE;
 
     public bool x64Header;                                      // For platforms like PS4
 

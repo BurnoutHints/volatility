@@ -5,7 +5,7 @@ namespace Volatility.Resource.Splicer;
 
 public abstract class SplicerBase : BinaryResource
 {
-    public new static readonly ResourceType ResourceType = ResourceType.Splicer;
+    public override ResourceType GetResourceType() => ResourceType.Splicer;
     
     public SPLICE_Data[] Splices;
     public SPLICE_SampleRef[] Samples;

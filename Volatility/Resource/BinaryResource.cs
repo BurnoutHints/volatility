@@ -11,7 +11,7 @@ namespace Volatility.Resource;
 
 public class BinaryResource : Resource
 {
-    public new static readonly ResourceType ResourceType = ResourceType.BinaryFile;
+    public override ResourceType GetResourceType() => ResourceType.BinaryFile;
 
     public uint DataSize;
     public uint DataOffset;

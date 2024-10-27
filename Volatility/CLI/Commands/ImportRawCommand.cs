@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
+using Volatility.Resource;
 using Volatility.Resource.Splicer;
 using Volatility.Resource.Texture;
 using Volatility.Utilities;
@@ -117,7 +118,7 @@ internal partial class ImportRawCommand : ICommand
 				}
 
 				var resourceClass = resource.GetType();
-				var resourceType = resourceClass.GetProperty("ResourceType", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+				var resourceType = resource.GetResourceType();
 				
 				string dataPath = Path.Combine
 				(
@@ -139,7 +140,7 @@ internal partial class ImportRawCommand : ICommand
 				};
 
 				// Texture-specific logic. Will need to refactor this pipeline
-				if (RType == "TEXTURE")
+				if (resourceType == ResourceType.Texture)
 				{
 					string texturePath = Path.Combine
 					(
@@ -155,7 +156,7 @@ internal partial class ImportRawCommand : ICommand
 							Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
 						);
 
-						File.Copy(texturePath, $"{outPath}.{resourceType}", Overwrite);
+						File.Copy(texturePath, $"{outPath}.{resourceType.ToString()}", Overwrite);
 					}
 				}
 				
