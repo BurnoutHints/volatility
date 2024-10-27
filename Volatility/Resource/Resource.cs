@@ -8,7 +8,8 @@ public abstract class Resource
     public string AssetName = "invalid";
     public string? ImportPath;
     public static readonly ResourceType ResourceType;
-    public static readonly Endian ResourceEndian;
+    
+    protected virtual Endian GetResourceEndian() => Endian.LE;
 
     public virtual void WriteToStream(BinaryWriter writer) { }
     public virtual void ParseFromStream(BinaryReader reader) { }
@@ -37,7 +38,7 @@ public abstract class Resource
 
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
-                ResourceID = (ResourceEndian == Endian.LE)
+                ResourceID = (GetResourceEndian() == Endian.LE)
                     ? FlipResourceIDEndian(name)
                     : name;
 
@@ -49,7 +50,7 @@ public abstract class Resource
             else
             {
                 // TODO: Add new entry to ResourceDB
-                ResourceID = (ResourceEndian == Endian.LE)
+                ResourceID = (GetResourceEndian() == Endian.LE)
                     ? GetResourceIDFromName(name)
                     : FlipResourceIDEndian(GetResourceIDFromName(name));
 
@@ -63,7 +64,7 @@ public abstract class Resource
             ParseFromStream(reader);
         }
     }
-
+    
     public virtual void PushAll() { }
     public virtual void PullAll() { }
 }

@@ -1,3 +1,5 @@
+using static Volatility.Utilities.DataUtilities;
+
 namespace Volatility.Resource;
 
 // The BinaryFile resource type is a base type used in several
@@ -11,8 +13,8 @@ public class BinaryResource : Resource
 {
     public new static readonly ResourceType ResourceType = ResourceType.BinaryFile;
 
-    uint DataSize;
-    uint DataOffset;
+    public uint DataSize;
+    public uint DataOffset;
 
     public BinaryResource(uint dataOffset, uint dataSize)
     {
@@ -27,9 +29,11 @@ public class BinaryResource : Resource
     public override void ParseFromStream(BinaryReader reader)
     {
         base.ParseFromStream(reader);
+
+        bool be = GetResourceEndian() == Endian.BE;
         
-        DataSize = reader.ReadUInt32();
-        DataOffset = reader.ReadUInt32();
+        DataSize = be ? SwapEndian(reader.ReadUInt32()) : reader.ReadUInt32();
+        DataOffset = be ? SwapEndian(reader.ReadUInt32()) : reader.ReadUInt32();
         
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
