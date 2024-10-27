@@ -45,6 +45,13 @@ public static class DataUtilities
         return (x > 0) && ((x & (x - 1)) == 0);
     }
 
+    public static float SwapEndian(float value)
+    {
+        byte[] bytes = BitConverter.GetBytes(value);
+        Array.Reverse(bytes);
+        return BitConverter.ToSingle(bytes, 0);
+    }
+
     public static int SwapEndian(int value)
     {
         return (int)SwapEndian((uint)value);
