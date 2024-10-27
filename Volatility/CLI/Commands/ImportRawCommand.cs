@@ -103,6 +103,8 @@ internal class ImportRawCommand : ICommand
 							"PS3" => new SplicerBE(sourceFile),
 							_ => throw new InvalidPlatformException(),
 						};
+						serializedString = JsonConvert.SerializeObject(splicer, settings);
+						resource = splicer;
 						break;
 				}
 
