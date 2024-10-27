@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resource.Splicer;
 
@@ -10,22 +9,20 @@ public abstract class SplicerBase : BinaryResource
     public SPLICE_Data[] Splices;
     public SPLICE_SampleRef[] Samples;
 
-    public override void ParseFromStream(BinaryReader reader)
+    public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
         base.ParseFromStream(reader);
 
-        bool be = (GetResourceEndian() == Endian.BE);
-        
-        int version =  be ? SwapEndian(reader.ReadInt32()) : reader.ReadInt32();
+        int version =  reader.ReadInt32();
         if (version != 1)
         {
             throw new InvalidDataException("Version mismatch! Version should be 1.");
             return;
         }
         
-        int pSampleRefTOC = be ? SwapEndian(reader.ReadInt32()) : reader.ReadInt32();
+        int pSampleRefTOC = reader.ReadInt32();
         
-        int numSplices = be ? SwapEndian(reader.ReadInt32()) : reader.ReadInt32();
+        int numSplices = reader.ReadInt32();
         if (numSplices <= 0)
         {
             throw new InvalidDataException("No splices in Splicer file!");
@@ -42,12 +39,12 @@ public abstract class SplicerBase : BinaryResource
             
             Splices[i] = new SPLICE_Data()
             {
-                SpliceIndex = be ? SwapEndian(reader.ReadUInt16()) : reader.ReadUInt16(),
+                SpliceIndex = reader.ReadUInt16(),
                 ESpliceType = reader.ReadSByte(),
                 Num_SampleRefs = reader.ReadByte(),
-                Volume = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                RND_Pitch = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                RND_Vol = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),  
+                Volume = reader.ReadSingle(),
+                RND_Pitch = reader.ReadSingle(),
+                RND_Vol = reader.ReadSingle(),  
             };
             
             // pSampleRefList (null)
@@ -60,28 +57,28 @@ public abstract class SplicerBase : BinaryResource
         // Read SampleRefs
         reader.BaseStream.Seek(pSampleRefTOC + 0xC + DataOffset, SeekOrigin.Begin);
         
-        int numSamples = be ? SwapEndian(reader.ReadInt32()) : reader.ReadInt32();
+        int numSamples = reader.ReadInt32();
         
         Samples = new SPLICE_SampleRef[numSamples];
         for (int i = 0; i < numSamples; i++)
         {
             Samples[i] = new SPLICE_SampleRef()
             {
-                SampleIndex = be ? SwapEndian(reader.ReadUInt16()) : reader.ReadUInt16(),
+                SampleIndex = reader.ReadUInt16(),
                 ESpliceType = reader.ReadSByte(),
                 Padding = reader.ReadByte(),
-                Volume = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                Pitch = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                Offset = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                Az = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                Duration = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                FadeIn = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                FadeOut = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                RND_Vol = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
-                RND_Pitch = be ? SwapEndian(reader.ReadSingle()) : reader.ReadSingle(),
+                Volume = reader.ReadSingle(),
+                Pitch = reader.ReadSingle(),
+                Offset = reader.ReadSingle(),
+                Az = reader.ReadSingle(),
+                Duration = reader.ReadSingle(),
+                FadeIn = reader.ReadSingle(),
+                FadeOut = reader.ReadSingle(),
+                RND_Vol = reader.ReadSingle(),
+                RND_Pitch = reader.ReadSingle(),
                 Priority = reader.ReadByte(),
                 ERollOffType = reader.ReadByte(),
-                Padding2 = be ? SwapEndian(reader.ReadUInt16()) : reader.ReadUInt16(),
+                Padding2 = reader.ReadUInt16(),
             };
         }
     }

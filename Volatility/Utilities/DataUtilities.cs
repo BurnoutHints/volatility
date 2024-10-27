@@ -45,32 +45,6 @@ public static class DataUtilities
         return (x > 0) && ((x & (x - 1)) == 0);
     }
 
-    public static float SwapEndian(float value)
-    {
-        byte[] bytes = BitConverter.GetBytes(value);
-        Array.Reverse(bytes);
-        return BitConverter.ToSingle(bytes, 0);
-    }
-
-    public static int SwapEndian(int value)
-    {
-        return (int)SwapEndian((uint)value);
-    }
-
-    public static uint SwapEndian(uint value)
-    {
-        return ((value & 0x000000FF) << 24) | 
-               ((value & 0x0000FF00) << 8)  | 
-               ((value & 0x00FF0000) >> 8)  | 
-               ((value & 0xFF000000) >> 24);
-    }
-
-    public static ushort SwapEndian(ushort value)
-    {
-        return (ushort)(((value & 0x00FF) << 8) | 
-                        ((value & 0xFF00) >> 8));
-    }
-
     public static string ConcatBitString(string inString, int value, int bits)
     {
         return inString += Convert.ToString(value, 2).PadLeft(bits, '0');

@@ -1,4 +1,5 @@
-﻿namespace Volatility.Resource.Texture;
+﻿
+namespace Volatility.Resource.Texture;
 
 public abstract class TextureHeaderBase : Resource
 {

@@ -11,8 +11,14 @@ public abstract class Resource
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
     public virtual Endian GetResourceEndian() => Endian.LE;
 
-    public virtual void WriteToStream(BinaryWriter writer) { }
-    public virtual void ParseFromStream(BinaryReader reader) { }
+    public virtual void WriteToStream(EndianAwareBinaryWriter writer) 
+    { 
+        writer.SetEndianness(GetResourceEndian());
+    }
+    public virtual void ParseFromStream(EndianAwareBinaryReader reader) 
+    {
+        reader.SetEndianness(GetResourceEndian());
+    }
 
     public Resource() { }
 
@@ -50,16 +56,13 @@ public abstract class Resource
             else
             {
                 // TODO: Add new entry to ResourceDB
-                ResourceID = (GetResourceEndian() == Endian.LE)
-                    ? GetResourceIDFromName(name)
-                    : FlipResourceIDEndian(GetResourceIDFromName(name));
-
+                ResourceID = GetResourceIDFromName(name, GetResourceEndian());
                 AssetName = name;
             }
 
         }
 
-        using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
+        using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(new FileStream($"{path}", FileMode.Open), GetResourceEndian()))
         {
             ParseFromStream(reader);
         }
@@ -196,10 +199,4 @@ public enum ResourceType
     BkSoundBulletImpactList = 0x11003,
     BkSoundBulletImpactStream = 0x11004,
     Invalid = 0xFFFFFF,
-}
-
-public enum Endian
-{
-    LE,
-    BE
 }

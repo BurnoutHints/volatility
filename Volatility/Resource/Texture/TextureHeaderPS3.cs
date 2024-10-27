@@ -1,4 +1,5 @@
 ﻿using System.Text;
+
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resource.Texture;
@@ -79,22 +80,24 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void PushInternalFormat() { /* TODO But don't throw an error! */ }
 
-    public override void WriteToStream(BinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
     {
+        base.WriteToStream(writer);
+
         writer.Write((byte)Format);
         writer.Write(MipmapLevels);
         writer.Write((byte)CellDimension);
         writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
         writer.Write(Remap); // Does this need to be swapped?
-        writer.Write(SwapEndian(Width));
-        writer.Write(SwapEndian(Height));
-        writer.Write(SwapEndian(Depth));
+        writer.Write(Width);
+        writer.Write(Height);
+        writer.Write(Depth);
         writer.Write((byte)Location);
         writer.Write((byte)0); // Padding
-        writer.Write(SwapEndian(Pitch));
-        writer.Write(SwapEndian(Offset));
-        writer.Write(SwapEndian((uint)Buffer));
-        writer.Write(SwapEndian((int)StoreType));
+        writer.Write(Pitch);
+        writer.Write(Offset);
+        writer.Write((uint)Buffer);
+        writer.Write((int)StoreType);
         writer.Write(StoreFlags);
 
         // Padding that's usually just garbage data.
@@ -102,7 +105,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(BinaryReader reader)
+    public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
         base.ParseFromStream(reader);
 
@@ -111,16 +114,20 @@ public class TextureHeaderPS3 : TextureHeaderBase
         CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();
         CubeMapEnable = reader.ReadByte() != 0 ? true : false;
         Remap = reader.ReadUInt32(); // Does this need to be swapped?
-        Width = SwapEndian(reader.ReadUInt16());
-        Height = SwapEndian(reader.ReadUInt16());
-        Depth = SwapEndian(reader.ReadUInt16());
+        Width = reader.ReadUInt16();
+        Height = reader.ReadUInt16();
+        Depth = reader.ReadUInt16();
         Location = (CELL_GCM_LOCATION)reader.ReadByte();
         reader.BaseStream.Seek(1, SeekOrigin.Current);
-        Pitch = SwapEndian(reader.ReadUInt32());
-        Offset = SwapEndian(reader.ReadUInt32());
-        Buffer = (nint)SwapEndian(reader.ReadUInt32());
-        StoreType = (StoreType)SwapEndian(reader.ReadInt32());
-        StoreFlags = reader.ReadUInt32();   // They're flags, I doubt they need to be swapped
+        Pitch = reader.ReadUInt32();
+        Offset = reader.ReadUInt32();
+        Buffer = (nint)reader.ReadUInt32();
+        StoreType = (StoreType)reader.ReadInt32();
+
+        // These were read in LE before the EndianAware update, so
+        // we'll continue to read them in LE until it causes an issue
+        reader.SetEndianness(Endian.LE);    
+        StoreFlags = reader.ReadUInt32();   
     }
 }
 

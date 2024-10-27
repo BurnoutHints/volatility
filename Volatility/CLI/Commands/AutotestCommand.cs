@@ -43,10 +43,12 @@ internal class AutotestCommand : ICommand
          * will interpret from an input format, then write
          * them out to various platform formatted header files.
          */
-
+            
         // TUB Texture data test case
         TextureHeaderPC textureHeaderPC = new TextureHeaderPC
         {
+            AssetName = "autotest_header_PC",
+            ResourceID = GetResourceIDFromName("autotest_header_PC", Endian.LE),
             Format = D3DFORMAT.D3DFMT_DXT1,
             Width = 1024,
             Height = 512,
@@ -59,6 +61,8 @@ internal class AutotestCommand : ICommand
         // BPR Texture data test case
         TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
         {
+            AssetName = "autotest_header_BPR",
+            ResourceID = GetResourceIDFromName("autotest_header_BPR", Endian.LE),
             Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
             Width = 1024,
             Height = 512,
@@ -72,6 +76,8 @@ internal class AutotestCommand : ICommand
         TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
 
         textureHeaderBPR.x64Header = true;
+        textureHeaderBPR.AssetName = "autotest_header_BPRx64";
+        textureHeaderBPR.ResourceID = GetResourceIDFromName(textureHeaderBPR.AssetName, Endian.LE);
 
         // Write 64 bit test BPR header
         TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
@@ -79,6 +85,8 @@ internal class AutotestCommand : ICommand
         // PS3 Texture data test case
         TextureHeaderPS3 textureHeaderPS3 = new TextureHeaderPS3
         {
+            AssetName = "autotest_header_PS3",
+            ResourceID = GetResourceIDFromName("autotest_header_PS3", Endian.BE),
             Format = CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45,
             Width = 1024,
             Height = 512,
@@ -91,6 +99,8 @@ internal class AutotestCommand : ICommand
         // X360 Texture data test case
         TextureHeaderX360 textureHeaderX360 = new TextureHeaderX360
         {
+            AssetName = "autotest_header_X360",
+            ResourceID = GetResourceIDFromName("autotest_header_X360", Endian.BE),
             Format = new GPUTEXTURE_FETCH_CONSTANT
             {
                 Tiled = true,
@@ -135,7 +145,7 @@ internal class AutotestCommand : ICommand
                 Console.ResetColor();
             }
 
-            using (BinaryWriter writer = new BinaryWriter(fs))
+            using (EndianAwareBinaryWriter writer = new(fs, header.GetResourceEndian()))
             {
                 Console.WriteLine($"AUTOTEST - Writing autotest {name} to working directory...");
                 header.WriteToStream(writer);
@@ -148,7 +158,7 @@ internal class AutotestCommand : ICommand
             TextureHeaderBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
                                 provider: null,
                                 objectType: header.GetType(),
-                                argTypes: new Type[] { typeof(string) },
+                                argTypes: [typeof(string)],
                                 args: new object[] { fs.Name }) as TextureHeaderBase;
 
             try

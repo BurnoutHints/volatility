@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Text;
+
 using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
@@ -108,8 +109,13 @@ public class TextureHeaderX360 : TextureHeaderBase
         Format.MipAddress = CalculateMipAddressX360(Width, Height);
     }
 
-    public override void WriteToStream(BinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
     {
+        base.WriteToStream(writer);
+
+        // X360 stores Texture values in LE
+        writer.SetEndianness(Endian.LE);
+
         StringBuilder sb = new StringBuilder();
 
         foreach (bool bit in D3DResourceFlags)
@@ -131,9 +137,12 @@ public class TextureHeaderX360 : TextureHeaderBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(BinaryReader reader)
+    public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
         base.ParseFromStream(reader);
+
+        // X360 stores Texture values in LE
+        reader.SetEndianness(Endian.LE);
 
         // Common
         using (BitReader bitReader = new BitReader(reader.ReadBytes(4)))

@@ -39,8 +39,10 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override void PushInternalFlags() { }
     public override void PullInternalFlags() => base.PullInternalFlags();
 
-    public override void WriteToStream(BinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
     {
+        base.WriteToStream(writer);
+
         writer.Write(x64Switch(x64Header, 0));  // TextureInterfacePtr, 64 bit
         writer.Write((uint)Usage);
         writer.Write((uint)Dimension);
@@ -63,7 +65,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(x64Switch(x64Header, 0));  // TextureData, 64 bit
     }
 
-    public override void ParseFromStream(BinaryReader reader)
+    public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

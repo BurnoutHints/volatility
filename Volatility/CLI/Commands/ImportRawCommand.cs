@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 using Volatility.Resource;
+using Volatility.Resource.Renderable;
 using Volatility.Resource.Splicer;
 using Volatility.Resource.Texture;
 using Volatility.Utilities;
@@ -112,6 +113,17 @@ internal partial class ImportRawCommand : ICommand
 							_ => throw new InvalidPlatformException(),
 						};
 						break;
+                    case "0XC":
+                    case "RENDERABLE":
+                        resource = Format switch
+                        {
+                            "BPR" => new RenderableBPR(sourceFile),
+                            "TUB" => new RenderablePC(sourceFile),
+                            "X360" => new RenderableX360(sourceFile),
+                            "PS3" => new RenderablePS3(sourceFile),
+                            _ => throw new InvalidPlatformException(),
+                        };
+                        break;
 					default:
 						Console.WriteLine("Error: Resource type is not supported yet!");
 						return;

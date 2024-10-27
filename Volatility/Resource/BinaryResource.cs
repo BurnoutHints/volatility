@@ -26,14 +26,12 @@ public class BinaryResource : Resource
     
     public BinaryResource(string path) : base(path) { }
 
-    public override void ParseFromStream(BinaryReader reader)
+    public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
         base.ParseFromStream(reader);
-
-        bool be = GetResourceEndian() == Endian.BE;
         
-        DataSize = be ? SwapEndian(reader.ReadUInt32()) : reader.ReadUInt32();
-        DataOffset = be ? SwapEndian(reader.ReadUInt32()) : reader.ReadUInt32();
+        DataSize = reader.ReadUInt32();
+        DataOffset = reader.ReadUInt32();
         
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
