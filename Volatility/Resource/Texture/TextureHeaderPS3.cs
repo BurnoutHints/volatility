@@ -133,6 +133,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
 public enum CELL_GCM_COLOR_FORMAT : byte
 {
+    CELL_GCM_TEXTURE_INVALID = 0,
     CELL_GCM_TEXTURE_B8 = 129,
     CELL_GCM_TEXTURE_A1R5G5B5 = 130,
     CELL_GCM_TEXTURE_A4R4G4B4 = 131,
