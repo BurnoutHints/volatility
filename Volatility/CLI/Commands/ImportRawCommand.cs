@@ -12,9 +12,9 @@ using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
 
-internal partial class ImportRawCommand : ICommand
+internal partial class ImportResourceCommand : ICommand
 {
-	public string CommandToken => "ImportRaw";
+	public string CommandToken => "ImportResource";
 	public string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format." +
 		" NOTE: TUB format options are for the PC release of the title.";
 	public string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
@@ -140,7 +140,7 @@ internal partial class ImportRawCommand : ICommand
 					"Resources"
 				);
 
-				string filePath = Path.Combine(dataPath, $"{DBToFileRegex().Replace(resource.AssetName, "")}.json");
+				string filePath = Path.Combine(dataPath, $"{DBToFileRegex().Replace(resource.AssetName, "")}.{resourceType}");
 
 				string? directoryPath = Path.GetDirectoryName(filePath);
 
@@ -169,7 +169,7 @@ internal partial class ImportRawCommand : ICommand
 							Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
 						);
 
-						File.Copy(texturePath, $"{outPath}.{resourceType.ToString()}", Overwrite);
+						File.Copy(texturePath, $"{outPath}.{resourceType}Bitmap", Overwrite);
 					}
 				}
 
