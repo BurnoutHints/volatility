@@ -198,10 +198,16 @@ internal partial class ImportRawCommand : ICommand
 						{
 							string samplePathName = Path.Combine(sampleDirectory, sampleName);
 
+							string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
+
+							Directory.CreateDirectory(convertedSamplePathName);
+
+							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
+
                             ProcessStartInfo start = new ProcessStartInfo
 					        {
 					            FileName = sxPath,
-					            Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{samplePathName}.wav\"",
+					            Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
 					            RedirectStandardOutput = true,
 					            RedirectStandardError = true,
 					            UseShellExecute = false,
