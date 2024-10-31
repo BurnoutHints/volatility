@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Volatility.Resource.Splicer;
 
@@ -115,6 +116,73 @@ public abstract class SplicerBase : BinaryResource
 
             _samples[i] = reader.ReadBytes(length);
         }
+    }
+
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    {
+        base.WriteToStream(writer);
+
+        writer.BaseStream.Position = DataOffset;
+
+        writer.Write((int)1); // version
+
+        int sampleRefTOCPosition = (int)writer.BaseStream.Position; // Saving this for later
+
+        writer.Write((int)0); // pSampleRefTOC
+
+        writer.Write((int)Splices.Length); // NumSplices
+
+        // Write Splices
+        for (int i = 0; i < Splices.Length; i++)
+        {
+            // NameHash, unused by game
+            writer.Write(Encoding.Default.GetBytes("sper"));
+
+            writer.Write(Splices[i].SpliceIndex);
+            writer.Write(Splices[i].ESpliceType);
+            writer.Write(Splices[i].Num_SampleRefs);
+            writer.Write(Splices[i].Volume);
+            writer.Write(Splices[i].RND_Pitch);
+            writer.Write(Splices[i].RND_Vol);
+
+            // pSampleRefList, filled at runtime
+            writer.Write(Encoding.Default.GetBytes("dunk"));
+        }
+
+        // Write SampleRefs
+        for (int i = 0; i < SampleRefs.Length; i++)
+        {
+            writer.Write(SampleRefs[i].SampleIndex);
+            writer.Write(SampleRefs[i].ESpliceType);
+            writer.Write(SampleRefs[i].Padding);
+            writer.Write(SampleRefs[i].Volume);
+            writer.Write(SampleRefs[i].Pitch);
+            writer.Write(SampleRefs[i].Offset);
+            writer.Write(SampleRefs[i].Az);
+            writer.Write(SampleRefs[i].Duration);
+            writer.Write(SampleRefs[i].FadeIn);
+            writer.Write(SampleRefs[i].FadeOut);
+            writer.Write(SampleRefs[i].RND_Vol);
+            writer.Write(SampleRefs[i].RND_Pitch);
+            writer.Write(SampleRefs[i].Priority);
+            writer.Write(SampleRefs[i].ERollOffType);
+            writer.Write(SampleRefs[i].Padding2);
+        }
+
+        int sampleRefTOC = ((int)writer.BaseStream.Position) - (int)DataOffset; // Saving this for later
+
+        writer.Seek(sampleRefTOCPosition, SeekOrigin.Begin);
+
+        writer.Write(sampleRefTOC);
+
+        writer.Seek(sampleRefTOCPosition + (int)DataOffset, SeekOrigin.Begin);
+
+        //writer.Write(SamplePtrs.Length);
+        //
+        //for (int i = 0; i < SamplePtrs.Length; i++)
+        //{
+        //    $"{AssetName}_Samples"
+        //}
     }
 
     public byte[][] GetLoadedSamples()
