@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
@@ -113,17 +114,17 @@ internal partial class ImportRawCommand : ICommand
 							_ => throw new InvalidPlatformException(),
 						};
 						break;
-                    case "0XC":
-                    case "RENDERABLE":
-                        resource = Format switch
-                        {
-                            "BPR" => new RenderableBPR(sourceFile),
-                            "TUB" => new RenderablePC(sourceFile),
-                            "X360" => new RenderableX360(sourceFile),
-                            "PS3" => new RenderablePS3(sourceFile),
-                            _ => throw new InvalidPlatformException(),
-                        };
-                        break;
+					case "0XC":
+					case "RENDERABLE":
+						resource = Format switch
+						{
+							"BPR" => new RenderableBPR(sourceFile),
+							"TUB" => new RenderablePC(sourceFile),
+							"X360" => new RenderableX360(sourceFile),
+							"PS3" => new RenderablePS3(sourceFile),
+							_ => throw new InvalidPlatformException(),
+						};
+						break;
 					default:
 						Console.WriteLine("Error: Resource type is not supported yet!");
 						return;
@@ -171,11 +172,67 @@ internal partial class ImportRawCommand : ICommand
 						File.Copy(texturePath, $"{outPath}.{resourceType.ToString()}", Overwrite);
 					}
 				}
-				
-				Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
+
+                // Splicer-specific logic. Will need to refactor this pipeline
+                if (resourceType == ResourceType.Splicer)
+                {
+                    string sxPath = Path.Combine("tools", $"sx.exe");
+					bool sxExists = File.Exists(sxPath);
+
+                    SplicerBase? splicer = resource as SplicerBase;
+
+					byte[][]? samples = splicer?.GetLoadedSamples();
+
+                    for (int i = 0; i < samples?.Length; i++)
+					{
+						string sampleName = $"{resource.AssetName}_{i}";
+
+						string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
+
+                        Directory.CreateDirectory(sampleDirectory);
+
+						Console.WriteLine($"Writing extracted sample {sampleName}.snr");
+					    await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i]);
+
+						if (sxExists)
+						{
+							string samplePathName = Path.Combine(sampleDirectory, sampleName);
+
+                            ProcessStartInfo start = new ProcessStartInfo
+					        {
+					            FileName = sxPath,
+					            Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{samplePathName}.wav\"",
+					            RedirectStandardOutput = true,
+					            RedirectStandardError = true,
+					            UseShellExecute = false,
+					            CreateNoWindow = true
+					        };
+
+					        using (Process process = new Process())
+					        {
+					            process.StartInfo = start;
+					            process.OutputDataReceived += (sender, e) =>
+					            {
+					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+					            };
+
+					            process.ErrorDataReceived += (sender, e) =>
+					            {
+					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+					            };
+
+                                Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
+                                process.Start();
+					            process.BeginOutputReadLine();
+					            process.BeginErrorReadLine();
+					            process.WaitForExit();
+					        }
+					    }
+					}
+				}
+                Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
 			}));
 		}
-
 		await Task.WhenAll(tasks);
 	}
 	

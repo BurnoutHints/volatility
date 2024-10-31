@@ -7,7 +7,19 @@ public abstract class SplicerBase : BinaryResource
     public override ResourceType GetResourceType() => ResourceType.Splicer;
     
     public SPLICE_Data[] Splices;
-    public SPLICE_SampleRef[] Samples;
+    public SPLICE_SampleRef[] SampleRefs;
+    public IntPtr[] SamplePtrs;
+
+    // This only gets populated when parsing from a stream.
+    // Not sure whether this is a good idea to keep as-is.
+    private byte[][] _samples;
+
+    // Used to make reading parsed files easier.
+    // May remove or keep as generated values
+    // to make reading & editing easier.
+    public IntPtr SampleRefsPtrOffset;
+    public IntPtr SamplePtrOffset;
+
 
     public override void ParseFromStream(EndianAwareBinaryReader reader)
     {
@@ -53,16 +65,16 @@ public abstract class SplicerBase : BinaryResource
             Splices[i].SampleListIndex = lowestSampleIndex;
             lowestSampleIndex += Splices[i].Num_SampleRefs;
         }
-        
+
+        int numSampleRefs = Splices[numSplices - 1].SampleListIndex + Splices[numSplices - 1].Num_SampleRefs;
+
+        SampleRefsPtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
+
         // Read SampleRefs
-        reader.BaseStream.Seek(pSampleRefTOC + 0xC + DataOffset, SeekOrigin.Begin);
-        
-        int numSamples = reader.ReadInt32();
-        
-        Samples = new SPLICE_SampleRef[numSamples];
-        for (int i = 0; i < numSamples; i++)
+        SampleRefs = new SPLICE_SampleRef[numSampleRefs];
+        for (int i = 0; i < numSampleRefs; i++)
         {
-            Samples[i] = new SPLICE_SampleRef()
+            SampleRefs[i] = new SPLICE_SampleRef()
             {
                 SampleIndex = reader.ReadUInt16(),
                 ESpliceType = reader.ReadSByte(),
@@ -81,6 +93,33 @@ public abstract class SplicerBase : BinaryResource
                 Padding2 = reader.ReadUInt16(),
             };
         }
+
+        reader.BaseStream.Seek(pSampleRefTOC + 0xC + DataOffset, SeekOrigin.Begin);
+
+        int numSamples = reader.ReadInt32();
+
+        SamplePtrs = new IntPtr[numSamples];
+        for (int i = 0; i < numSamples; i++)
+        {
+            SamplePtrs[i] = reader.ReadInt32();
+        }
+
+        SamplePtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
+
+        _samples = new byte[numSamples][];
+        for (int i = 0; i < numSamples; i++)
+        {
+            reader.BaseStream.Seek(SamplePtrOffset + DataOffset + SamplePtrs[i], SeekOrigin.Begin);
+                          
+            int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : SamplePtrs[i + 1]) - SamplePtrs[i]);
+
+            _samples[i] = reader.ReadBytes(length);
+        }
+    }
+
+    public byte[][] GetLoadedSamples()
+    {
+        return _samples;
     }
 
     public SplicerBase() : base() { }
