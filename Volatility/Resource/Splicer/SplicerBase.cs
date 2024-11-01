@@ -176,13 +176,44 @@ public abstract class SplicerBase : BinaryResource
         writer.Write(sampleRefTOC);
 
         writer.Seek(sampleRefTOCPosition + (int)DataOffset, SeekOrigin.Begin);
+    }
 
-        //writer.Write(SamplePtrs.Length);
-        //
-        //for (int i = 0; i < SamplePtrs.Length; i++)
-        //{
-        //    $"{AssetName}_Samples"
-        //}
+    public void SpliceSamples(EndianAwareBinaryWriter writer, string samplesDir)
+    {
+        // Enumerate then write Samples
+        string samplesDirectory = Path.Combine(Path.GetDirectoryName(samplesDir), $"{AssetName}_Samples");
+
+        string[] paths = Directory.GetFiles(samplesDirectory, "*.snr");
+        byte[][] samples = Array.Empty<byte[]>();
+        int[] lengths = Array.Empty<int>();
+
+        int lowestIndex = 0;
+
+        for (int i = 0; i < paths.Length; i++)
+        {
+            samples[i] = File.ReadAllBytes(paths[i]);
+            lengths[i] = samples[i].Length;
+
+            // Write SamplePtrs
+            writer.Write(lowestIndex);
+
+            lowestIndex += samples[i].Length;
+        }
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            writer.Write(samples[i]);
+        }
+
+        long tempOffset = writer.BaseStream.Position;
+
+        // Handle the BinaryResource data size
+        // Not exactly a fan of how this is hardcoded.
+        DataSize = (uint)(writer.BaseStream.Length - 0x10);
+        writer.BaseStream.Seek(0, SeekOrigin.Begin);
+        writer.Write(DataSize);
+
+        writer.BaseStream.Seek(tempOffset, SeekOrigin.Begin);
     }
 
     public byte[][] GetLoadedSamples()
