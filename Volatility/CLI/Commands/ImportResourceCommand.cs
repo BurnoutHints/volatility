@@ -14,10 +14,10 @@ namespace Volatility.CLI.Commands;
 
 internal partial class ImportResourceCommand : ICommand
 {
-	public string CommandToken => "ImportResource";
-	public string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format." +
+	public static string CommandToken => "ImportResource";
+	public static string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format." +
 		" NOTE: TUB format options are for the PC release of the title.";
-	public string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
+	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
 
 	public string? ResType { get; set; }
 	public string? Format { get; set; }
