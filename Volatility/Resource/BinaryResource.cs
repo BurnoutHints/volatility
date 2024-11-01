@@ -35,4 +35,11 @@ public class BinaryResource : Resource
         
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
+    
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    {
+        writer.Write(DataSize);
+        writer.Write(DataOffset);
+        writer.Write(new byte[8]);
+    }
 }
