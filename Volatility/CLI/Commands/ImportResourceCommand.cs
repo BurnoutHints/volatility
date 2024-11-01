@@ -19,7 +19,7 @@ internal partial class ImportResourceCommand : ICommand
 		" NOTE: TUB format options are for the PC release of the title.";
 	public string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
 
-	public string? RType { get; set; }
+	public string? ResType { get; set; }
 	public string? Format { get; set; }
 	public string? ImportPath { get; set; }
 	public bool Overwrite { get; set; }
@@ -27,7 +27,7 @@ internal partial class ImportResourceCommand : ICommand
 
 	public async Task Execute()
 	{
-		if (RType == "AUTO")
+		if (ResType == "AUTO")
 		{
 			Console.WriteLine("Error: Automatic typing is not supported yet! Please specify a type (--type)");
 			return;
@@ -89,7 +89,7 @@ internal partial class ImportResourceCommand : ICommand
 				Resource.Resource resource = null;
 				
 				// This method is most definitely temporary.
-				switch (RType)
+				switch (ResType)
 				{
 					case "0X0":
 					case "TEXTURE":
@@ -247,7 +247,7 @@ internal partial class ImportResourceCommand : ICommand
 	
 	public void SetArgs(Dictionary<string, object> args)
 	{
-		RType = (args.TryGetValue("type", out object? rtype) ? rtype as string : "auto")?.ToUpper();
+		ResType = (args.TryGetValue("type", out object? restype) ? restype as string : "auto")?.ToUpper();
 		Format = (args.TryGetValue("format", out object? format) ? format as string : "auto")?.ToUpper();
 		ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
