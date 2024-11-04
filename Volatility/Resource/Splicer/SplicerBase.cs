@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Volatility.Resource.Splicer;
+namespace Volatility.Resources.Splicer;
 
 public abstract class SplicerBase : BinaryResource
 {

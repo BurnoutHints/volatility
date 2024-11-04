@@ -1,5 +1,5 @@
 ﻿
-namespace Volatility.Resource.Texture;
+namespace Volatility.Resources.Texture;
 
 public abstract class TextureHeaderBase : Resource
 {
@@ -58,10 +58,10 @@ public abstract class TextureHeaderBase : Resource
     public virtual void PullInternalFlags()
     {
 
-        if (!string.IsNullOrEmpty(ImportPath))
+        if (!string.IsNullOrEmpty(ImportedFileName))
         {
             string folder = "";
-            var directoryInfo = new DirectoryInfo(ImportPath);
+            var directoryInfo = new DirectoryInfo(ImportedFileName);
 
             // Two directories up
             if (directoryInfo.Parent?.Parent != null)

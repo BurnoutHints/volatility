@@ -4,10 +4,10 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-using Volatility.Resource;
-using Volatility.Resource.Renderable;
-using Volatility.Resource.Splicer;
-using Volatility.Resource.Texture;
+using Volatility.Resources;
+using Volatility.Resources.Renderable;
+using Volatility.Resources.Splicer;
+using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
@@ -15,8 +15,7 @@ namespace Volatility.CLI.Commands;
 internal partial class ImportResourceCommand : ICommand
 {
 	public static string CommandToken => "ImportResource";
-	public static string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format." +
-		" NOTE: TUB format options are for the PC release of the title.";
+	public static string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format.";
 	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --path=<file path>";
 
 	public string? ResType { get; set; }
@@ -86,7 +85,7 @@ internal partial class ImportResourceCommand : ICommand
 				};
 				
 				var serializedString = new string("");
-				Resource.Resource resource = null;
+				Resource resource = null;
 				
 				// This method is most definitely temporary.
 				switch (ResType)

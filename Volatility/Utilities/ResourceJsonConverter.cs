@@ -3,13 +3,15 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+using Volatility.Resources;
+
 namespace Volatility.Utilities;
 
 public class ResourceJsonConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType)
     {
-        return typeof(Resource.Resource).IsAssignableFrom(objectType);
+        return typeof(Resource).IsAssignableFrom(objectType);
     }
 
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -20,7 +22,7 @@ public class ResourceJsonConverter : JsonConverter
         // Collect all class types from base to derived
         var classTypes = new List<Type>();
         Type currentType = type;
-        while (currentType != null && typeof(Resource.Resource).IsAssignableFrom(currentType))
+        while (currentType != null && CanConvert(currentType))
         {
             classTypes.Add(currentType);
             currentType = currentType.BaseType;
@@ -71,4 +73,38 @@ public class ResourceJsonConverter : JsonConverter
         // TODO: Implement reader
         throw new NotImplementedException();
     }
+
+    public static object DeserializeResource(Type resourceClass, string json)
+    {
+        JObject obj = JObject.Parse(json);
+
+        JObject mergedProperties = new();
+
+        List<string> sectionNames = [];
+
+        Type currentType = resourceClass;
+
+        while (currentType != null && currentType != typeof(object))
+        {
+            string sectionName = currentType.Name + "Properties";
+            sectionNames.Insert(0, sectionName);
+            currentType = currentType.BaseType;
+        }
+
+        foreach (string sectionName in sectionNames)
+        {
+            if (obj[sectionName] != null)
+            {
+                mergedProperties.Merge(obj[sectionName], new JsonMergeSettings
+                {
+                    MergeArrayHandling = MergeArrayHandling.Union
+                });
+            }
+        }
+
+        object resource = mergedProperties.ToObject(resourceClass);
+
+        return resource;
+    }
+
 }

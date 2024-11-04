@@ -151,10 +151,10 @@ internal class Frontend
         // Eventually, this may be merged with the Commands Dictionary below.
         ICommand command = commandName switch
         {
-            "hello" => new HelloCommand(),
             "exit" => new ExitCommand(),
             "clear" => new ClearCommand(),
             "importresource" => new ImportResourceCommand(),
+            "exportresource" => new ExportResourceCommand(),
             "autotest" => new AutotestCommand(),
             "help" => new HelpCommand(),
             "porttexture" => new PortTextureCommand(),
@@ -168,10 +168,10 @@ internal class Frontend
 
     public static readonly Dictionary<string, Type> Commands = new Dictionary<string, Type>
     {
-        { "hello", typeof(HelloCommand) },
         { "exit", typeof(ExitCommand) },
         { "clear", typeof(ClearCommand) },
         { "importresource", typeof(ImportResourceCommand) },
+        { "exportresource", typeof(ExportResourceCommand) },
         { "autotest", typeof(AutotestCommand) },
         { "help", typeof(HelpCommand) },
         { "porttexture", typeof(PortTextureCommand) },

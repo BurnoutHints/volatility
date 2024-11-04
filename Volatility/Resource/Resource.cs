@@ -1,12 +1,12 @@
 ﻿using static Volatility.Utilities.ResourceIDUtilities;
 
-namespace Volatility.Resource;
+namespace Volatility.Resources;
 
 public abstract class Resource
 {
     public string ResourceID = "";
     public string AssetName = "invalid";
-    public string? ImportPath;
+    public string? ImportedFileName;
     
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
     public virtual Endian GetResourceEndian() => Endian.LE;
@@ -24,13 +24,13 @@ public abstract class Resource
 
     public Resource(string path)
     {
-        ImportPath = path;
+        ImportedFileName = path;
 
         // Don't parse a directory
         if (new DirectoryInfo(path).Exists)
             return;
 
-        string? name = Path.GetFileNameWithoutExtension(ImportPath);
+        string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
 
         if (!string.IsNullOrEmpty(name))
         {

@@ -5,7 +5,7 @@ using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.Resource.Texture;
+namespace Volatility.Resources.Texture;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
