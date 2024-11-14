@@ -40,7 +40,13 @@ public static class ResourceIDUtilities
         string[] id = PathToResourceID(ResourceID);
 
         if (id.Length != 4)
+        {
+            if (id.Length == 1)
+            {
+                return IsHexadecimal(id[0]) && (id[0].Length == 0x8 || id[0].Length == 0x10);
+            }
             return false;
+        }       
 
         foreach (string part in id)
         {

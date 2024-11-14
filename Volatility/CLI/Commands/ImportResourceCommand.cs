@@ -72,8 +72,6 @@ internal partial class ImportResourceCommand : ICommand
 					return;
 				}
 
-				Console.WriteLine($"Constructing {Format} resource property data...");
-
 				var settings = new JsonSerializerSettings
 				{
 					Converters = new List<JsonConverter>
@@ -85,49 +83,19 @@ internal partial class ImportResourceCommand : ICommand
 				};
 				
 				var serializedString = new string("");
-				Resource resource = null;
-				
-				// This method is most definitely temporary.
-				switch (ResType)
+
+                if (!DataUtilities.TryParseEnum(Format, out Platform platform)) 
 				{
-					case "0X0":
-					case "TEXTURE":
-						resource = Format switch
-						{
-							"BPR" => new TextureHeaderBPR(sourceFile),
-							"TUB" => new TextureHeaderPC(sourceFile),
-							"X360" => new TextureHeaderX360(sourceFile),
-							"PS3" => new TextureHeaderPS3(sourceFile),
-							_ => throw new InvalidPlatformException(),
-						};
-						(resource as TextureHeaderBase)?.PullAll();
-						break;
-					case "0XA025":
-					case "SPLICER":
-						resource = Format switch
-						{
-							"BPR" => new SplicerLE(sourceFile),
-							"TUB" => new SplicerLE(sourceFile),
-							"X360" => new SplicerBE(sourceFile),
-							"PS3" => new SplicerBE(sourceFile),
-							_ => throw new InvalidPlatformException(),
-						};
-						break;
-					case "0XC":
-					case "RENDERABLE":
-						resource = Format switch
-						{
-							"BPR" => new RenderableBPR(sourceFile),
-							"TUB" => new RenderablePC(sourceFile),
-							"X360" => new RenderableX360(sourceFile),
-							"PS3" => new RenderablePS3(sourceFile),
-							_ => throw new InvalidPlatformException(),
-						};
-						break;
-					default:
-						Console.WriteLine("Error: Resource type is not supported yet!");
-						return;
-				}
+                    throw new InvalidPlatformException("Error: Invalid file format specified!");
+                }
+
+                if (!DataUtilities.TryParseEnum(ResType, out ResourceType resType)) 
+				{
+                    Console.WriteLine("Error: Invalid resource type specified!");
+                    return;
+                }
+
+                Resource resource = ResourceFactory.CreateResource(resType, platform, sourceFile);
 
 				var resourceClass = resource.GetType();
 				var resourceType = resource.GetResourceType();
@@ -154,11 +122,21 @@ internal partial class ImportResourceCommand : ICommand
 				// Texture-specific logic. Will need to refactor this pipeline
 				if (resourceType == ResourceType.Texture)
 				{
-					string texturePath = Path.Combine
+                    string texturePath = Path.Combine
 					(
 						Path.GetDirectoryName(sourceFile),
-						Path.GetFileNameWithoutExtension(sourceFile) + "_texture.dat"
-					);
+						Path.GetFileNameWithoutExtension(sourceFile) +
+                        // TODO: Resource-defined Secondary path support
+                        resource.Unpacker switch
+                        {
+                            Unpacker.Bnd2Manager => "_2.bin",
+                            Unpacker.DGI => "_texture.dat",
+                            Unpacker.YAP => "_secondary.dat",
+                            Unpacker.Raw => "_texture.dat", // Fallback for now
+                            Unpacker.Volatility => throw new NotImplementedException(),
+                            _ => throw new NotImplementedException(),
+                        }
+                    );
 
 					if (File.Exists(texturePath))
 					{

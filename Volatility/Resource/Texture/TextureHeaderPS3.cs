@@ -6,7 +6,8 @@ namespace Volatility.Resources.Texture;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
-    public override Endian GetResourceEndian() => Endian.BE;
+    public override Endian GetResourceEndian() => Endian.BE; 
+    public override Platform GetResourcePlatform() => Platform.PS3;
 
     public CELL_GCM_COLOR_FORMAT Format;
     public CELL_GCM_TEXTURE_DIMENSION CellDimension;

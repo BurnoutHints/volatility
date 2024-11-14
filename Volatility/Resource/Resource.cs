@@ -7,9 +7,11 @@ public abstract class Resource
     public string ResourceID = "";
     public string AssetName = "invalid";
     public string? ImportedFileName;
+    public Unpacker Unpacker = Unpacker.Raw;
     
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
     public virtual Endian GetResourceEndian() => Endian.LE;
+    public virtual Platform GetResourcePlatform() => Platform.Agnostic;
 
     public virtual void WriteToStream(EndianAwareBinaryWriter writer) 
     { 
@@ -44,18 +46,18 @@ public abstract class Resource
             // to find a matching asset name for the provided ResourceID. If none is found,
             // the ResourceID is used in place of a real asset name. If the filename is not a
             // ResourceID, we simply use the file name as the asset name, and calculate a new ResourceID.
+            Unpacker = GetUnpackerFromFileName(Path.GetFileName(ImportedFileName));
+            if (Unpacker != Unpacker.Raw)
+            {
+                name = Unpacker switch
+                {
+                    Unpacker.DGI => name.Replace("_", ""),
+                    Unpacker.Bnd2Manager => name.Substring(0, name.LastIndexOf('_')),
+                    Unpacker.YAP => name.Substring(0, name.LastIndexOf('_'))
+                };
+            }
             if (ValidateResourceID(name))
             {
-                // TODO: Create central system for determining what tool the resource was extracted from
-                if (Path.GetExtension(ImportedFileName) == ".bin") // bnd2-manager
-                {
-                    name = Path.GetFileNameWithoutExtension(ImportedFileName).Substring(0, name.LastIndexOf('_'));
-                }
-                else // DGI & YAP
-                {
-                    name = name.Replace("_", "");
-                }
-
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
                 ResourceID = (GetResourceEndian() == Endian.LE)
@@ -80,6 +82,25 @@ public abstract class Resource
         {
             ParseFromStream(reader);
         }
+    }
+
+    private static Unpacker GetUnpackerFromFileName(string filename)
+    {
+        if (filename.EndsWith("_1.bin")) // bnd2-manager
+        {
+            return Unpacker.Bnd2Manager;
+        }
+        else if (filename.EndsWith("_primary.dat")) // YAP
+        {
+            return Unpacker.YAP;
+        }
+        else if (filename.EndsWith(".dat")) // DGI
+        {
+            return Unpacker.DGI;
+        }
+        return Unpacker.Raw;
+
+        // Volatility doesn't have a bundle unpacker yet...
     }
     
     public virtual void PushAll() { }
@@ -217,8 +238,18 @@ public enum ResourceType
 
 public enum Platform
 {
+    Agnostic = -1,
     BPR = 0,
     TUB = 1,
     X360 = 2,
     PS3 = 3,
+}
+
+public enum Unpacker 
+{
+    Raw = 0,
+    Volatility = 1,
+    Bnd2Manager = 2,
+    DGI = 3,
+    YAP = 4,
 }

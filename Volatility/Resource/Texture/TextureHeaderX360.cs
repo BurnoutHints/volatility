@@ -10,6 +10,7 @@ namespace Volatility.Resources.Texture;
 public class TextureHeaderX360 : TextureHeaderBase
 {
     public override Endian GetResourceEndian() => Endian.BE;
+    public override Platform GetResourcePlatform() => Platform.X360;
 
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);

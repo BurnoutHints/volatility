@@ -46,6 +46,8 @@ public static class ResourceFactory
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)
     {
+        Console.WriteLine($"Constructing {platform} resource property data...");
+
         var key = (resourceType, platform);
         if (resourceCreators.TryGetValue(key, out var creator))
         {

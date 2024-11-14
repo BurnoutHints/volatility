@@ -7,6 +7,7 @@ namespace Volatility.Resources.Texture;
 public class TextureHeaderPC : TextureHeaderBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
+    public override Platform GetResourcePlatform() => Platform.TUB;
 
     private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
