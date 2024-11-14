@@ -148,22 +148,14 @@ internal class Frontend
             }
         }
 
-        // Eventually, this may be merged with the Commands Dictionary below.
-        ICommand command = commandName switch
+        if (Commands.TryGetValue(commandName, out Type commandType))
         {
-            "exit" => new ExitCommand(),
-            "clear" => new ClearCommand(),
-            "importresource" => new ImportResourceCommand(),
-            "exportresource" => new ExportResourceCommand(),
-            "autotest" => new AutotestCommand(),
-            "help" => new HelpCommand(),
-            "porttexture" => new PortTextureCommand(),
-            "importstringtable" => new ImportStringTableCommand(),
-            _ => throw new InvalidOperationException("Unknown command.")
-        };
+            ICommand? command = Activator.CreateInstance(commandType) as ICommand;
+            command?.SetArgs(args);
+            return command;
+        }
 
-        command.SetArgs(args); // Set arguments before returning the command
-        return command;
+        throw new InvalidOperationException("Unknown command.");
     }
 
     public static readonly Dictionary<string, Type> Commands = new Dictionary<string, Type>
