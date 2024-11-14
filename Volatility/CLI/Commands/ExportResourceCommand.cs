@@ -75,39 +75,18 @@ internal partial class ExportResourceCommand : ICommand
 					return;
 				}
 
-                ResourceType resourceType = ResourceType.Invalid;
-                Enum.TryParse(Path.GetExtension(filePath).TrimStart('.'), true, out resourceType);
+                if (!DataUtilities.TryParseEnum(Format, out Platform platform))
+                {
+                    throw new InvalidPlatformException("Error: Invalid file format specified!");
+                }
 
-				Type resourceClass;
+                if (!DataUtilities.TryParseEnum(Path.GetExtension(filePath).TrimStart('.'), out ResourceType resourceType))
+                {
+                    Console.WriteLine("Error: Resource type is invalid!");
+                    return;
+                }
 
-                // This method is most definitely temporary.
-                switch (resourceType)
-				{
-					case ResourceType.Splicer:
-						resourceClass = Format switch
-                        {
-                            "BPR" => typeof(SplicerLE),
-                            "TUB" => typeof(SplicerLE),
-                            "PS3" => typeof(SplicerBE),
-                            "X360" => typeof(SplicerBE),
-                            _ => throw new InvalidPlatformException(),
-                        };
-						break;
-					case ResourceType.Texture:
-                        resourceClass = Format switch
-                        {
-                            "BPR" => typeof(TextureHeaderBPR),
-                            "TUB" => typeof(TextureHeaderPC),
-                            "PS3" => typeof(TextureHeaderPS3),
-                            "X360" => typeof(TextureHeaderX360),
-                            _ => throw new InvalidPlatformException(),
-                        };
-						break;
-                    default:
-                        Console.WriteLine($"ERROR: Exporting {resourceType} to {Format} is not supported!");
-                        return;
-				}
-				string json = File.ReadAllText(sourceFile);
+                string json = File.ReadAllText(sourceFile);
 
                 int startIndex = json.IndexOf('{');
                 if (startIndex != -1)
@@ -115,11 +94,10 @@ internal partial class ExportResourceCommand : ICommand
                     json = json.Substring(startIndex);
                 }
 
-                Resource? resource = null;
+                Resource resource = ResourceFactory.CreateResource(resourceType, platform, "");
 				try
 				{
-
-                    resource = (Resource?)ResourceJsonConverter.DeserializeResource(resourceClass, json);
+                    resource = (Resource?)ResourceJsonConverter.DeserializeResource(resource.GetType(), json);
                     if (resource is not Resource)
 					{
                         throw new SerializationException();
@@ -136,20 +114,22 @@ internal partial class ExportResourceCommand : ICommand
                 {
 					using (EndianAwareBinaryWriter writer = new(fs, resource.GetResourceEndian()))
 					{
-						// The way this is handled is pending a pipeline rewrite
+                        // The way this is handled is pending a pipeline rewrite
+                        if (resourceType == ResourceType.Texture)
+                        {
+							(resource as TextureHeaderBase).PushAll();
+                            // TODO: Export bitmap data
+                        }
                         resource.WriteToStream(writer);
 						if (resourceType == ResourceType.Splicer)
 						{
 							(resource as SplicerBase).SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
                         }
-						else if (resourceType == ResourceType.Texture)
-						{
-							// TODO: Export bitmap data
-						}
+
 					}
                 }
 
-                Console.WriteLine($"Exported {Path.GetFileName(ResourcePath)} as {Path.GetFullPath(sourceFile)}.");
+                Console.WriteLine($"Exported {Path.GetFileName(ResourcePath)} as {Path.GetFullPath(OutputPath)}.");
 			}));
 		}
 		await Task.WhenAll(tasks);
