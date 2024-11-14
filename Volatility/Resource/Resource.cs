@@ -24,6 +24,12 @@ public abstract class Resource
 
     public Resource(string path)
     {
+        if (string.IsNullOrEmpty(path))
+        {
+            Console.WriteLine("WARNING: Path was empty! Creating default resource!");
+            return;
+        }
+
         ImportedFileName = path;
 
         // Don't parse a directory
@@ -40,7 +46,15 @@ public abstract class Resource
             // ResourceID, we simply use the file name as the asset name, and calculate a new ResourceID.
             if (ValidateResourceID(name))
             {
-                name = name.Replace("_", "");
+                // TODO: Create central system for determining what tool the resource was extracted from
+                if (Path.GetExtension(ImportedFileName) == ".bin") // bnd2-manager
+                {
+                    name = Path.GetFileNameWithoutExtension(ImportedFileName).Substring(0, name.LastIndexOf('_'));
+                }
+                else // DGI & YAP
+                {
+                    name = name.Replace("_", "");
+                }
 
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
