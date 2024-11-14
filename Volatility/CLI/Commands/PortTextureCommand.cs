@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-using Volatility.Resources;
+﻿using Volatility.Resources;
 using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
@@ -515,7 +513,6 @@ internal class PortTextureCommand : ICommand
         // TODO: Add more mappings
     };
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(PortTextureCommand))]
     public PortTextureCommand() { }
 }
 

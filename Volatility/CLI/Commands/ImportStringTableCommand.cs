@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
+﻿using System.Text;
 using System.Xml.Linq;
 
 using Newtonsoft.Json;
@@ -140,6 +139,5 @@ internal class ImportStringTableCommand : ICommand
         return entriesByType;
     }
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ImportStringTableCommand))]
     public ImportStringTableCommand() { }
 }

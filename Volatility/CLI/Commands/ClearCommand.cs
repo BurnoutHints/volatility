@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Volatility.CLI.Commands;
 
 internal class ClearCommand : ICommand
@@ -9,7 +7,5 @@ internal class ClearCommand : ICommand
     public static string CommandParameters => "";
     public async Task Execute() => Console.Clear();
     public void SetArgs(Dictionary<string, object> args) { }
-
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ClearCommand))]
     public ClearCommand() { }
 }

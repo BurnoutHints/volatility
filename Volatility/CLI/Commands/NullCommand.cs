@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Volatility.CLI.Commands;
 
 internal class NullCommand : ICommand
@@ -14,6 +12,5 @@ internal class NullCommand : ICommand
 
     public void ShowUsage() { }
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(NullCommand))]
     public NullCommand() { }
 }

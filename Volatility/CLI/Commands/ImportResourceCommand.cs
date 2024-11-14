@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
@@ -229,7 +228,5 @@ internal partial class ImportResourceCommand : ICommand
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
-
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ImportResourceCommand))]
     public ImportResourceCommand() { }
 }

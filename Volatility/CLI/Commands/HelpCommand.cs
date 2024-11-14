@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 using static Volatility.Utilities.ClassUtilities;
@@ -52,6 +51,5 @@ internal class HelpCommand : ICommand
         WantedCommand = args.TryGetValue("commandName", out object? name) ? name as string : "";
     }
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(HelpCommand))]
     public HelpCommand() { }
 }

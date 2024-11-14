@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 using Volatility.Resources.Texture;
@@ -235,6 +234,5 @@ internal class AutotestCommand : ICommand
         Console.ResetColor();
     }
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(AutotestCommand))]
     public AutotestCommand() { }
 }

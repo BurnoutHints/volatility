@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
 using Volatility.Resources;
@@ -145,6 +144,5 @@ internal partial class ExportResourceCommand : ICommand
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
 
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ExportResourceCommand))]
-    public ExportResourceCommand() { }
+	public ExportResourceCommand() { }
 }
