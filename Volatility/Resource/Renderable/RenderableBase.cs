@@ -2,7 +2,7 @@
 
 using Volatility.Utilities;
 
-namespace Volatility.Resource.Renderable;
+namespace Volatility.Resources.Renderable;
 
 public abstract class RenderableBase : Resource
 {

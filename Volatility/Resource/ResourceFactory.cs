@@ -1,9 +1,9 @@
 
-using Volatility.Resource.Renderable;
-using Volatility.Resource.Splicer;
-using Volatility.Resource.Texture;
+using Volatility.Resources.Renderable;
+using Volatility.Resources.Splicer;
+using Volatility.Resources.Texture;
 
-namespace Volatility.Resource;
+namespace Volatility.Resources;
 
 public static class ResourceFactory
 {

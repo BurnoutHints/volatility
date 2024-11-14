@@ -1,12 +1,12 @@
 ﻿using static Volatility.Utilities.ResourceIDUtilities;
 
-namespace Volatility.Resource;
+namespace Volatility.Resources;
 
 public abstract class Resource
 {
     public string ResourceID = "";
     public string AssetName = "invalid";
-    public string? ImportPath;
+    public string? ImportedFileName;
     
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
     public virtual Endian GetResourceEndian() => Endian.LE;
@@ -30,13 +30,13 @@ public abstract class Resource
             return;
         }
 
-        ImportPath = path;
+        ImportedFileName = path;
 
         // Don't parse a directory
         if (new DirectoryInfo(path).Exists)
             return;
 
-        string? name = Path.GetFileNameWithoutExtension(ImportPath);
+        string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
 
         if (!string.IsNullOrEmpty(name))
         {
@@ -47,9 +47,9 @@ public abstract class Resource
             if (ValidateResourceID(name))
             {
                 // TODO: Create central system for determining what tool the resource was extracted from
-                if (Path.GetExtension(ImportPath) == ".bin") // bnd2-manager
+                if (Path.GetExtension(ImportedFileName) == ".bin") // bnd2-manager
                 {
-                    name = Path.GetFileNameWithoutExtension(ImportPath).Substring(0, name.LastIndexOf('_'));
+                    name = Path.GetFileNameWithoutExtension(ImportedFileName).Substring(0, name.LastIndexOf('_'));
                 }
                 else // DGI & YAP
                 {

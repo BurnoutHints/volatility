@@ -1,4 +1,4 @@
-﻿namespace Volatility.Resource.Renderable;
+﻿namespace Volatility.Resources.Renderable;
 
 public class RenderablePC : RenderableBase
 {

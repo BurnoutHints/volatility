@@ -1,4 +1,4 @@
-﻿using Volatility.Resource.Texture;
+﻿using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;
@@ -8,9 +8,7 @@ namespace Volatility.CLI.Commands;
 internal class PortTextureCommand : ICommand
 {
     public static string CommandToken => "PortTexture";
-    public static string CommandDescription => "Ports texture data from the specified source format to the specified destination format." +
-        " NOTE: TUB & BPR format options are for the PC releases of the title," +
-        " and the --usegtf parameter requires GTF2DDS.exe in the tools folder.";
+    public static string CommandDescription => "Ports texture data from a given source format to the specified destination format.";
     public static string CommandParameters => "[--verbose] [--usegtf] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
 
     public string? SourceFormat { get; set; }

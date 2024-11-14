@@ -1,4 +1,4 @@
-namespace Volatility.Resource.Splicer;
+namespace Volatility.Resources.Splicer;
 
 public class SplicerBE(string path) : SplicerBase(path)
 {

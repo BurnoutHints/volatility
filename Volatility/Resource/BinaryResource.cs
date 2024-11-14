@@ -1,6 +1,4 @@
-using static Volatility.Utilities.DataUtilities;
-
-namespace Volatility.Resource;
+namespace Volatility.Resources;
 
 // The BinaryFile resource type is a base type used in several
 // other resource types, including Splicer, World Painter 2D,
@@ -22,7 +20,7 @@ public class BinaryResource : Resource
         DataOffset = dataOffset;
     }
 
-    public BinaryResource() { }
+    public BinaryResource() : base() { }
     
     public BinaryResource(string path) : base(path) { }
 
@@ -34,5 +32,12 @@ public class BinaryResource : Resource
         DataOffset = reader.ReadUInt32();
         
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
+    }
+    
+    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    {
+        writer.Write(DataSize);
+        writer.Write(DataOffset);
+        writer.Write(new byte[8]);
     }
 }
