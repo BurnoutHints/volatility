@@ -41,7 +41,11 @@ internal interface ICommand
             switch (filter)
             {
                 case TargetFileType.Header:
-                    if (!name.Contains(".dat") 
+                    // bnd2-manager
+                    if (name.Contains("_1.bin"))
+                        break;
+                    // DGI's tools & YAP
+                    else if (!name.Contains(".dat")
                         || name.Contains("_texture")
                         || name.Contains("_imports")
                         || name.Contains("_model")

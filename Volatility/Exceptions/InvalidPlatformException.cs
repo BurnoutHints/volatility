@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Volatility;
 
 [Serializable]
-class InvalidPlatformException : Exception
+public class InvalidPlatformException : Exception
 {
     public InvalidPlatformException()
     {
