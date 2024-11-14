@@ -16,9 +16,7 @@ namespace Vantage.ViewModels;
 public class QuickEditorViewModel : ViewModelBase
 {
     public ObservableCollection<CategoryGroupViewModel> FieldGroups { get; private set; }
-
-    public ReactiveCommand<Unit, Unit> OpenCommand { get; }
-
+    
     Resource currentResource {  get; set; }
 
     private string _selectedFilePath;

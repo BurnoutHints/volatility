@@ -65,19 +65,19 @@ public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
 
     public DataTemplate GetTemplate(Type value)
     {
-        if (value == typeof(bool))
+        if (value == typeof(System.Boolean))
         {
             return (DataTemplate)Avalonia.Application.Current.FindResource("BooleanTemplate");
         }
-        if (value == typeof(Enum))
+        if (value.IsEnum)
         {
             return (DataTemplate)Avalonia.Application.Current.FindResource("EnumTemplate");
         }
         if (value == typeof(string))
         {
-            return (DataTemplate)Avalonia.Application.Current.FindResource("StringTemplate");
+            return (DataTemplate)Avalonia.Application.Current.FindResource("TextBoxTemplate");
         }
 
-        return (DataTemplate)Avalonia.Application.Current.FindResource("DefaultTemplate");
+        return (DataTemplate)Avalonia.Application.Current.FindResource("TextBoxTemplate");
     }
 }

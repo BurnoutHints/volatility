@@ -1,8 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Reactive;
 
-using Avalonia.Threading;
-
 using ReactiveUI;
 
 namespace Vantage.ViewModels;
@@ -32,7 +30,7 @@ public class CategoryGroupViewModel : ViewModelBase
         
         ToggleExpandCommand = ReactiveCommand.Create(() =>
         {
-            Dispatcher.UIThread.Post(() => IsExpanded = !IsExpanded);
+            IsExpanded = !IsExpanded;
         });
     }
 

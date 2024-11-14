@@ -4,7 +4,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:vm="using:Vantage.ViewModels"
 		xmlns:local="clr-namespace:Vantage"
-		xmlns:System="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Vantage.Views.QuickEditor"
 		x:DataType="vm:QuickEditorViewModel"
@@ -14,24 +13,7 @@
 	<Window.DataContext>
 		<vm:QuickEditorViewModel />
 	</Window.DataContext>
-
-	<Window.Resources>
-		<local:EnumValueConverter x:Key="EnumValueConverter" />
-
-		<DataTemplate x:Key="EnumTemplate" DataType="System:Enum">
-			<ComboBox ItemsSource="{Binding ., Converter={StaticResource EnumValueConverter}}"
-                      SelectedItem="{Binding ., Mode=TwoWay}" />
-		</DataTemplate>
-
-		<DataTemplate x:Key="BooleanTemplate" DataType="System:Boolean">
-			<CheckBox IsChecked="{Binding ., Mode=TwoWay}" />
-		</DataTemplate>
-
-		<DataTemplate x:Key="StringTemplate" DataType="System:String">
-			<TextBox Text="{Binding ., Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-		</DataTemplate>
-	</Window.Resources>
-
+	
 	<StackPanel>
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="_File">
