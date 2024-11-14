@@ -408,3 +408,6 @@ FodyWeavers.xsd
 
 # Burnout texture data
 *.dat
+
+# dotnet publish
+volatility_*_release/
