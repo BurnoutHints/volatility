@@ -214,3 +214,11 @@ public enum ResourceType
     BkSoundBulletImpactStream = 0x11004,
     Invalid = 0xFFFFFF,
 }
+
+public enum Platform
+{
+    BPR = 0,
+    TUB = 1,
+    X360 = 2,
+    PS3 = 3,
+}
