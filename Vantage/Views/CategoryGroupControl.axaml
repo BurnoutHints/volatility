@@ -4,31 +4,27 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 			 xmlns:vm="using:Vantage.ViewModels"
-             x:Class="Vantage.CategoryGroupControl">
+			 xmlns:viewModels="clr-namespace:Vantage.ViewModels"
+			 x:Class="Vantage.CategoryGroupControl"
+             x:DataType="vm:CategoryGroupViewModel">
 	
-	<Window.DataContext>
-		<vm:CategoryGroupViewModel />
-	</Window.DataContext>
-	
-	<ListBox ItemsSource="{Binding FieldGroups}" HorizontalAlignment="Stretch">
-		<ListBox.ItemTemplate>
-			<DataTemplate>
-				<StackPanel>
-					<Button Content="{Binding CategoryName}"
-							Command="{Binding ToggleExpandCommand}" />
-					<ItemsControl ItemsSource="{Binding Fields}" Margin="10,0,0,0"
-								  IsVisible="{Binding IsExpanded}" HorizontalAlignment="Stretch">
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<Grid ColumnDefinitions="25*, 75*" Margin="10,10,10,10">
-									<TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding Tooltip}" Grid.Column="0" />
-									<ContentControl Content="{Binding Value}" ContentTemplate="{Binding SelectedTemplate}" Grid.Column="1" />
-								</Grid>
-							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
-				</StackPanel>
-			</DataTemplate>
-		</ListBox.ItemTemplate>
-	</ListBox>
+	<UserControl.DataContext>
+		<vm:CategoryGroupViewModel/>
+	</UserControl.DataContext>
+
+	<StackPanel>
+		<Button Content="{Binding CategoryName}"
+		        Command="{Binding ToggleExpandCommand}" />
+		<ItemsControl ItemsSource="{Binding Fields}" Margin="10,0,0,0"
+					  IsVisible="{Binding IsExpanded}" HorizontalAlignment="Stretch">
+			<ItemsControl.ItemTemplate>
+				<DataTemplate>
+					<Grid ColumnDefinitions="25*, 75*" Margin="10,10,10,10">
+						<TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding Tooltip}" Grid.Column="0" />
+						<ContentControl Content="{Binding Value}" ContentTemplate="{Binding SelectedTemplate}" Grid.Column="1" />
+					</Grid>
+				</DataTemplate>
+			</ItemsControl.ItemTemplate>
+		</ItemsControl>
+	</StackPanel>
 </UserControl>

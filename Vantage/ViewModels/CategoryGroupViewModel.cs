@@ -1,9 +1,11 @@
-﻿using Avalonia.Threading;
-using ReactiveUI;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Reactive;
-using Vantage.ViewModels;
 
+using Avalonia.Threading;
+
+using ReactiveUI;
+
+namespace Vantage.ViewModels;
 
 public class CategoryGroupViewModel : ViewModelBase
 {
@@ -23,16 +25,20 @@ public class CategoryGroupViewModel : ViewModelBase
         }
     }
 
-    public CategoryGroupViewModel(string categoryName)
+    public CategoryGroupViewModel()
     {
-        CategoryName = categoryName;
-        Fields = new ObservableCollection<FieldViewModel>();
+        Fields = [];
         IsExpanded = true;
-
+        
         ToggleExpandCommand = ReactiveCommand.Create(() =>
         {
             Dispatcher.UIThread.Post(() => IsExpanded = !IsExpanded);
         });
+    }
+
+    public CategoryGroupViewModel(string categoryName = "Default") : this()
+    {
+        CategoryName = categoryName;
     }
 
     public override string ToString()

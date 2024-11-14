@@ -1,3 +1,5 @@
+using System;
+
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
@@ -8,12 +10,10 @@ public partial class CategoryGroupControl : UserControl
     public CategoryGroupControl()
     {
         InitializeComponent();
-    }
-
-    public CategoryGroupControl(string categoryName)
-    {
-        InitializeComponent();
-        DataContext = new CategoryGroupViewModel(categoryName);
+        this.DataContextChanged += (_, __) =>
+        {
+            Console.WriteLine($"(Vantage) DEBUG: CategoryGroupControl DataContext set to: {this.DataContext}");
+        };
     }
 
     private void InitializeComponent()

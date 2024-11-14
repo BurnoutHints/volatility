@@ -82,11 +82,7 @@ public class QuickEditorViewModel : ViewModelBase
         ResourceTypes = Enum.GetValues(typeof(ResourceType)).Cast<ResourceType>().ToList();
         ResourcePlatforms = Enum.GetValues(typeof(Platform)).Cast<Platform>().ToList();
 
-        FieldGroups = new ObservableCollection<CategoryGroupViewModel>
-        {
-            new CategoryGroupViewModel("Category 1"),
-            new CategoryGroupViewModel("Category 2")
-        };
+        FieldGroups = [];
     }
 
     public void OnFileSelected(string filePath, Platform format, ResourceType type)
