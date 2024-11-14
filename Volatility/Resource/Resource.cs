@@ -27,10 +27,7 @@ public abstract class Resource
     public Resource(string path)
     {
         if (string.IsNullOrEmpty(path))
-        {
-            Console.WriteLine("WARNING: Path was empty! Creating default resource!");
             return;
-        }
 
         ImportedFileName = path;
 

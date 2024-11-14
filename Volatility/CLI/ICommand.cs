@@ -41,7 +41,7 @@ internal interface ICommand
             switch (filter)
             {
                 case TargetFileType.Header:
-                    if (!name.Contains(".dat") 
+                    if (!name.Contains(".dat") && !name.Contains(".bin")
                         || name.Contains("_texture")
                         || name.Contains("_imports")
                         || name.Contains("_model")
