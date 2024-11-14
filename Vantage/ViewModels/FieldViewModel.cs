@@ -5,6 +5,8 @@ using System;
 using System.ComponentModel;
 using System.Reflection;
 
+using static Volatility.Utilities.ClassUtilities;
+
 namespace Vantage.ViewModels;
 
 public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
@@ -16,6 +18,11 @@ public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
     public string Name => _fieldInfo.Name;
 
     public Type FieldType => _fieldInfo.FieldType;
+
+    public string Category => GetAttribute<EditorCategoryAttribute>(_fieldInfo)?.Category ?? string.Empty;
+    public string Label => GetAttribute<EditorLabelAttribute>(_fieldInfo)?.Label ?? _fieldInfo.Name;
+    public string Tooltip => GetAttribute<EditorTooltipAttribute>(_fieldInfo)?.Tooltip ?? string.Empty;
+    public bool IsHidden => GetAttribute<EditorHiddenAttribute>(_fieldInfo) != null;
 
     public FieldViewModel(object instance, FieldInfo fieldInfo)
     {

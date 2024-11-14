@@ -23,19 +23,25 @@ public partial class QuickEditor : Window
             AllowMultiple = false,
             Title = "Open File",
             Filters = new List<FileDialogFilter>
-            {
-                new FileDialogFilter { Name = "Cgs Resource", Extensions = { "dat" } },
-                new FileDialogFilter { Name = "All Files", Extensions = { "*" } }
-            }
+        {
+            new FileDialogFilter { Name = "Cgs Binary Resource", Extensions = { "dat", "bin" } },
+            new FileDialogFilter { Name = "All Files", Extensions = { "*" } }
+        }
         };
 
         var result = await dialog.ShowAsync(this);
         if (result != null && result.Length > 0)
         {
+            // Show the custom enum selection dialog
+            var binaryResourceTypeSelectionDialog = new BinaryResourceTypeSelectionDialog();
+            var (format, resourceType) = await binaryResourceTypeSelectionDialog.ShowDialog(this);
+
             if (DataContext is QuickEditorViewModel vm)
             {
-                vm.OnFileSelected(result[0]);
+                // Pass the selected file, format, and resource type to the ViewModel
+                vm.OnFileSelected(result[0], format, resourceType);
             }
         }
     }
+
 }

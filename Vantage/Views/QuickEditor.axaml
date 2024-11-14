@@ -32,53 +32,35 @@
 		</DataTemplate>
 	</Window.Resources>
 
-	<DockPanel>
+	<StackPanel>
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="_File">
 				<MenuItem Header="_Open" Name="OpenMenuItem" />
 			</MenuItem>
-			<DockPanel>
-				<TextBlock Text="Editing: " />
-				<TextBlock Text="{Binding SelectedFilePath}" />
-			</DockPanel>
 		</Menu>
-
-		<StackPanel>
-
-			<StackPanel Margin="10">
-				<TextBlock Text="Resource Type:" Margin="0,10,0,0"/>
-				<ComboBox ItemsSource="{Binding ResourceTypes}"
-						  SelectedItem="{Binding SelectedResourceType}"
-						  Width="200">
-					<ComboBox.ItemTemplate>
-						<DataTemplate>
-							<TextBlock Text="{Binding}" />
-						</DataTemplate>
-					</ComboBox.ItemTemplate>
-				</ComboBox>
-			</StackPanel>
-			<StackPanel Margin="10">
-				<TextBlock Text="Platform:" Margin="0,10,0,0"/>
-				<ComboBox ItemsSource="{Binding ResourcePlatforms}"
-						  SelectedItem="{Binding SelectedResourcePlatform}"
-						  Width="200">
-					<ComboBox.ItemTemplate>
-						<DataTemplate>
-							<TextBlock Text="{Binding}" />
-						</DataTemplate>
-					</ComboBox.ItemTemplate>
-				</ComboBox>
-			</StackPanel>
-		</StackPanel>
-		<ListBox ItemsSource="{Binding Fields}">
+		<DockPanel>
+			<TextBlock Text="{Binding CurrentlyEditingString}" Margin="10"/>
+		</DockPanel>
+		<ListBox ItemsSource="{Binding FieldGroups}" HorizontalAlignment="Stretch">
 			<ListBox.ItemTemplate>
 				<DataTemplate>
-					<Grid ColumnDefinitions="25*, 75*">
-						<TextBlock Text="{Binding Name}" Grid.Column="0"/>
-						<ContentControl Content="{Binding Value}" ContentTemplate="{Binding SelectedTemplate}" Grid.Column="1" />
-					</Grid>
+					<StackPanel>
+						<Button Content="{Binding CategoryName}"
+								Command="{Binding ToggleExpandCommand}" />
+						<ItemsControl ItemsSource="{Binding Fields}" Margin="10,0,0,0"
+									  IsVisible="{Binding IsExpanded}" HorizontalAlignment="Stretch">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Grid ColumnDefinitions="25*, 75*" Margin="10,10,10,10">
+										<TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding Tooltip}" Grid.Column="0" />
+										<ContentControl Content="{Binding Value}" ContentTemplate="{Binding SelectedTemplate}" Grid.Column="1" />
+									</Grid>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</StackPanel>
 				</DataTemplate>
 			</ListBox.ItemTemplate>
 		</ListBox>
-	</DockPanel>
+	</StackPanel>
 </Window>

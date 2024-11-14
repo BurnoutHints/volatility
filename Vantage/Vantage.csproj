@@ -13,7 +13,14 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
-  <ItemGroup>
+	<PropertyGroup>
+		<BuildTimestamp>$([System.DateTime]::Now.ToString("yyyy/MM/dd HH:mm:ss"))</BuildTimestamp>
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishTrimmed>true</PublishTrimmed>
+		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+	</PropertyGroup>
+
+	<ItemGroup>
     <ProjectReference Include="../Volatility/Volatility.csproj" />
 
     <PackageReference Include="Avalonia" Version="11.1.0" />
@@ -26,4 +33,13 @@
     <PackageReference Include="ReactiveUI" Version="20.1.63" />
     <PackageReference Include="System.Reactive" Version="6.0.1" />
   </ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views\BinaryResourceTypeSelectionDialog.axaml.cs">
+	    <DependentUpon>BinaryResourceTypeSelectionDialog.axaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\CategoryGroupControl.axaml.cs">
+	    <DependentUpon>CategoryGroupControl.axaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
 </Project>
