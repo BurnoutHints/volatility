@@ -104,4 +104,47 @@ public static class DataUtilities
             return value;
         }
     }
+
+    public static bool TryParseEnum<TEnum>(string input, out TEnum result) where TEnum : struct, Enum
+    {
+        result = default;
+
+        // Hexadecimal input
+        if (input.StartsWith("0x"))
+        {
+            if (int.TryParse(input.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out int numericValue))
+            {
+                return EnumIsDefined(numericValue, out result);
+            }
+            return false;
+        }
+
+        // Nmeric input
+        if (int.TryParse(input, out int intValue))
+        {
+            return EnumIsDefined(intValue, out result);
+        }
+
+        // String input
+        if (Enum.TryParse(input, true, out TEnum parsedEnum) && Enum.IsDefined(typeof(TEnum), parsedEnum))
+        {
+            result = parsedEnum;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool EnumIsDefined<TEnum>(int value, out TEnum result) where TEnum : struct, Enum
+    {
+        if (Enum.IsDefined(typeof(TEnum), value))
+        {
+            result = (TEnum)Enum.ToObject(typeof(TEnum), value);
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
 }
+
