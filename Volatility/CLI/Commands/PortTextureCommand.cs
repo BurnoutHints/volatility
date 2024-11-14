@@ -1,4 +1,5 @@
-﻿using Volatility.Resources.Texture;
+﻿using Volatility.Resources;
+using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;
@@ -204,20 +205,32 @@ internal class PortTextureCommand : ICommand
                     outPath = DestinationPath + Path.DirectorySeparatorChar + outResourceFilename;
                 }
 
-                string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}_texture.dat";
-                string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat";
+                // TODO: Resource-defined Secondary path support
+                string secondaryExtension = SourceTexture.Unpacker switch
+                {
+                    Unpacker.Bnd2Manager => "_2.bin",
+                    Unpacker.DGI => "_texture.dat",
+                    Unpacker.YAP => "_secondary.dat",
+                    Unpacker.Raw => "_texture.dat", // Fallback for now
+                    Unpacker.Volatility => throw new NotImplementedException(),
+                    _ => throw new NotImplementedException(),
+                };
+
+                string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}{secondaryExtension}";
+
+                string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}{secondaryExtension}";
 
                 try
                 {
                     // Currently requires an external tool. Every texture I've encountered on PS3 is
                     // already raw DDS anyway, so there's not really any reason to do this as far as I see.
 
-                    if (UseGTF && SourceTexture is TextureHeaderPS3)
+                    if (UseGTF && SourceTexture.GetResourcePlatform() == Platform.PS3)
                     {
                         PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
                     }
 
-                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture is not TextureHeaderX360)
+                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture.GetResourcePlatform() != Platform.X360)
                     {
                         destX.Format.MaxMipLevel = destX.Format.MinMipLevel;
 
@@ -314,7 +327,7 @@ internal class PortTextureCommand : ICommand
 
     public string BPRx64Hack(TextureHeaderBase header, string format)
     {
-        if (header is TextureHeaderBPR && format.EndsWith("X64"))
+        if (header.GetResourcePlatform() != Platform.BPR && format.EndsWith("X64"))
         {
             (header as TextureHeaderBPR).x64Header = true;
             return "BPR";
