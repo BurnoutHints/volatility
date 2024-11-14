@@ -233,4 +233,6 @@ internal class AutotestCommand : ICommand
         Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
         Console.ResetColor();
     }
+
+    public AutotestCommand() { }
 }

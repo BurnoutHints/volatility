@@ -512,5 +512,7 @@ internal class PortTextureCommand : ICommand
         { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5 },
         // TODO: Add more mappings
     };
+
+    public PortTextureCommand() { }
 }
 

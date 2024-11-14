@@ -1,6 +1,6 @@
 ﻿namespace Volatility.Utilities;
 
-internal class DDSTextureUtilities
+public static class DDSTextureUtilities
 {
     public static void A8R8G8B8toB8G8R8A8(byte[] pixelData, int width, int height, int mipmapCount)
     {

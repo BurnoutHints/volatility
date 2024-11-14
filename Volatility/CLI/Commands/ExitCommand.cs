@@ -13,4 +13,6 @@ internal class ExitCommand : ICommand
     }
 
     public void SetArgs(Dictionary<string, object> args) { }
+
+    public ExitCommand() { }
 }

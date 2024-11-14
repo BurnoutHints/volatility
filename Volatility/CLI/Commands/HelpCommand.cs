@@ -50,4 +50,6 @@ internal class HelpCommand : ICommand
     {
         WantedCommand = args.TryGetValue("commandName", out object? name) ? name as string : "";
     }
+
+    public HelpCommand() { }
 }

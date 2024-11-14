@@ -5,9 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 using Volatility.Resources;
-using Volatility.Resources.Renderable;
 using Volatility.Resources.Splicer;
-using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
@@ -230,4 +228,5 @@ internal partial class ImportResourceCommand : ICommand
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
+    public ImportResourceCommand() { }
 }

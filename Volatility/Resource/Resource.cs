@@ -4,9 +4,16 @@ namespace Volatility.Resources;
 
 public abstract class Resource
 {
+    [EditorCategory("Resource Info"), EditorLabel("Resource ID"), EditorTooltip("The CRC32 ID used to identify the resource in the game engine.")]
     public string ResourceID = "";
+
+    [EditorCategory("Resource Info"), EditorLabel("Asset Name"), EditorTooltip("The asset's name in the resource depot.")]
     public string AssetName = "invalid";
+
+    [EditorCategory("Import Data"), EditorLabel("Imported File Path"), EditorTooltip("The path that this resource was imported from.")]
     public string? ImportedFileName;
+
+    [EditorCategory("Import Data"), EditorLabel("Unpacker"), EditorTooltip("The tool used to extract this resource from a bundle.")]
     public Unpacker Unpacker = Unpacker.Raw;
     
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;

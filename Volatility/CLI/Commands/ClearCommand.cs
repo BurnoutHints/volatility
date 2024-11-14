@@ -7,4 +7,5 @@ internal class ClearCommand : ICommand
     public static string CommandParameters => "";
     public async Task Execute() => Console.Clear();
     public void SetArgs(Dictionary<string, object> args) { }
+    public ClearCommand() { }
 }

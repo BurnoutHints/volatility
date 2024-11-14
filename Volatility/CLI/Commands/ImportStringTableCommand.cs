@@ -138,4 +138,6 @@ internal class ImportStringTableCommand : ICommand
 
         return entriesByType;
     }
+
+    public ImportStringTableCommand() { }
 }

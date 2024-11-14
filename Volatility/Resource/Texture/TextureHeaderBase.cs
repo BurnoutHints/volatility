@@ -5,9 +5,16 @@ public abstract class TextureHeaderBase : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.Texture;
 
+    [EditorCategory("Texture"), EditorLabel("Width"), EditorTooltip("The target width of the texture.")]
     public ushort Width { get; set; }
+
+    [EditorCategory("Texture"), EditorLabel("Height"), EditorTooltip("The target height of the texture.")]
     public ushort Height { get; set; }
+
+    [EditorCategory("Texture"), EditorLabel("Depth"), EditorTooltip("The depth of the texture. This only applies to volume textures.")]
     public ushort Depth { get; set; }
+
+    [EditorCategory("Texture"), EditorLabel("Amount of Mipmaps"), EditorTooltip("The amount of mipmaps present in the texture. Note that there will always be at least one (the base image).")]
     public byte MipmapLevels { get; set; }
 
     protected bool _GRTexture = false;

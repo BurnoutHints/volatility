@@ -143,4 +143,6 @@ internal partial class ExportResourceCommand : ICommand
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
+
+	public ExportResourceCommand() { }
 }
