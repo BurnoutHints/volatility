@@ -1,4 +1,6 @@
-﻿using Volatility.Resources;
+﻿using System.Diagnostics.CodeAnalysis;
+
+using Volatility.Resources;
 using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
@@ -512,5 +514,8 @@ internal class PortTextureCommand : ICommand
         { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5 },
         // TODO: Add more mappings
     };
+
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(PortTextureCommand))]
+    public PortTextureCommand() { }
 }
 

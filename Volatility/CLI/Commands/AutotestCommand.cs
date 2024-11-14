@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 using Volatility.Resources.Texture;
@@ -233,4 +234,7 @@ internal class AutotestCommand : ICommand
         Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
         Console.ResetColor();
     }
+
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(AutotestCommand))]
+    public AutotestCommand() { }
 }
