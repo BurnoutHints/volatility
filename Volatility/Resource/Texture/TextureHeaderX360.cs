@@ -14,13 +14,28 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
+    
+    [EditorHidden]
     public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Reference Count"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint ReferenceCount = 1;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint Fence = 0;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Read Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint ReadFence = 0;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Identifier"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint Identifier = 0;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Base Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint BaseFlush = 65535;
+
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Mip Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint MipFlush = 65535;
+
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
     public TextureHeaderX360() : base() { }

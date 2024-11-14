@@ -2,7 +2,7 @@
 
 namespace Volatility.Utilities;
 
-internal class ClassUtilities
+public static class ClassUtilities
 {
     public static string GetStaticPropertyValue(Type type, string propertyName)
     {
@@ -20,5 +20,10 @@ internal class ClassUtilities
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => baseType.IsAssignableFrom(type) && type.IsClass && !type.IsAbstract)
             .ToArray();
+    }
+
+    public static T? GetAttribute<T>(MemberInfo member) where T : Attribute
+    {
+        return member.GetCustomAttribute<T>();
     }
 }

@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
+
 using Volatility.Resources.Texture;
 
 namespace Volatility.Utilities;
 
-internal class PS3TextureUtilities
+public static class PS3TextureUtilities
 {
     public static void PS3GTFToDDS(TextureHeaderPS3 ps3Header, string sourceBitmapPath, string destinationBitmapPath, bool verbose = false)
     {
