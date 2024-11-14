@@ -20,7 +20,7 @@
       <TextBox Text="{Binding SearchText}" Watermark="Search for resources...." />
       <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
     </StackPanel>
-      <Button Content="Button" 
+      <Button Content="Open in Editor" 
               DockPanel.Dock="Bottom" 
               HorizontalAlignment="Center" />
       <ListBox/>
