@@ -9,6 +9,7 @@
 	<Window.DataContext>
 		<vm:CategoryGroupViewModel />
 	</Window.DataContext>
+	
 	<ListBox ItemsSource="{Binding FieldGroups}" HorizontalAlignment="Stretch">
 		<ListBox.ItemTemplate>
 			<DataTemplate>

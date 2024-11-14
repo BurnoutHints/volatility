@@ -10,6 +10,12 @@ public partial class CategoryGroupControl : UserControl
         InitializeComponent();
     }
 
+    public CategoryGroupControl(string categoryName)
+    {
+        InitializeComponent();
+        DataContext = new CategoryGroupViewModel(categoryName);
+    }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
