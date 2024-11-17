@@ -9,7 +9,8 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public override Endian GetResourceEndian() => Endian.BE; 
     public override Platform GetResourcePlatform() => Platform.PS3;
 
-    [EditorCategory("Texture/Playstation 3"), EditorLabel("Texture Format"), EditorTooltip("The texture's color and compression format.")]
+    [EditorCategory("Texture/Playstation 3"), EditorLabel("Texture Format"), 
+     EditorTooltip("The texture's color and compression format.")]
     public CELL_GCM_COLOR_FORMAT Format;
     
     [EditorHidden]
@@ -18,20 +19,27 @@ public class TextureHeaderPS3 : TextureHeaderBase
     [EditorHidden]
     public bool CubeMapEnable;
     
+    [EditorHidden] // Unhide when remap is fixed
     public uint Remap;                 // TODO
-    
-    [EditorCategory("Texture/Playstation 3"), EditorLabel("Memory Location"), EditorTooltip("Determines where the texture is stored in the console's memory.")]
-    public CELL_GCM_LOCATION Location;
+
+    [EditorCategory("Texture/Playstation 3"), EditorLabel("Memory Location"),
+     EditorTooltip("Determines where the texture is stored in the console's memory.")]
+    public CELL_GCM_LOCATION Location = CELL_GCM_LOCATION.CELL_GCM_LOCATION_MAIN;
     
     [EditorHidden] // TODO: Editor read-only
     public uint Pitch;
     
+    [EditorCategory("Texture/Playstation 3"), EditorLabel("Offset"), 
+     EditorTooltip("The offset value from the base address of the texture data location.")]
     public uint Offset;
-    public nint Buffer;
+    
+    [EditorHidden]
+    public nint Buffer;                // Ptr to texture data in memory
     
     [EditorHidden]
     public StoreType StoreType;
     
+    [EditorHidden]
     public uint StoreFlags;            // Seems to be unused
 
     public TextureHeaderPS3() : base() { }

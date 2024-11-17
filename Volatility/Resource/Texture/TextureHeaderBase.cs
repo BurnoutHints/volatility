@@ -17,7 +17,10 @@ public abstract class TextureHeaderBase : Resource
     [EditorCategory("Texture"), EditorLabel("Amount of Mipmaps"), EditorTooltip("The amount of mipmaps present in the texture. Note that there will always be at least one (the base image).")]
     public byte MipmapLevels { get; set; }
 
+    [EditorHidden]
     protected bool _GRTexture = false;
+    
+    [EditorCategory("Texture"), EditorLabel("Used in 3D Space"), EditorTooltip("Whether the texture is used in 3D space (vehicles, world).")]
     public bool GRTexture       // Vehicle & Wheel GRs 
     {
         get => _GRTexture;
@@ -27,7 +30,11 @@ public abstract class TextureHeaderBase : Resource
             PushInternalFlags();
         }
     }
+    
+    [EditorHidden]
     protected bool _WorldTexture = false;
+    
+    [EditorCategory("Texture"), EditorLabel("Used on World"), EditorTooltip("Whether the texture is used specifically on world assets.")]
     public bool WorldTexture    // GlobalBackdrops & WorldTex
     {
         get => _WorldTexture;
@@ -37,7 +44,11 @@ public abstract class TextureHeaderBase : Resource
             PushInternalFlags();
         }
     }
+    
+    [EditorHidden]
     protected bool _PropTexture = false;
+    
+    [EditorCategory("Texture"), EditorLabel("Used on Props"), EditorTooltip("Whether the texture is used specifically on props.")]
     public bool PropTexture     // GlobalProps
     {
         get => _PropTexture;
@@ -47,7 +58,11 @@ public abstract class TextureHeaderBase : Resource
             PushInternalFlags();
         }
     }
+    
+    [EditorHidden]
     protected DIMENSION _Dimension = DIMENSION.DIMENSION_2D;
+   
+    [EditorCategory("Texture"), EditorLabel("Dimension"), EditorTooltip("Determines the depth/dimension of the texture (1D, 2D, 3D).")]
     public virtual DIMENSION Dimension // GPUDIMENSION / renderengine::Texture::Type
     {
         get => _Dimension;

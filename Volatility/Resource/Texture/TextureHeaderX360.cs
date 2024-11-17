@@ -12,28 +12,36 @@ public class TextureHeaderX360 : TextureHeaderBase
     public override Endian GetResourceEndian() => Endian.BE;
     public override Platform GetResourcePlatform() => Platform.X360;
 
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Direct3D Resource Flags"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
     
     [EditorHidden]
     public D3DRESOURCETYPE D3DRESOURCETYPE = D3DRESOURCETYPE.D3DRTYPE_TEXTURE;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Reference Count"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Reference Count"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint ReferenceCount = 1;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Fence"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint Fence = 0;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Read Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Read Fence"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint ReadFence = 0;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Identifier"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Identifier"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint Identifier = 0;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Base Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Base Flush"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint BaseFlush = 65535;
 
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Mip Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Mip Flush"), 
+     EditorTooltip("Not much is known about this value. Editing is not advised.")]
     public uint MipFlush = 65535;
 
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
@@ -184,9 +192,17 @@ public class TextureHeaderX360 : TextureHeaderBase
 
 public struct GPUTEXTURE_FETCH_CONSTANT
 {
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Tiled"), 
+     EditorTooltip("Whether the bitmap data is is tiled for optimization on the Xbox 360.")]
     public bool Tiled;                        // 1 bit
+    
+    [EditorHidden]
     public ushort Pitch;                      // 9 bits + 1 bit padding
+    
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Multisampling Type"), 
+     EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
     public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
+    
     public GPUCLAMP ClampZ;                   // 3 bits
     public GPUCLAMP ClampY;                   // 3 bits
     public GPUCLAMP ClampX;                   // 3 bits
@@ -194,16 +210,28 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public GPUSIGN SignZ;                     // 2 bits
     public GPUSIGN SignY;                     // 2 bits
     public GPUSIGN SignX;                     // 2 bits
+    
+    [EditorHidden]
     public GPUCONSTANTTYPE Type;              // 2 bits
+    
     public uint BaseAddress;                  // 20 bits
     public GPUCLAMPPOLICY ClampPolicy;        // 1 bit
     public bool Stacked;                      // 1 bit
     public GPUREQUESTSIZE RequestSize;        // 2 bits
     public GPUENDIAN Endian;                  // 2 bits
     public GPUTEXTUREFORMAT DataFormat;       // 6 bits
+    
+    [EditorHidden]
     public GPUTEXTURESIZE Size;               // 32 bits, GPUTEXTURESIZE union
+    
     public byte BorderSize;                   // 1 bit, 3 bit padding
+    
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Anisotropic Filtering"), 
+     EditorTooltip("Defines levels of anisotropic filtering for texture clarity at oblique viewing angles.")]
     public GPUANISOFILTER AnisoFilter;        // 3 bits
+    
+    [EditorCategory("Texture/Xbox 360"), EditorLabel("Mipmap Filtering"), 
+     EditorTooltip("Specifies the mipmap filtering method for texture sampling, used for smoother blending between mip levels.")]
     public GPUMIPFILTER MipFilter;            // 2 bits
     public GPUMINMAGFILTER MinFilter;         // 2 bits
     public GPUMINMAGFILTER MagFilter;         // 2 bits
@@ -218,12 +246,17 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     public ushort LODBias;                    // 10 bits
     public bool MinAnisoWalk;                 // 1 bit
     public bool MagAnisoWalk;                 // 1 bit
+    [EditorHidden]
     public byte MaxMipLevel;                  // 4 bits
+    [EditorHidden]
     public byte MinMipLevel;                  // 4 bits
     public GPUMINMAGFILTER VolMinFilter;      // 1 bit
     public GPUMINMAGFILTER VolMagFilter;      // 1 bit
+    [EditorHidden]
     public uint MipAddress;                   // 20 bits
+    [EditorHidden]
     public bool PackedMips;                   // 1 bit
+    [EditorHidden]
     public GPUDIMENSION Dimension;            // 2 bits
     public byte AnisoBias;                    // 4 bits
     public GPUTRICLAMP TriClamp;              // 2 bits
@@ -444,21 +477,33 @@ public enum D3DRESOURCETYPE : byte      // 4 bit value
 
 public enum GPUMULTISAMPLE_TYPE : byte  // 2 bit value
 {
+    [EditorLabel("None")]
     D3DMULTISAMPLE_NONE = 0,
+    [EditorLabel("2 Samples")]
     D3DMULTISAMPLE_2_SAMPLES = 1,
+    [EditorLabel("4 Samples")]
     D3DMULTISAMPLE_4_SAMPLES = 2,
+    [EditorLabel("Force DWORD")]
     D3DMULTISAMPLE_FORCE_DWORD = 3      // Wrong but not needed
 }
 
 public enum GPUCLAMP : byte             // 3 bit value
 {
+    [EditorLabel("Wrap")]
     GPUCLAMP_WRAP = 0,
+    [EditorLabel("Mirror")]
     GPUCLAMP_MIRROR = 1,
+    [EditorLabel("Clamp to Last")]
     GPUCLAMP_CLAMP_TO_LAST = 2,
+    [EditorLabel("Mirror Once to Last")]
     GPUCLAMP_MIRROR_ONCE_TO_LAST = 3,
+    [EditorLabel("Clamp Halfway")]
     GPUCLAMP_CLAMP_HALFWAY = 4,
+    [EditorLabel("Mirror Once Halfway")]
     GPUCLAMP_MIRROR_ONCE_HALFWAY = 5,
+    [EditorLabel("Clamp to Border")]
     GPUCLAMP_CLAMP_TO_BORDER = 6,
+    [EditorLabel("Mirror to Border")]
     GPUCLAMP_MIRROR_TO_BORDER = 7
 }
 
