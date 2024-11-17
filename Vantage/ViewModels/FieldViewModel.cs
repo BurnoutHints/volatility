@@ -9,50 +9,76 @@ using static Volatility.Utilities.ClassUtilities;
 
 namespace Vantage.ViewModels;
 
-public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
+public partial class FieldViewModel : ViewModelBase, INotifyPropertyChanged
 {
     private readonly object _instance;
-    private readonly FieldInfo _fieldInfo;
+    private readonly MemberInfo _memberInfo;
     private object _value;
 
-    public string Name => _fieldInfo.Name;
+    public string Name => _memberInfo.Name;
 
-    public Type FieldType => _fieldInfo.FieldType;
+    public Type MemberType => _memberInfo switch
+    {
+        FieldInfo fieldInfo => fieldInfo.FieldType,
+        PropertyInfo propertyInfo => propertyInfo.PropertyType
+    };
 
-    public string Category => GetAttribute<EditorCategoryAttribute>(_fieldInfo)?.Category ?? string.Empty;
-    public string Label => GetAttribute<EditorLabelAttribute>(_fieldInfo)?.Label ?? _fieldInfo.Name;
-    public string Tooltip => GetAttribute<EditorTooltipAttribute>(_fieldInfo)?.Tooltip ?? string.Empty;
-    public bool IsHidden => GetAttribute<EditorHiddenAttribute>(_fieldInfo) != null;
+    public string Category => GetAttribute<EditorCategoryAttribute>(_memberInfo)?.Category ?? string.Empty;
+    public string Label => GetAttribute<EditorLabelAttribute>(_memberInfo)?.Label ?? _memberInfo.Name;
+    public string Tooltip => GetAttribute<EditorTooltipAttribute>(_memberInfo)?.Tooltip ?? string.Empty;
+    public bool IsHidden => GetAttribute<EditorHiddenAttribute>(_memberInfo) != null;
 
-    public FieldViewModel(object instance, FieldInfo fieldInfo)
+    public FieldViewModel(object instance, MemberInfo memberInfo)
     {
         _instance = instance;
-        _fieldInfo = fieldInfo;
-        _value = _fieldInfo.GetValue(_instance);
+        _memberInfo = memberInfo;
+        _value = _memberInfo switch
+        {
+            FieldInfo fieldInfo => fieldInfo.GetValue(instance),
+            PropertyInfo propertyInfo => propertyInfo.GetValue(instance),
+        };        
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(Value));
     }
 
-    public string Value
+public object Value
+{
+    get
     {
-        get => Convert.ToString(_value);
-        set
+        if (MemberType == typeof(string))
         {
-            if (value != Convert.ToString(_value))
+            return _value?.ToString() ?? string.Empty;
+        }
+        return _value;
+    }
+    set
+    {
+        if (!Equals(value, _value))
+        {
+            try
             {
-                try
+                object convertedValue = Convert.ChangeType(value, MemberType);
+                switch (_memberInfo)
                 {
-                    object convertedValue = Convert.ChangeType(value, FieldType);
-                    _fieldInfo.SetValue(_instance, convertedValue);
-                    _value = convertedValue;
-                    OnPropertyChanged(nameof(Value));
+                    case FieldInfo fieldInfo:
+                        fieldInfo.SetValue(_instance, convertedValue);
+                        break;
+                    case PropertyInfo propertyInfo:
+                        propertyInfo.SetValue(_instance, convertedValue);
+                        break;
                 }
-                catch (Exception)
-                {
-                }
+                _value = convertedValue;
+                OnPropertyChanged(nameof(Value));
+            }
+            catch (Exception)
+            {
+                // Handle conversion exceptions as needed
             }
         }
     }
+}
+
+
 
     public event PropertyChangedEventHandler PropertyChanged;
 
@@ -61,10 +87,14 @@ public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    public DataTemplate SelectedTemplate => GetTemplate(_fieldInfo.FieldType);
+    public DataTemplate SelectedTemplate => GetTemplate(MemberType);
 
-    public DataTemplate GetTemplate(Type value)
+    public static DataTemplate GetTemplate(Type value)
     {
+        if (value.IsClass)
+        {
+            return (DataTemplate)Avalonia.Application.Current.FindResource("ClassTemplate");
+        }
         if (value == typeof(System.Boolean))
         {
             return (DataTemplate)Avalonia.Application.Current.FindResource("BooleanTemplate");
@@ -73,11 +103,11 @@ public class FieldViewModel : ViewModelBase, INotifyPropertyChanged
         {
             return (DataTemplate)Avalonia.Application.Current.FindResource("EnumTemplate");
         }
-        if (value == typeof(string))
+        if (value == typeof(string) || value == typeof(int) || value == typeof(long) || value == typeof(short))
         {
             return (DataTemplate)Avalonia.Application.Current.FindResource("TextBoxTemplate");
         }
-
+        
         return (DataTemplate)Avalonia.Application.Current.FindResource("TextBoxTemplate");
     }
 }

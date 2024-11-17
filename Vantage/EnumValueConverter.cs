@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Globalization;
+using System.Reflection;
 
 using Avalonia.Data.Converters;
 
@@ -12,13 +13,28 @@ public class EnumValueConverter : IValueConverter
     {
         if (value != null && value.GetType().IsEnum)
         {
-            return Enum.GetValues(value.GetType()).Cast<object>().ToList();
+            var enumType = value.GetType();
+            return Enum.GetValues(enumType).Cast<object>().Select(enumValue =>
+            {
+                var fieldInfo = enumType.GetField(enumValue.ToString());
+                var attribute = fieldInfo?.GetCustomAttribute<EditorLabelAttribute>();
+
+                return new
+                {
+                    Value = enumValue,
+                    Label = attribute?.Label ?? enumValue.ToString()
+                };
+            }).ToList();
         }
         return null;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        return value;
+        if (value != null && value.GetType().GetProperty("Value") != null)
+        {
+            return value.GetType().GetProperty("Value").GetValue(value);
+        }
+        return null;
     }
 }

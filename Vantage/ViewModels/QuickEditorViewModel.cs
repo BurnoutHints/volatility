@@ -15,7 +15,7 @@ namespace Vantage.ViewModels;
 
 public class QuickEditorViewModel : ViewModelBase
 {
-    public ObservableCollection<CategoryGroupViewModel> FieldGroups { get; private set; }
+    public ObservableCollection<ClassViewModel> ClassGroups { get; private set; }
     
     Resource currentResource {  get; set; }
 
@@ -34,17 +34,10 @@ public class QuickEditorViewModel : ViewModelBase
         }
     }
 
-    public string CurrentlyEditingString
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(SelectedFilePath))
-            {
-                return "Open a file to edit.";
-            }
-            return $"Editing: {SelectedFilePath}";
-        }
-    }
+    public string CurrentlyEditingString => 
+        string.IsNullOrEmpty(SelectedFilePath) 
+            ? "Open a file to edit." 
+            : $"Editing: {SelectedFilePath}";
 
     public IEnumerable<ResourceType> ResourceTypes { get; }
     public IEnumerable<Platform> ResourcePlatforms { get; }
@@ -80,7 +73,7 @@ public class QuickEditorViewModel : ViewModelBase
         ResourceTypes = Enum.GetValues(typeof(ResourceType)).Cast<ResourceType>().ToList();
         ResourcePlatforms = Enum.GetValues(typeof(Platform)).Cast<Platform>().ToList();
 
-        FieldGroups = [];
+        ClassGroups = [];
     }
 
     public void OnFileSelected(string filePath, Platform format, ResourceType type)
@@ -95,32 +88,15 @@ public class QuickEditorViewModel : ViewModelBase
             return;
         }
 
-        currentResource = ResourceFactory.CreateResource(SelectedResourceType, SelectedResourcePlatform, SelectedFilePath);
+        var resource = ResourceFactory.CreateResource(SelectedResourceType, SelectedResourcePlatform, SelectedFilePath);
 
-        var fieldInfos = currentResource.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        currentResource = resource;
+        
+        var classViewModel = new ClassViewModel(resource);
 
-        // Group fields by category
-        var groupedFields = new Dictionary<string, CategoryGroupViewModel>();
+        ClassGroups.Clear();
+        ClassGroups.Add(classViewModel);
 
-        foreach (var fieldInfo in fieldInfos)
-        {
-            // Check if the field is marked with [EditorHidden]
-            if (GetAttribute<EditorHiddenAttribute>(fieldInfo) != null)
-                continue;
-
-            var category = GetAttribute<EditorCategoryAttribute>(fieldInfo)?.Category ?? "Uncategorized";
-
-            if (!groupedFields.ContainsKey(category))
-            {
-                groupedFields[category] = new CategoryGroupViewModel(category);
-            }
-
-            groupedFields[category].Fields.Add(new FieldViewModel(currentResource, fieldInfo));
-        }
-
-        // Convert to an observable collection for binding
-        FieldGroups = new ObservableCollection<CategoryGroupViewModel>(groupedFields.Values);
-
-        OnPropertyChanged(nameof(FieldGroups));
+        OnPropertyChanged(nameof(ClassGroups));
     }
 }

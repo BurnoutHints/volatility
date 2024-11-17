@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Vantage.App"
              xmlns:local="using:Vantage"
+             xmlns:vm="using:Vantage.ViewModels"
              xmlns:System="clr-namespace:System;assembly=mscorlib"
              RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -11,21 +12,50 @@
     </Application.DataTemplates>
   
     <Application.Styles>
-        <FluentTheme />
+        <SimpleTheme />
     </Application.Styles>
              
     <Application.Resources>
         <local:EnumValueConverter x:Key="EnumValueConverter" />
+        
         <DataTemplate x:Key="EnumTemplate" DataType="System:Enum">
             <ComboBox ItemsSource="{Binding ., Converter={StaticResource EnumValueConverter}}"
-                      SelectedItem="{Binding ., Mode=TwoWay}" />
+                      SelectedItem="{Binding ., Mode=TwoWay}"> </ComboBox>
         </DataTemplate>
+        
         <DataTemplate x:Key="BooleanTemplate" DataType="System:Boolean">
             <CheckBox IsChecked="{Binding ., Mode=TwoWay}" />
         </DataTemplate>
-        <DataTemplate x:Key="TextBoxTemplate" DataType="System:String">
+        
+        <DataTemplate x:Key="ClassTemplate" DataType="vm:ClassViewModel">
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding FieldGroups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <local:CategoryGroupControl DataContext="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ItemsControl ItemsSource="{Binding NestedClassGroups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ClassTemplate}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TextBoxTemplate" DataType="System:Object">
             <TextBox Text="{Binding ., Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </DataTemplate>
+        
+        <DataTemplate x:Key="DefaultTemplate" DataType="System:Object">
+            <TextBlock Text="{Binding .}" />
+        </DataTemplate>
+        
     </Application.Resources>
 
 </Application>

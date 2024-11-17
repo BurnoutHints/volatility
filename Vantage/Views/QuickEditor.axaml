@@ -14,21 +14,38 @@
 		<vm:QuickEditorViewModel />
 	</Window.DataContext>
 	
-	<StackPanel>
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/> <!-- Automatically size based on content -->
+			<RowDefinition Height="*"/> <!-- Takes all remaining space -->
+		</Grid.RowDefinitions>
+		<StackPanel >
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="_File">
 				<MenuItem Header="_Open" Name="OpenMenuItem" />
 			</MenuItem>
 		</Menu>
-		<DockPanel>
-			<TextBlock Text="{Binding CurrentlyEditingString}" Margin="10"/>
-		</DockPanel>
-		<ListBox ItemsSource="{Binding FieldGroups}" HorizontalAlignment="Stretch">
-			<ListBox.ItemTemplate>
-				<DataTemplate>
-					<local:CategoryGroupControl DataContext="{Binding}" />
-				</DataTemplate>
-			</ListBox.ItemTemplate>
-		</ListBox>
-	</StackPanel>
+		<ContentControl>
+			<DockPanel>
+				<TextBlock Text="{Binding CurrentlyEditingString}" Margin="10"/>
+			</DockPanel>
+		</ContentControl>
+		</StackPanel>
+		<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Grid.Row="1">
+			<ListBox ItemsSource="{Binding ClassGroups}"
+			         ItemTemplate="{StaticResource ClassTemplate}">
+				<ListBox.Styles>
+					<Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+						<Setter Property="Background" Value="Transparent"/>	
+					</Style>
+					<Style Selector="ListBoxItem:pressed /template/ ContentPresenter">
+						<Setter Property="Background" Value="Transparent"/>	
+					</Style>
+					<Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+						<Setter Property="Background" Value="Transparent"/>	
+					</Style>
+				</ListBox.Styles>
+			</ListBox>
+		</ScrollViewer>
+	</Grid>
 </Window>

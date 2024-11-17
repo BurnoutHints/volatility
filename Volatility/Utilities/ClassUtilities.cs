@@ -26,4 +26,13 @@ public static class ClassUtilities
     {
         return member.GetCustomAttribute<T>();
     }
+    
+    public static bool IsComplexType(object value)
+    {
+        var type = value.GetType();
+        return !type.IsPrimitive && 
+               !(value is string) &&
+               !type.IsEnum &&
+               !typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
+    }
 }

@@ -26,11 +26,9 @@ public partial class CategoryGroupControl : UserControl
 
     private void ToggleExpandButton_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is CategoryGroupViewModel vm)
-        {
-            vm.ToggleExpandCommand.Execute();
-            UpdateUIState(vm.IsExpanded);
-        }
+        if (DataContext is not CategoryGroupViewModel vm) return;
+        vm.ToggleExpandCommand.Execute();
+        UpdateUIState(vm.IsExpanded);
     }
 
     public void UpdateUIState(bool expanded)
