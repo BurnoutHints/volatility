@@ -48,6 +48,8 @@ public abstract class TextureHeaderBase : Resource
         }
     }
     protected DIMENSION _Dimension = DIMENSION.DIMENSION_2D;
+   
+    [EditorCategory("Texture"), EditorLabel("Dimension"), EditorTooltip("Determines the depth/dimension of the texture itself (1D, 2D, 3D).")]
     public virtual DIMENSION Dimension // GPUDIMENSION / renderengine::Texture::Type
     {
         get => _Dimension;
@@ -102,8 +104,12 @@ public abstract class TextureHeaderBase : Resource
 // BPR formatted but converted for each platform
 public enum DIMENSION : int
 {
+    [EditorLabel("1D")]
     DIMENSION_1D = 6,
+    [EditorLabel("2D")]
     DIMENSION_2D = 7,
+    [EditorLabel("3D")]
     DIMENSION_3D = 8,
+    [EditorLabel("Cube")]
     DIMENSION_CUBE = 9
 }
