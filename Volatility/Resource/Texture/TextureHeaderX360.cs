@@ -192,7 +192,7 @@ public class TextureHeaderX360 : TextureHeaderBase
 
 public struct GPUTEXTURE_FETCH_CONSTANT
 {
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Tiled"), 
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Tiled"), 
      EditorTooltip("Whether the bitmap data is is tiled for optimization on the Xbox 360.")]
     public bool Tiled;                        // 1 bit
     
@@ -203,66 +203,138 @@ public struct GPUTEXTURE_FETCH_CONSTANT
      EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
     public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
     
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Multisampling Type"), 
+     EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
+    public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUCLAMP ClampZ;                   // 3 bits
+    
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUCLAMP ClampY;                   // 3 bits
+    
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUCLAMP ClampX;                   // 3 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSIGN SignW;                     // 2 bits
+    
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSIGN SignZ;                     // 2 bits
+    
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSIGN SignY;                     // 2 bits
+    
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSIGN SignX;                     // 2 bits
     
     [EditorHidden]
     public GPUCONSTANTTYPE Type;              // 2 bits
-    
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public uint BaseAddress;                  // 20 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUCLAMPPOLICY ClampPolicy;        // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public bool Stacked;                      // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUREQUESTSIZE RequestSize;        // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUENDIAN Endian;                  // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUTEXTUREFORMAT DataFormat;       // 6 bits
     
     [EditorHidden]
     public GPUTEXTURESIZE Size;               // 32 bits, GPUTEXTURESIZE union
-    
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public byte BorderSize;                   // 1 bit, 3 bit padding
     
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Anisotropic Filtering"), 
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Anisotropic Filtering"), 
      EditorTooltip("Defines levels of anisotropic filtering for texture clarity at oblique viewing angles.")]
     public GPUANISOFILTER AnisoFilter;        // 3 bits
     
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Mipmap Filtering"), 
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Mipmap Filtering"), 
      EditorTooltip("Specifies the mipmap filtering method for texture sampling, used for smoother blending between mip levels.")]
     public GPUMIPFILTER MipFilter;            // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUMINMAGFILTER MinFilter;         // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUMINMAGFILTER MagFilter;         // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public byte ExpAdjust;                    // 6 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSWIZZLE SwizzleW;               // 3 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSWIZZLE SwizzleZ;               // 3 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSWIZZLE SwizzleY;               // 3 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUSWIZZLE SwizzleX;               // 3 bits
+    
     public GPUNUMFORMAT NumFormat;            // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public byte GradExpAdjustV;               // 5 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public byte GradExpAdjustH;               // 5 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public ushort LODBias;                    // 10 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public bool MinAnisoWalk;                 // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public bool MagAnisoWalk;                 // 1 bit
+    
     [EditorHidden]
     public byte MaxMipLevel;                  // 4 bits
+    
     [EditorHidden]
     public byte MinMipLevel;                  // 4 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUMINMAGFILTER VolMinFilter;      // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUMINMAGFILTER VolMagFilter;      // 1 bit
+    
     [EditorHidden]
     public uint MipAddress;                   // 20 bits
+    
     [EditorHidden]
     public bool PackedMips;                   // 1 bit
+   
     [EditorHidden]
     public GPUDIMENSION Dimension;            // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public byte AnisoBias;                    // 4 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUTRICLAMP TriClamp;              // 2 bits
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public bool ForceBCWToMax;                // 1 bit
+
+    [EditorCategory("Texture/Xbox 360/Texture Fetch Constants")]
     public GPUBORDERCOLOR BorderColor;        // 2 bits
 
+    
     public GPUTEXTURE_FETCH_CONSTANT()
     {
         Type = GPUCONSTANTTYPE.GPUCONSTANTTYPE_TEXTURE;
