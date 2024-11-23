@@ -199,10 +199,6 @@ public struct GPUTEXTURE_FETCH_CONSTANT
     [EditorHidden]
     public ushort Pitch;                      // 9 bits + 1 bit padding
     
-    [EditorCategory("Texture/Xbox 360"), EditorLabel("Multisampling Type"), 
-     EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
-    public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
-    
     [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Multisampling Type"), 
      EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
     public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
