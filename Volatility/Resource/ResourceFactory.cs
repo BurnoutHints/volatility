@@ -1,4 +1,5 @@
 
+using Volatility.Resources.InstanceList;
 using Volatility.Resources.Renderable;
 using Volatility.Resources.Splicer;
 using Volatility.Resources.Texture;
@@ -42,6 +43,12 @@ public static class ResourceFactory
         { (ResourceType.Renderable, Platform.TUB), path => new RenderablePC(path) },
         { (ResourceType.Renderable, Platform.X360), path => new RenderableX360(path) },
         { (ResourceType.Renderable, Platform.PS3), path => new RenderablePS3(path) },
+
+        // InstanceList resources
+        { (ResourceType.InstanceList, Platform.BPR), path => new InstanceListLE(path) },
+        { (ResourceType.InstanceList, Platform.TUB), path => new InstanceListLE(path) },
+        { (ResourceType.InstanceList, Platform.X360), path => new InstanceListBE(path) },
+        { (ResourceType.InstanceList, Platform.PS3), path => new InstanceListBE(path) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)
