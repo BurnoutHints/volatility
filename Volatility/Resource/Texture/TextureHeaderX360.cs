@@ -188,7 +188,6 @@ public struct GPUTEXTURE_FETCH_CONSTANT
      EditorTooltip("Whether the bitmap data is is tiled for optimization on the Xbox 360.")]
     public bool Tiled;                        // 1 bit
     public ushort Pitch;                      // 9 bits + 1 bit padding
-    public GPUMULTISAMPLE_TYPE MultiSample;   // 2 bits
     
     [EditorCategory("Texture/Xbox 360/Texture Fetch Constants"), EditorLabel("Multisampling Type"), 
      EditorTooltip("Specifies the level of GPU multisampling, a technique to reduce jagged edges by averaging multiple samples per pixel.")]
