@@ -1,11 +1,17 @@
-﻿namespace Volatility.Resources.InstanceList;
+﻿using static Volatility.Utilities.MatrixUtilities;
+
+namespace Volatility.Resources.InstanceList;
 
 public class InstanceListBase : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;
 
     List<Instance> Instances = [];
-    //uint ArraySize, NumInstances, VersionNumber;
+
+    [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
+    uint NumInstances;
+
+    //uint ArraySize, VersionNumber;
 
     public InstanceListBase() : base() { }
 
@@ -15,9 +21,9 @@ public class InstanceListBase : Resource
     {
         base.ParseFromStream(reader);
 
-        IntPtr instanceList = reader.ReadInt32();
+        IntPtr instanceListPtr = reader.ReadInt32();
         uint size = reader.ReadUInt32();
-        uint numInstances = reader.ReadUInt32();
+        NumInstances = reader.ReadUInt32();
 
         // Version
         if (reader.ReadUInt32() != 1)
@@ -25,26 +31,32 @@ public class InstanceListBase : Resource
             throw new Exception("Version mismatch!");
         }
 
-        reader.BaseStream.Seek(instanceList, SeekOrigin.Begin);
+        reader.BaseStream.Seek(instanceListPtr, SeekOrigin.Begin);
 
-        for (int i = 0; i < numInstances; i++) 
+        for (int i = 0; i < size; i++) 
         {
+            long index = reader.BaseStream.Position;
+            
             ModelPtr _model = (nint)reader.ReadUInt32();
             short _backdropZoneID = reader.ReadInt16();
 
-            // reader.ReadUInt16(); reader.ReadUInt32();
+            //ushort _padding1 = reader.ReadUInt16(); 
+            //uint _padding2 = reader.ReadUInt32();
             reader.BaseStream.Seek(0x6, SeekOrigin.Current);
 
             float _maxVisibleDistanceSquared = reader.ReadSingle();
-            Transform _transform = Transform.ReadMatrix44AffineAsTransform(reader);
+            Transform _transform = Matrix44AffineToTransform(ReadMatrix4x4(reader));
 
-            Instances[i] = new Instance
+            Instances.Add(new Instance
             {
                 Model = (nint)reader.ReadUInt32(),
                 BackdropZoneID = _backdropZoneID,
+                // Padding1 = _padding1, Padding2 = _padding2,
                 MaxVisibleDistanceSquared = _maxVisibleDistanceSquared,
                 Transform = _transform
-            };
+            });
+
+            reader.BaseStream.Seek(index, SeekOrigin.Begin);
         }
     }
 }
@@ -53,7 +65,7 @@ public struct Instance
 {
     public ModelPtr Model;
     public short BackdropZoneID;
-    //ushort Padding1; uint Padding2;
+    // public ushort Padding1; public uint Padding2;
     public float MaxVisibleDistanceSquared; // Unused?
     public Transform Transform;
 }
