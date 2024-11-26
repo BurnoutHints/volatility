@@ -47,7 +47,7 @@ public class InstanceListBase : Resource
 
             float _maxVisibleDistanceSquared = reader.ReadSingle();
 
-            Transform _transform = Matrix44AffineToTransform(ReadMatrix4x4(reader));
+            Transform _transform = Matrix44AffineToTransform(ReadMatrix44Affine(reader));
 
             reader.BaseStream.Seek(instanceListPtr.ToInt32() + 0x50 * (int)size + 0x10 * i, SeekOrigin.Begin);
 

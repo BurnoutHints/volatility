@@ -34,7 +34,7 @@ public static class MatrixUtilities
         return transform;
     }
 
-    public static Matrix44Affine ReadMatrix4x4(BinaryReader reader)
+    public static Matrix44Affine ReadMatrix44Affine(BinaryReader reader)
     {
         float m11 = reader.ReadSingle();
         float m12 = reader.ReadSingle();
