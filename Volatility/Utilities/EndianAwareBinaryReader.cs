@@ -14,6 +14,11 @@ public class EndianAwareBinaryReader : BinaryReader
         _endianness = endianness;
     }
 
+    public Endian GetEndianness()
+    {
+        return _endianness;
+    }
+
     public override ushort ReadUInt16()
     {
         ushort value = base.ReadUInt16();
