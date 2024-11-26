@@ -21,4 +21,26 @@ public struct Transform
     public Quaternion Rotation;
     public Vector3 Scale;    
 }
-    
+
+// Experimenting with a new way to store ResourceIDs.
+public struct ResourceID
+{
+    [Newtonsoft.Json.JsonIgnore]
+    public byte[] ID;
+
+    public string HexID
+    {
+        get => BitConverter.ToString(ID).Replace("-", "").ToLower();
+        set => ID = Enumerable.Range(0, value.Length / 2)
+                              .Select(x => Convert.ToByte(value.Substring(x * 2, 2), 16))
+                              .ToArray();
+    }
+
+    public Endian Endian;
+
+    public ResourceID()
+    {
+        ID = new byte[4];
+        Endian = default;
+    }
+}
