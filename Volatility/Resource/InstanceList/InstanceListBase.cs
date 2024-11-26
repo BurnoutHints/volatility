@@ -5,11 +5,12 @@ namespace Volatility.Resources.InstanceList;
 public class InstanceListBase : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;
-
-    List<Instance> Instances = [];
-
+    
     [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
-    uint NumInstances;
+    public uint NumInstances;
+
+    [EditorLabel("Instances"), EditorCategory("Instance List"), EditorTooltip("The list of instances in this list.")]
+    public List<Instance> Instances = [];
 
     //uint ArraySize, VersionNumber;
 
@@ -35,9 +36,9 @@ public class InstanceListBase : Resource
 
         for (int i = 0; i < size; i++) 
         {
-            long index = reader.BaseStream.Position;
-            
-            ModelPtr _model = (nint)reader.ReadUInt32();
+            reader.BaseStream.Seek(instanceListPtr.ToInt32() + 0x50 * i, SeekOrigin.Begin);
+
+            ModelPtr _model = (ModelPtr)reader.ReadUInt32();
             short _backdropZoneID = reader.ReadInt16();
 
             //ushort _padding1 = reader.ReadUInt16(); 
@@ -45,27 +46,44 @@ public class InstanceListBase : Resource
             reader.BaseStream.Seek(0x6, SeekOrigin.Current);
 
             float _maxVisibleDistanceSquared = reader.ReadSingle();
+
             Transform _transform = Matrix44AffineToTransform(ReadMatrix4x4(reader));
+
+            reader.BaseStream.Seek(instanceListPtr.ToInt32() + 0x50 * (int)size + 0x10 * i, SeekOrigin.Begin);
 
             Instances.Add(new Instance
             {
-                Model = (nint)reader.ReadUInt32(),
+                Model = _model,
                 BackdropZoneID = _backdropZoneID,
                 // Padding1 = _padding1, Padding2 = _padding2,
                 MaxVisibleDistanceSquared = _maxVisibleDistanceSquared,
-                Transform = _transform
+                Transform = _transform,
+                ResourceId = new ResourceID
+                {
+                    ID = reader.ReadBytes(4),
+                    Endian = reader.GetEndianness()
+                },
             });
-
-            reader.BaseStream.Seek(index, SeekOrigin.Begin);
         }
     }
 }
 
 public struct Instance
 {
-    public ModelPtr Model;
-    public short BackdropZoneID;
-    // public ushort Padding1; public uint Padding2;
-    public float MaxVisibleDistanceSquared; // Unused?
+    [EditorLabel("Resource ID"), EditorCategory("InstanceList/Instances"), EditorTooltip("The reference to the resource placed by this instance.")]
+    public ResourceID ResourceId;
+
+    [EditorLabel("Transform"), EditorCategory("InstanceList/Instances"), EditorTooltip("The location, rotation, and scale of this instance.")]
     public Transform Transform;
+
+    [EditorLabel("Transform"), EditorCategory("InstanceList/Instances"), EditorTooltip("If this is a backdrop, the PVS Zone ID that this backdrop represents.")]
+    public short BackdropZoneID;
+    
+    // public ushort Padding1; public uint Padding2;
+
+    [EditorLabel("Max Visible Distance Squared"), EditorCategory("InstanceList/Instances"), EditorTooltip("The maximum distance that this instance can be seen (in meters), squared.")]
+    public float MaxVisibleDistanceSquared; // Unused?
+
+    [EditorHidden]
+    public ModelPtr Model;  // Always seems to be zero. May be a runtime variable? Hiding for now.
 }
