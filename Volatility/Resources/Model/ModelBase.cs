@@ -88,7 +88,7 @@ public class ModelBase : Resource
             Console.WriteLine("WARNING: Found no renderables in this model!");
         }
 
-        byte flags = reader.ReadByte();
+        Flags = reader.ReadByte();
 
         // This currently does a lot of seeking.
         // It may improve performance if we separate this.
