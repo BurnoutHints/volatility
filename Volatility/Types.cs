@@ -6,7 +6,8 @@ global using Vector2 = System.Numerics.Vector2;         // VectorIntrinsic
 global using Vector3 = System.Numerics.Vector3;         // VectorIntrinsic
 global using Vector3Plus = System.Numerics.Vector4;     // VectorIntrinsic
 global using Vector4 = System.Numerics.Vector4;
-using System.Numerics;         // VectorIntrinsic
+global using Quaternion = System.Numerics.Quaternion;
+global using Matrix44Affine = System.Numerics.Matrix4x4;
 
 public enum Endian
 {
@@ -18,30 +19,28 @@ public struct Transform
 {
     public Vector3 Location;
     public Quaternion Rotation;
-    public Vector3 Scale;
+    public Vector3 Scale;    
+}
 
-    public static Transform ReadMatrix44AffineAsTransform(EndianAwareBinaryReader reader)
+// Experimenting with a new way to store ResourceIDs.
+public struct ResourceID
+{
+    [Newtonsoft.Json.JsonIgnore]
+    public byte[] ID;
+
+    public string HexID
     {
-        Transform transform = new Transform();
-        
-        transform.Location.X = reader.ReadSingle();
-        transform.Rotation.X = reader.ReadSingle();
-        transform.Scale.X = reader.ReadSingle();
-       
-        transform.Location.Y = reader.ReadSingle();
-        transform.Rotation.Y = reader.ReadSingle();
-        transform.Scale.Y = reader.ReadSingle();
-        
-        transform.Location.Z = reader.ReadSingle();
-        transform.Rotation.Z = reader.ReadSingle();
-        transform.Scale.Z = reader.ReadSingle();
+        get => BitConverter.ToString(ID).Replace("-", "").ToLower();
+        set => ID = Enumerable.Range(0, value.Length / 2)
+                              .Select(x => Convert.ToByte(value.Substring(x * 2, 2), 16))
+                              .ToArray();
+    }
 
-        // Don't see a reason to preserve W axis for location and scale
-        reader.ReadSingle();
-        transform.Rotation.W = reader.ReadSingle();
-        reader.ReadSingle();
+    public Endian Endian;
 
-        return transform;
+    public ResourceID()
+    {
+        ID = new byte[4];
+        Endian = default;
     }
 }
-    

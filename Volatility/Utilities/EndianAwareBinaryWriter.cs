@@ -14,6 +14,10 @@ public class EndianAwareBinaryWriter : BinaryWriter
         _endianness = endianness;
     }
 
+    public Endian GetEndianness()
+    {
+        return _endianness;
+    }
     public override void Write(ushort value)
     {
         base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value) : value);
