@@ -22,7 +22,9 @@ public class InstanceListBase : Resource
     {
         base.ParseFromStream(reader);
 
+        // Absolute pointers (not relative to any specific point in the file)
         IntPtr instanceListPtr = reader.ReadInt32();
+
         uint size = reader.ReadUInt32();
         NumInstances = reader.ReadUInt32();
 

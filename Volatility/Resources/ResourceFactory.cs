@@ -1,5 +1,6 @@
 
 using Volatility.Resources.InstanceList;
+using Volatility.Resources.Model;
 using Volatility.Resources.Renderable;
 using Volatility.Resources.Splicer;
 using Volatility.Resources.Texture;
@@ -49,11 +50,17 @@ public static class ResourceFactory
         { (ResourceType.InstanceList, Platform.TUB), path => new InstanceListLE(path) },
         { (ResourceType.InstanceList, Platform.X360), path => new InstanceListBE(path) },
         { (ResourceType.InstanceList, Platform.PS3), path => new InstanceListBE(path) },
+
+        // Model resources
+        { (ResourceType.Model, Platform.BPR), path => new ModelLE(path) },
+        { (ResourceType.Model, Platform.TUB), path => new ModelLE(path) },
+        { (ResourceType.Model, Platform.X360), path => new ModelBE(path) },
+        { (ResourceType.Model, Platform.PS3), path => new ModelBE(path) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)
     {
-        Console.WriteLine($"Constructing {platform} resource property data...");
+        Console.WriteLine($"Constructing {platform} {resourceType} resource property data...");
 
         var key = (resourceType, platform);
         if (resourceCreators.TryGetValue(key, out var creator))
