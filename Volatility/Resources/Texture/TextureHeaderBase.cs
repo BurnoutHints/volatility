@@ -1,5 +1,12 @@
-﻿
-namespace Volatility.Resources.Texture;
+﻿namespace Volatility.Resources.Texture;
+
+// The Texture resource type contains in-game images, which are either displayed
+// through Apt UI, applied to models, or used as cubemaps. Textures vary by platform,
+// but generally use codecs like DXT1, DXT5, and A8R8G8B8. Mipmaps are typically used
+// systematically throughout the game.
+
+// Learn More:
+// https://burnout.wiki/wiki/Texture
 
 public abstract class TextureHeaderBase : Resource
 {
