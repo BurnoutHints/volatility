@@ -42,6 +42,7 @@ internal interface ICommand
             {
                 case TargetFileType.Header:
                     if (!name.Contains(".dat") && !name.Contains("_1.bin")
+                        || name.Contains("_secondary")
                         || name.Contains("_texture")
                         || name.Contains("_imports")
                         || name.Contains("_model")
