@@ -4,6 +4,13 @@ using Volatility.Utilities;
 
 namespace Volatility.Resources.Renderable;
 
+// The Renderable resource type contains all the 3D data used by each
+// Model resource in Burnout Paradise. Essentially, Renderables hold the
+// geometric and visual information needed for rendering models in-game.
+
+// Learn More:
+// https://burnout.wiki/wiki/Renderable
+
 public abstract class RenderableBase : Resource
 {
     public Vector3Plus BoundingSphere;

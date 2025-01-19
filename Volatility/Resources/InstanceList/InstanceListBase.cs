@@ -2,6 +2,13 @@
 
 namespace Volatility.Resources.InstanceList;
 
+// The Instance List resource type contains lists of models along with their 
+// respective locations in the game world. It serves as one of the top-level 
+// resource types for track unit loading.
+
+// Learn More:
+// https://burnout.wiki/wiki/Instance_List
+
 public class InstanceListBase : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;

@@ -3,6 +3,13 @@ using System.Text;
 
 namespace Volatility.Resources.Splicer;
 
+// The Splicer resource type contains multiple sound assets and presets for
+// how those sounds are played. They are typically triggered by in-game actions.
+// Splicers begin with a Binary File resource.
+
+// Learn More:
+// https://burnout.wiki/wiki/Splicer
+
 public abstract class SplicerBase : BinaryResource
 {
     public override ResourceType GetResourceType() => ResourceType.Splicer;

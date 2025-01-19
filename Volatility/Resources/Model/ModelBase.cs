@@ -1,5 +1,12 @@
 ﻿namespace Volatility.Resources.Model;
 
+// The Model resource type links top-level resources (like InstanceList)
+// to Renderable resources that contain the 3D geometry, while including
+// Level of Detail (LOD) information.
+
+// Learn More:
+// https://burnout.wiki/wiki/Model
+
 public class ModelBase : Resource
 {
     [EditorCategory("Model Container"), EditorLabel("Flags")]

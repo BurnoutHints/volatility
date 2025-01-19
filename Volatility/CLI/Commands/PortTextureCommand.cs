@@ -215,10 +215,30 @@ internal class PortTextureCommand : ICommand
                     Unpacker.Volatility => throw new NotImplementedException(),
                     _ => throw new NotImplementedException(),
                 };
+                
+                string primaryExtension = SourceTexture.Unpacker switch
+                {
+                    Unpacker.Bnd2Manager => "_1.bin",
+                    Unpacker.DGI => ".dat",
+                    Unpacker.YAP => "_primary.dat",
+                    Unpacker.Raw => ".dat", // Fallback for now
+                    Unpacker.Volatility => throw new NotImplementedException(),
+                    _ => throw new NotImplementedException(),
+                };
 
-                string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(sourceFile)}{secondaryExtension}";
+                string sourceBitmapPath = $"{Path.GetDirectoryName(sourceFile)}{Path.DirectorySeparatorChar}{Path.GetFileName(sourceFile).Split(primaryExtension)[0]}{secondaryExtension}";
 
-                string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}{secondaryExtension}";
+                if (!Path.Exists(sourceBitmapPath))
+                {
+                    Console.WriteLine($"Failed to find associated texture data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
+                }
+
+                string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileName(sourceFile).Split(primaryExtension)[0]}{secondaryExtension}";
+
+                if (Path.Exists(destinationBitmapPath))
+                {
+                    if (Verbose) Console.WriteLine($"Found existing texture data at {destinationBitmapPath}, overwriting...");
+                }
 
                 try
                 {
@@ -248,7 +268,7 @@ internal class PortTextureCommand : ICommand
                         //    }
                         //}
                     }
-                    else if (SourceTexture is TextureHeaderX360 sourceX)
+                    if (SourceTexture is TextureHeaderX360 sourceX)
                     {
                         if (sourceX.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
                         {
