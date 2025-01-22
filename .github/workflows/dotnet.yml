@@ -55,7 +55,7 @@ jobs:
 
     - name: Send message to Discord
       run: |
-        $webhookUrl = "https://discord.com/api/webhooks/1247319165266694197/kCgTl2toHeawHNaqTiuY1xlz7-VTnaud2JqkbCgcFwS6aInreldJ6-fDVvjvZeH3MC-t"
+        $webhookUrl = "${{ secrets.WEBHOOK_LINK }}"
         $jsonPayload = @{
             content = "New release created: v${{ github.run_number }}. Check it out here: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
         } | ConvertTo-Json
