@@ -193,7 +193,9 @@ internal class PortTextureCommand : ICommand
 
                 string outPath = @"";
 
-                string outResourceFilename = flipEndian ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
+                string outResourceFilename = (flipEndian && SourceTexture.Unpacker != Unpacker.YAP) 
+                    ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) 
+                    : Path.GetFileName(sourceFile);
 
                 if (DestinationPath == sourceFile)
                 {
