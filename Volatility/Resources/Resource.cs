@@ -64,7 +64,7 @@ public abstract class Resource
             {
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
-                ResourceID = (GetResourceEndian() == Endian.LE)
+                ResourceID = (GetResourceEndian() == Endian.LE && Unpacker != Unpacker.YAP)
                     ? FlipResourceIDEndian(name)
                     : name;
 
