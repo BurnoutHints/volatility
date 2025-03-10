@@ -64,6 +64,11 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(ArrayIndex);
         writer.Write(ContentsSize);
         writer.Write(x64Switch(x64Header, 0));  // TextureData, 64 bit
+
+        if (x64Header)
+        {
+            writer.Write(System.Text.Encoding.ASCII.GetBytes("Volatili"));
+        }
     }
 
     public override void ParseFromStream(EndianAwareBinaryReader reader)

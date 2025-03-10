@@ -39,7 +39,7 @@ internal class Frontend
         if (args.Length > 0)
         {
             string fullCommand = string.Join(" ", args);
-            ParseCommand(fullCommand);
+            RunCommand(fullCommand);
         }
         else 
         {
@@ -68,22 +68,7 @@ internal class Frontend
             Console.Write("volatility> ");
             var input = Console.ReadLine();
 
-            if (!string.IsNullOrEmpty(input)) 
-            {
-                try
-                {
-                    var command = ParseCommand(input);
-                    command.Execute().GetAwaiter().GetResult();
-
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
-                }
-            }
+            RunCommand(input);
         }
     }
 
@@ -118,6 +103,26 @@ internal class Frontend
             parts.Add(currentToken);
 
         return ParseCommandTokenized(parts.ToArray());
+    }
+
+    static void RunCommand(string input)
+    {
+        if (!string.IsNullOrEmpty(input))
+        {
+            try
+            {
+                var command = ParseCommand(input);
+                command.Execute().GetAwaiter().GetResult();
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
     }
 
     static ICommand ParseCommandTokenized(string[] input)    // Split command

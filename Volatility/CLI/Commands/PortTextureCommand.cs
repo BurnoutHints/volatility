@@ -193,7 +193,9 @@ internal class PortTextureCommand : ICommand
 
                 string outPath = @"";
 
-                string outResourceFilename = flipEndian ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) : Path.GetFileName(sourceFile);
+                string outResourceFilename = (flipEndian && SourceTexture.Unpacker != Unpacker.YAP) 
+                    ? FlipPathResourceIDEndian(Path.GetFileName(sourceFile)) 
+                    : Path.GetFileName(sourceFile);
 
                 if (DestinationPath == sourceFile)
                 {
@@ -297,27 +299,34 @@ internal class PortTextureCommand : ICommand
                         }
                     }
                     if (Verbose) Console.WriteLine($"Wrote texture bitmap data to {DestinationFormat} destination directory.");
+
+                    // Set ContentsSize for BPR textures if applicable.
+                    if (DestinationTexture is TextureHeaderBPR destBPRTexture && File.Exists(destinationBitmapPath))
+                    {
+                        destBPRTexture.ContentsSize = (uint)new FileInfo(destinationBitmapPath).Length;
+                        if (Verbose) Console.WriteLine($"BPR ContentsSize set to {destBPRTexture.ContentsSize} (file: {destinationBitmapPath}).");
+                    }
+
+                    // Write header data (now after bitmap data to ensure any final edits are included)
+                    using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
+                    using (EndianAwareBinaryWriter writer = new(fs, DestinationTexture.GetResourceEndian()))
+                    {
+                        try
+                        {
+                            if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
+                            DestinationTexture.WriteToStream(writer);
+                        }
+                        catch
+                        {
+                            throw new IOException("Failed to write converted texture property data to stream.");
+                        }
+                        writer.Close();
+                        fs.Close();
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}");
-                }
-
-                // Write header data (now after bitmap data to ensure any final edits are included)
-                using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
-                using (EndianAwareBinaryWriter writer = new(fs, DestinationTexture.GetResourceEndian()))
-                {
-                    try
-                    {
-                        if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
-                        DestinationTexture.WriteToStream(writer);
-                    }
-                    catch
-                    {
-                        throw new IOException("Failed to write converted texture property data to stream.");
-                    }
-                    writer.Close();
-                    fs.Close();
                 }
 
                 Console.WriteLine($"Successfully ported {SourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {DestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
@@ -347,7 +356,7 @@ internal class PortTextureCommand : ICommand
 
     public string BPRx64Hack(TextureHeaderBase header, string format)
     {
-        if (header.GetResourcePlatform() != Platform.BPR && format.EndsWith("X64"))
+        if (header.GetResourcePlatform() == Platform.BPR && format.EndsWith("X64"))
         {
             (header as TextureHeaderBPR).x64Header = true;
             return "BPR";
@@ -375,6 +384,10 @@ internal class PortTextureCommand : ICommand
         var properties = typeof(TextureHeaderBase).GetProperties();
         foreach (var prop in properties)
         {
+            // Skip the x64Header property since the x64 state is a hack and shouldn't be copied
+            if (string.Equals(prop.Name, "x64Header", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             var value = prop.GetValue(source);
             prop.SetValue(destination, value);
         }
