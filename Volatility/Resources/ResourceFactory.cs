@@ -4,6 +4,7 @@ using Volatility.Resources.Model;
 using Volatility.Resources.Renderable;
 using Volatility.Resources.Splicer;
 using Volatility.Resources.Texture;
+using Volatility.Resources.EnvironmentKeyframe;
 
 namespace Volatility.Resources;
 
@@ -56,6 +57,12 @@ public static class ResourceFactory
         { (ResourceType.Model, Platform.TUB), path => new ModelLE(path) },
         { (ResourceType.Model, Platform.X360), path => new ModelBE(path) },
         { (ResourceType.Model, Platform.PS3), path => new ModelBE(path) },
+
+        // Model resources
+        { (ResourceType.EnvironmentKeyframe, Platform.BPR), path => new EnvironmentKeyframeLE(path) },
+        { (ResourceType.EnvironmentKeyframe, Platform.TUB), path => new EnvironmentKeyframeLE(path) },
+        { (ResourceType.EnvironmentKeyframe, Platform.X360), path => new EnvironmentKeyframeBE(path) },
+        { (ResourceType.EnvironmentKeyframe, Platform.PS3), path => new EnvironmentKeyframeBE(path) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)
