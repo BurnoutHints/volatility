@@ -3,7 +3,7 @@ namespace Volatility.Resources.EnvironmentKeyframe;
 public class EnvironmentKeyframeBase : Resource 
 {
     public override ResourceType GetResourceType() => ResourceType.EnvironmentKeyframe;
-
+    
     public BloomData BloomSettings;
     public VignetteData VignetteSettings;
     public TintData TintSettings;
