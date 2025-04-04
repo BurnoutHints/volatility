@@ -25,7 +25,7 @@ public class InstanceListBase : Resource
 
     public InstanceListBase(string path) : base(path) { }
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

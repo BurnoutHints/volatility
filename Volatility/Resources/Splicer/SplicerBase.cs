@@ -29,7 +29,7 @@ public abstract class SplicerBase : BinaryResource
     public IntPtr SamplePtrOffset;
 
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

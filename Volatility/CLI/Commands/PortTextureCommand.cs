@@ -358,7 +358,7 @@ internal class PortTextureCommand : ICommand
     {
         if (header.GetResourcePlatform() == Platform.BPR && format.EndsWith("X64"))
         {
-            (header as TextureHeaderBPR).x64Header = true;
+            header.SetResourceArch(Arch.x64);
             return "BPR";
         }
         return format;
@@ -384,10 +384,6 @@ internal class PortTextureCommand : ICommand
         var properties = typeof(TextureHeaderBase).GetProperties();
         foreach (var prop in properties)
         {
-            // Skip the x64Header property since the x64 state is a hack and shouldn't be copied
-            if (string.Equals(prop.Name, "x64Header", StringComparison.OrdinalIgnoreCase))
-                continue;
-
             var value = prop.GetValue(source);
             prop.SetValue(destination, value);
         }

@@ -10,21 +10,26 @@ public abstract class Resource
     [EditorCategory("Resource Info"), EditorLabel("Asset Name"), EditorTooltip("The asset's name in the resource depot.")]
     public string AssetName = "invalid";
 
+    [EditorCategory("Resource Info"), EditorLabel("Platform Architecture"), EditorTooltip("Forced platform architecture. Determines field sizes such as pointers. Console versions of Remastered use x64 while other known platforms typically use x32.")]
+    public Arch Arch = Arch.x32;
+
     [EditorCategory("Import Data"), EditorLabel("Imported File Path"), EditorTooltip("The path that this resource was imported from.")]
     public string? ImportedFileName;
 
     [EditorCategory("Import Data"), EditorLabel("Unpacker"), EditorTooltip("The tool used to extract this resource from a bundle.")]
     public Unpacker Unpacker = Unpacker.Raw;
-    
+
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
     public virtual Endian GetResourceEndian() => Endian.LE;
     public virtual Platform GetResourcePlatform() => Platform.Agnostic;
+    public virtual Arch GetResourceArch() => Arch;
+    public virtual void SetResourceArch(Arch newArch) { Arch = newArch; }
 
     public virtual void WriteToStream(EndianAwareBinaryWriter writer) 
     { 
         writer.SetEndianness(GetResourceEndian());
     }
-    public virtual void ParseFromStream(EndianAwareBinaryReader reader) 
+    public virtual void ParseFromStream(ResourceBinaryReader reader) 
     {
         reader.SetEndianness(GetResourceEndian());
     }
@@ -82,7 +87,7 @@ public abstract class Resource
 
         }
 
-        using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(new FileStream($"{path}", FileMode.Open), GetResourceEndian()))
+        using (ResourceBinaryReader reader = new ResourceBinaryReader(new FileStream($"{path}", FileMode.Open), GetResourceEndian()))
         {
             ParseFromStream(reader);
         }
@@ -256,4 +261,12 @@ public enum Unpacker
     Bnd2Manager = 2,
     DGI = 3,
     YAP = 4,
+}
+
+public enum Arch
+{
+    [EditorLabel("32 bit (Default)")]
+    x32 = 0,
+    [EditorLabel("64 bit (Console BPR)")]
+    x64 = 1
 }

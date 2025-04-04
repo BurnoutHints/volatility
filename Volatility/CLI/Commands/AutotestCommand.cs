@@ -1,5 +1,6 @@
 using System.Reflection;
 
+using Volatility.Resources;
 using Volatility.Resources.Texture;
 
 using static Volatility.Utilities.DataUtilities;
@@ -75,7 +76,7 @@ internal class AutotestCommand : ICommand
         // Write 32 bit test BPR header
         TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
 
-        textureHeaderBPR.x64Header = true;
+        textureHeaderBPR.SetResourceArch(Arch.x64);
         textureHeaderBPR.AssetName = "autotest_header_BPRx64";
         textureHeaderBPR.ResourceID = GetResourceIDFromName(textureHeaderBPR.AssetName, Endian.LE);
 

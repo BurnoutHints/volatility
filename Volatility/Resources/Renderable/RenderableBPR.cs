@@ -5,7 +5,7 @@ public class RenderableBPR : RenderableBase
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         reader.SetEndianness(GetResourceEndian());
 

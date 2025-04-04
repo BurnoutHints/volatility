@@ -7,8 +7,6 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
 
-    public bool x64Header;                                      // For platforms like PS4
-
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT; // Usually default, implemented for parity sake
     public DXGI_FORMAT Format;                                  // Format
     public byte[] Flags = new byte[4];                          // Unknown flags, 0
@@ -44,12 +42,12 @@ public class TextureHeaderBPR : TextureHeaderBase
     {
         base.WriteToStream(writer);
 
-        writer.Write(x64Switch(x64Header, 0));  // TextureInterfacePtr, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureInterfacePtr, 64 bit
         writer.Write((uint)Usage);
         writer.Write((uint)Dimension);
-        writer.Write(x64Switch(x64Header, 0));  // PixelDataPtr, 64 bit
-        writer.Write(x64Switch(x64Header, 0));  // ShaderResourceViewInterface0Ptr, 64 bit
-        writer.Write(x64Switch(x64Header, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // PixelDataPtr, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface0Ptr, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
         writer.Write((uint)0);                  // Unknown0
         writer.Write((uint)Format);
         writer.Write(Flags);
@@ -60,27 +58,27 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(MostDetailedMip);
         writer.Write(MipmapLevels);
         writer.Write((ushort)0);                // Unknown1
-        writer.Write(x64Switch(x64Header, 0));  // Unknown2, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // Unknown2, 64 bit
         writer.Write(ArrayIndex);
         writer.Write(ContentsSize);
-        writer.Write(x64Switch(x64Header, 0));  // TextureData, 64 bit
+        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureData, 64 bit
 
-        if (x64Header)
+        if (GetResourceArch() == Arch.x64)
         {
             writer.Write(System.Text.Encoding.ASCII.GetBytes("Volatili"));
         }
     }
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 
-        x64Header = reader.BaseStream.Length > 0x40;
+        SetResourceArch(reader.BaseStream.Length > 0x40 ? Arch.x64 : Arch.x32);
 
-        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
+        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
         Usage = (D3D11_USAGE)reader.ReadInt32();
         Dimension = (DIMENSION)reader.ReadInt32();
-        reader.BaseStream.Seek(x64Header ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
+        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
         Format = (DXGI_FORMAT)reader.ReadInt32();
         reader.Read(Flags);
@@ -91,10 +89,10 @@ public class TextureHeaderBPR : TextureHeaderBase
         MostDetailedMip = reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
-        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
+        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
         ArrayIndex = (uint)reader.ReadInt32();
         ContentsSize = (uint)reader.ReadInt32();
-        reader.BaseStream.Seek(x64Header ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
+        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
     }
 
     public override void PushInternalDimension()

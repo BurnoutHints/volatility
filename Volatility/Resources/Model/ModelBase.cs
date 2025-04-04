@@ -66,7 +66,7 @@ public class ModelBase : Resource
             writer.Write((uint)0x0); // Unknown. Always 0 in BPR, not always 0 on X360
         }
     }
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 
