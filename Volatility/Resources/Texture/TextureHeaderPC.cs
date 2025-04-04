@@ -60,7 +60,7 @@ public class TextureHeaderPC : TextureHeaderBase
         writer.Write(new byte[4]);  // Padding
     }
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

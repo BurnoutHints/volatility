@@ -161,7 +161,7 @@ public class TextureHeaderX360 : TextureHeaderBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

@@ -23,7 +23,7 @@ public abstract class RenderableBase : Resource
 
     public override ResourceType GetResourceType() => ResourceType.Renderable;
 
-    public override void ParseFromStream(EndianAwareBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader)
     {
         base.ParseFromStream(reader);
 

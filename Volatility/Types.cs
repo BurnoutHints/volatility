@@ -9,6 +9,11 @@ global using Vector4 = System.Numerics.Vector4;
 global using Quaternion = System.Numerics.Quaternion;
 global using Matrix44Affine = System.Numerics.Matrix4x4;
 
+// Volatilty Types
+global using ColorRGB = System.Numerics.Vector3;
+global using ColorRGBA = System.Numerics.Vector4;
+global using Vector2Literal = System.Numerics.Vector2;
+
 public enum Endian
 {
     LE,
