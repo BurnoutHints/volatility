@@ -31,6 +31,8 @@ public class EnvironmentKeyframe : Resource
             throw new Exception("Version mismatch!");
         }
 
+        reader.BaseStream.Seek(0x10, SeekOrigin.Begin);
+
         BloomSettings = new BloomData(reader);
         VignetteSettings = new VignetteData(reader);
         TintSettings = new TintData(reader, GetResourceArch());
