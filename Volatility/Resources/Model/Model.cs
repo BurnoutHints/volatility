@@ -1,4 +1,4 @@
-﻿namespace Volatility.Resources.Model;
+﻿namespace Volatility.Resources;
 
 // The Model resource type links top-level resources (like InstanceList)
 // to Renderable resources that contain the 3D geometry, while including
@@ -7,7 +7,7 @@
 // Learn More:
 // https://burnout.wiki/wiki/Model
 
-public class ModelBase : Resource
+public class Model : Resource
 {
     [EditorCategory("Model Container"), EditorLabel("Flags")]
     public byte Flags;
@@ -18,9 +18,9 @@ public class ModelBase : Resource
     public override ResourceType GetResourceType() => ResourceType.Model;
     public override Platform GetResourcePlatform() => Platform.Agnostic;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         int models = ModelDatas.Count();
 
@@ -66,9 +66,9 @@ public class ModelBase : Resource
             writer.Write((uint)0x0); // Unknown. Always 0 in BPR, not always 0 on X360
         }
     }
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         // Get the version check out of the way before we begin.
         reader.BaseStream.Seek(0x13, SeekOrigin.Begin);
@@ -127,9 +127,9 @@ public class ModelBase : Resource
         }
     }
 
-    public ModelBase() :base() { }
+    public Model() : base() { }
 
-    public ModelBase(string path) : base(path) { }
+    public Model(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public struct ModelData
     {

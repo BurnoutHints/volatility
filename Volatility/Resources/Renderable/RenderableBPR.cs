@@ -1,11 +1,11 @@
-﻿namespace Volatility.Resources.Renderable;
+﻿namespace Volatility.Resources;
 
 public class RenderableBPR : RenderableBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
         reader.SetEndianness(GetResourceEndian());
 
@@ -16,10 +16,10 @@ public class RenderableBPR : RenderableBase
 
         reader.BaseStream.Seek(0x0, SeekOrigin.Begin);
 
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
     }
 
-    public RenderableBPR(string path) : base(path) { }
+    public RenderableBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 public enum D3D11_PRIMITIVE_TOPOLOGY

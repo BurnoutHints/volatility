@@ -1,11 +1,4 @@
 
-using Volatility.Resources.InstanceList;
-using Volatility.Resources.Model;
-using Volatility.Resources.Renderable;
-using Volatility.Resources.Splicer;
-using Volatility.Resources.Texture;
-using Volatility.Resources.EnvironmentKeyframe;
-
 namespace Volatility.Resources;
 
 public static class ResourceFactory
@@ -35,10 +28,10 @@ public static class ResourceFactory
         } },
 
         // Splicer resources
-        { (ResourceType.Splicer, Platform.BPR), path => new SplicerLE(path) },
-        { (ResourceType.Splicer, Platform.TUB), path => new SplicerLE(path) },
-        { (ResourceType.Splicer, Platform.X360), path => new SplicerBE(path) },
-        { (ResourceType.Splicer, Platform.PS3), path => new SplicerBE(path) },
+        { (ResourceType.Splicer, Platform.BPR), path => new Splicer(path, Endian.LE) },
+        { (ResourceType.Splicer, Platform.TUB), path => new Splicer(path, Endian.LE) },
+        { (ResourceType.Splicer, Platform.X360), path => new Splicer(path, Endian.BE) },
+        { (ResourceType.Splicer, Platform.PS3), path => new Splicer(path, Endian.BE) },
 
         // Renderable resources
         { (ResourceType.Renderable, Platform.BPR), path => new RenderableBPR(path) },
@@ -47,22 +40,22 @@ public static class ResourceFactory
         { (ResourceType.Renderable, Platform.PS3), path => new RenderablePS3(path) },
 
         // InstanceList resources
-        { (ResourceType.InstanceList, Platform.BPR), path => new InstanceListLE(path) },
-        { (ResourceType.InstanceList, Platform.TUB), path => new InstanceListLE(path) },
-        { (ResourceType.InstanceList, Platform.X360), path => new InstanceListBE(path) },
-        { (ResourceType.InstanceList, Platform.PS3), path => new InstanceListBE(path) },
+        { (ResourceType.InstanceList, Platform.BPR), path => new InstanceList(path, Endian.LE) },
+        { (ResourceType.InstanceList, Platform.TUB), path => new InstanceList(path, Endian.LE) },
+        { (ResourceType.InstanceList, Platform.X360), path => new InstanceList(path, Endian.BE) },
+        { (ResourceType.InstanceList, Platform.PS3), path => new InstanceList(path, Endian.BE) },
 
         // Model resources
-        { (ResourceType.Model, Platform.BPR), path => new ModelLE(path) },
-        { (ResourceType.Model, Platform.TUB), path => new ModelLE(path) },
-        { (ResourceType.Model, Platform.X360), path => new ModelBE(path) },
-        { (ResourceType.Model, Platform.PS3), path => new ModelBE(path) },
+        { (ResourceType.Model, Platform.BPR), path => new Model(path, Endian.LE) },
+        { (ResourceType.Model, Platform.TUB), path => new Model(path, Endian.LE) },
+        { (ResourceType.Model, Platform.X360), path => new Model(path, Endian.BE) },
+        { (ResourceType.Model, Platform.PS3), path => new Model(path, Endian.BE) },
 
         // Model resources
-        { (ResourceType.EnvironmentKeyframe, Platform.BPR), path => new EnvironmentKeyframeLE(path) },
-        { (ResourceType.EnvironmentKeyframe, Platform.TUB), path => new EnvironmentKeyframeLE(path) },
-        { (ResourceType.EnvironmentKeyframe, Platform.X360), path => new EnvironmentKeyframeBE(path) },
-        { (ResourceType.EnvironmentKeyframe, Platform.PS3), path => new EnvironmentKeyframeBE(path) },
+        { (ResourceType.EnvironmentKeyframe, Platform.BPR), path => new EnvironmentKeyframe(path, Endian.LE) },
+        { (ResourceType.EnvironmentKeyframe, Platform.TUB), path => new EnvironmentKeyframe(path, Endian.LE) },
+        { (ResourceType.EnvironmentKeyframe, Platform.X360), path => new EnvironmentKeyframe(path, Endian.BE) },
+        { (ResourceType.EnvironmentKeyframe, Platform.PS3), path => new EnvironmentKeyframe(path, Endian.BE) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)

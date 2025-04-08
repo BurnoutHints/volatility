@@ -20,23 +20,31 @@ public abstract class Resource
     public Unpacker Unpacker = Unpacker.Raw;
 
     public virtual ResourceType GetResourceType() => ResourceType.Invalid;
-    public virtual Endian GetResourceEndian() => Endian.LE;
+    public virtual Endian GetResourceEndian() => Endian.Agnostic;   // Forced endianness for platform-specific resources (e.g. Textures)
     public virtual Platform GetResourcePlatform() => Platform.Agnostic;
     public virtual Arch GetResourceArch() => Arch;
     public virtual void SetResourceArch(Arch newArch) { Arch = newArch; }
 
-    public virtual void WriteToStream(EndianAwareBinaryWriter writer) 
+    public virtual void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic) 
     { 
-        writer.SetEndianness(GetResourceEndian());
+        if (GetResourceEndian() != Endian.Agnostic)
+            writer.SetEndianness(GetResourceEndian());
+
+        else if (endianness != Endian.Agnostic)
+            writer.SetEndianness(endianness);
     }
-    public virtual void ParseFromStream(ResourceBinaryReader reader) 
+    public virtual void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic) 
     {
-        reader.SetEndianness(GetResourceEndian());
+        if (GetResourceEndian() != Endian.Agnostic)
+            reader.SetEndianness(GetResourceEndian());
+
+        else if (endianness != Endian.Agnostic)
+            reader.SetEndianness(endianness);
     }
 
     public Resource() { }
 
-    public Resource(string path)
+    public Resource(string path, Endian endianness = Endian.Agnostic)
     {
         if (string.IsNullOrEmpty(path))
             return;
@@ -48,6 +56,8 @@ public abstract class Resource
             return;
 
         string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
+
+        Endian importEndianness = (GetResourceEndian() != Endian.Agnostic) ? GetResourceEndian() : endianness;
 
         if (!string.IsNullOrEmpty(name))
         {
@@ -69,7 +79,7 @@ public abstract class Resource
             {
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
-                ResourceID = (GetResourceEndian() == Endian.LE && Unpacker != Unpacker.YAP)
+                ResourceID = (importEndianness == Endian.LE && Unpacker != Unpacker.YAP)
                     ? FlipResourceIDEndian(name)
                     : name;
 
@@ -81,15 +91,15 @@ public abstract class Resource
             else
             {
                 // TODO: Add new entry to ResourceDB
-                ResourceID = GetResourceIDFromName(name, GetResourceEndian());
+                ResourceID = GetResourceIDFromName(name, importEndianness);
                 AssetName = name;
             }
 
         }
 
-        using (ResourceBinaryReader reader = new ResourceBinaryReader(new FileStream($"{path}", FileMode.Open), GetResourceEndian()))
+        using (ResourceBinaryReader reader = new ResourceBinaryReader(new FileStream($"{path}", FileMode.Open), importEndianness))
         {
-            ParseFromStream(reader);
+            ParseFromStream(reader, importEndianness);
         }
     }
 

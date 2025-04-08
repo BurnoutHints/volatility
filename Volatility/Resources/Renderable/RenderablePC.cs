@@ -1,11 +1,11 @@
-﻿namespace Volatility.Resources.Renderable;
+﻿namespace Volatility.Resources;
 
 public class RenderablePC : RenderableBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.TUB;
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
         reader.SetEndianness(GetResourceEndian());
 
@@ -16,8 +16,8 @@ public class RenderablePC : RenderableBase
 
         reader.BaseStream.Seek(0x0, SeekOrigin.Begin);
 
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
     }
 
-    public RenderablePC(string path) : base(path) { }
+    public RenderablePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
