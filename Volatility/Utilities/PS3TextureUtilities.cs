@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-using Volatility.Resources.Texture;
+using Volatility.Resources;
 
 namespace Volatility.Utilities;
 

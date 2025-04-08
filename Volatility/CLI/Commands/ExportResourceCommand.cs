@@ -1,8 +1,6 @@
 using System.Runtime.Serialization;
 
 using Volatility.Resources;
-using Volatility.Resources.Splicer;
-using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
@@ -123,7 +121,7 @@ internal partial class ExportResourceCommand : ICommand
                         resource.WriteToStream(writer);
 						if (resourceType == ResourceType.Splicer)
 						{
-							(resource as SplicerBase).SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
+							(resource as Splicer).SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
                         }
 
 					}

@@ -2,7 +2,7 @@
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.Resources.Texture;
+namespace Volatility.Resources;
 
 public class TextureHeaderPS3 : TextureHeaderBase
 {
@@ -22,7 +22,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public TextureHeaderPS3() : base() { }
 
-    public TextureHeaderPS3(string path) : base(path) { }
+    public TextureHeaderPS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
@@ -81,9 +81,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
 
     public override void PushInternalFormat() { /* TODO But don't throw an error! */ }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         writer.Write((byte)Format);
         writer.Write(MipmapLevels);
@@ -106,9 +106,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
         MipmapLevels = reader.ReadByte();
