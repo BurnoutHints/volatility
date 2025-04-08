@@ -14,13 +14,6 @@ global using ColorRGB = System.Numerics.Vector3;
 global using ColorRGBA = System.Numerics.Vector4;
 global using Vector2Literal = System.Numerics.Vector2;
 
-public enum Endian
-{
-    Agnostic = -1,
-    LE = 0,
-    BE = 1
-}
-
 public struct Transform
 {
     public Vector3 Location;
