@@ -1,6 +1,6 @@
 ﻿using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.Resources.Texture;
+namespace Volatility.Resources;
 
 public class TextureHeaderBPR : TextureHeaderBase
 {
@@ -23,24 +23,16 @@ public class TextureHeaderBPR : TextureHeaderBase
 
     public TextureHeaderBPR() : base() { }
 
-    public TextureHeaderBPR(string path) : base(path) 
-    {
-        // string texturePath = $"{path}_texture.dat";
-        // 
-        // if (!File.Exists(texturePath))
-        //     return;
-        // 
-        // ContentsSize = (uint)new FileInfo(texturePath).Length;
-    }
+    public TextureHeaderBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }
     public override void PushInternalFlags() { }
     public override void PullInternalFlags() => base.PullInternalFlags();
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureInterfacePtr, 64 bit
         writer.Write((uint)Usage);
@@ -69,9 +61,9 @@ public class TextureHeaderBPR : TextureHeaderBase
         }
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         SetResourceArch(reader.BaseStream.Length > 0x40 ? Arch.x64 : Arch.x32);
 

@@ -22,11 +22,11 @@ public class BinaryResource : Resource
 
     public BinaryResource() : base() { }
     
-    public BinaryResource(string path) : base(path) { }
+    public BinaryResource(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
         
         DataSize = reader.ReadUInt32();
         DataOffset = reader.ReadUInt32();
@@ -34,7 +34,7 @@ public class BinaryResource : Resource
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
     
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         writer.Write(DataSize);
         writer.Write(DataOffset);

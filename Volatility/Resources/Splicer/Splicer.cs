@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Volatility.Resources.Splicer;
+namespace Volatility.Resources;
 
 // The Splicer resource type contains multiple sound assets and presets for
 // how those sounds are played. They are typically triggered by in-game actions.
@@ -10,7 +10,7 @@ namespace Volatility.Resources.Splicer;
 // Learn More:
 // https://burnout.wiki/wiki/Splicer
 
-public abstract class SplicerBase : BinaryResource
+public class Splicer : BinaryResource
 {
     public override ResourceType GetResourceType() => ResourceType.Splicer;
     
@@ -29,9 +29,9 @@ public abstract class SplicerBase : BinaryResource
     public IntPtr SamplePtrOffset;
 
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         int version =  reader.ReadInt32();
         if (version != 1)
@@ -125,9 +125,9 @@ public abstract class SplicerBase : BinaryResource
         }
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         writer.BaseStream.Position = DataOffset;
 
@@ -228,9 +228,9 @@ public abstract class SplicerBase : BinaryResource
         return _samples;
     }
 
-    public SplicerBase() : base() { }
+    public Splicer() : base() { }
 
-    public SplicerBase(string path) : base(path) { }
+    public Splicer(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
     
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct SPLICE_Data

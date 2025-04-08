@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 using Volatility.Resources;
-using Volatility.Resources.Splicer;
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
@@ -154,7 +153,7 @@ internal partial class ImportResourceCommand : ICommand
                     string sxPath = Path.Combine("tools", $"sx.exe");
 					bool sxExists = File.Exists(sxPath);
 
-                    SplicerBase? splicer = resource as SplicerBase;
+                    Splicer? splicer = resource as Splicer;
 
 					byte[][]? samples = splicer?.GetLoadedSamples();
 

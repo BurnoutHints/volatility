@@ -6,6 +6,9 @@ public class EndianAwareBinaryWriter : BinaryWriter
 
     public EndianAwareBinaryWriter(Stream output, Endian endianness) : base(output)
     {
+        if (endianness == Endian.Agnostic)
+            throw new InvalidOperationException("An agnostic endianness was passed to EndianAwareBinaryWriter! Ensure that the operation passes a valid endianness before attempting to use the writer.");
+
         SetEndianness(endianness);
     }
 

@@ -6,6 +6,9 @@ public class EndianAwareBinaryReader : BinaryReader
 
     public EndianAwareBinaryReader(Stream input, Endian endianness) : base(input)
     {
+        if (endianness == Endian.Agnostic)
+            throw new InvalidOperationException("An agnostic endianness was passed to EndianAwareBinaryReader! Ensure that the operation passes a valid endianness before attempting to use the reader.");
+
         SetEndianness(endianness);
     }
 

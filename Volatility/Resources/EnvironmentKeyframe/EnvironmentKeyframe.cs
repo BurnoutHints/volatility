@@ -1,6 +1,13 @@
-namespace Volatility.Resources.EnvironmentKeyframe;
+namespace Volatility.Resources;
 
-public class EnvironmentKeyframeBase : Resource 
+// The Environment Keyframe resource is the primary way to control the game's 
+// environment at a single point within the Environment's timeline, with settings
+// including bloom, vignette, tint (color grading), scattering, and lighting.
+
+// Learn More:
+// https://burnout.wiki/wiki/Environment_Keyframe
+
+public class EnvironmentKeyframe : Resource 
 {
     public override ResourceType GetResourceType() => ResourceType.EnvironmentKeyframe;
     
@@ -11,13 +18,13 @@ public class EnvironmentKeyframeBase : Resource
     public LightingData LightingSettings;
     public CloudsData CloudSettings;
 
-    public EnvironmentKeyframeBase() : base() { }
+    public EnvironmentKeyframe() : base() { }
 
-    public EnvironmentKeyframeBase(string path) : base(path) { } 
+    public EnvironmentKeyframe(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { } 
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         if (reader.ReadUInt32() != 8)
         {
@@ -36,8 +43,13 @@ public class EnvironmentKeyframeBase : Resource
 
 public struct BloomData
 {
+    [EditorLabel("Luminance"), EditorCategory("Environment Keyframe/Bloom"), EditorTooltip("The brightness of the bloom effect.")]
     public float Luminance;
+
+    [EditorLabel("Threshold"), EditorCategory("Environment Keyframe/Bloom"), EditorTooltip("The threshold for the bloom effect.")]
     public float Threshold;
+
+    [EditorLabel("Scale"), EditorCategory("Environment Keyframe/Bloom"), EditorTooltip("The scale of the bloom effect.")]
     public Vector4 Scale;
 
     public BloomData(ResourceBinaryReader reader) 

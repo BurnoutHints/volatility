@@ -16,8 +16,9 @@ global using Vector2Literal = System.Numerics.Vector2;
 
 public enum Endian
 {
-    LE,
-    BE
+    Agnostic = -1,
+    LE = 0,
+    BE = 1
 }
 
 public struct Transform

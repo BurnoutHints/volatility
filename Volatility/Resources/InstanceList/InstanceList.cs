@@ -1,6 +1,6 @@
 ﻿using static Volatility.Utilities.MatrixUtilities;
 
-namespace Volatility.Resources.InstanceList;
+namespace Volatility.Resources;
 
 // The Instance List resource type contains lists of models along with their 
 // respective locations in the game world. It serves as one of the top-level 
@@ -9,7 +9,7 @@ namespace Volatility.Resources.InstanceList;
 // Learn More:
 // https://burnout.wiki/wiki/Instance_List
 
-public class InstanceListBase : Resource
+public class InstanceList : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;
     
@@ -21,13 +21,13 @@ public class InstanceListBase : Resource
 
     //uint ArraySize, VersionNumber;
 
-    public InstanceListBase() : base() { }
+    public InstanceList() : base() { }
 
-    public InstanceListBase(string path) : base(path) { }
+    public InstanceList(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         // Absolute pointers (not relative to any specific point in the file)
         IntPtr instanceListPtr = reader.ReadInt32();
