@@ -9,7 +9,7 @@ internal partial class ExportResourceCommand : ICommand
 {
 	public static string CommandToken => "ExportResource";
 	public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
-	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<file path>";
+	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path>";
 
 	public string? Format { get; set; }
 	public string? ResourcePath { get; set; }
