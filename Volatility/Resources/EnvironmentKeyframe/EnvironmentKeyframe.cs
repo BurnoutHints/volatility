@@ -86,7 +86,7 @@ public struct VignetteData
 
 public struct TintData 
 {
-    ulong ColorCubePtr; // TODO: Update with new ResourceID system
+    public ulong ColorCubePtr; // TODO: Update with new ResourceID system
     public TintData(ResourceBinaryReader reader, Arch arch) 
     {
         ColorCubePtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
@@ -95,27 +95,27 @@ public struct TintData
 
 public struct ScatteringData 
 {
-    Vector3 SkyTopColor;
-    Vector3 SkyHorizonColor;
-    Vector3 SkySunColor;
-    float SkyHorizonPower;
-    float SkySunPower;
-    float SkyDarkening;
-    float SkyHorizonBleedScale;
-    float SkyHorizonBleedPower;
-    float SkySunBleedPower;
-    Vector3 ScatteringTopColor;
-    Vector3 ScatteringHorizonColor;
-    Vector3 ScatteringSunColor;
-    float ScatteringHorizonPower;
-    float ScatteringSunPower;
-    float ScatteringDarkening;
-    float ScatteringHorizonBleedScale;
-    float ScatteringHorizonBleedPower;
-    float ScatteringSunBleedPower;
-    Vector2Literal ScatteringDistance;
-    float ScatteringPower;
-    float ScatteringCap;
+    public Vector3 SkyTopColor;
+    public Vector3 SkyHorizonColor;
+    public Vector3 SkySunColor;
+    public float SkyHorizonPower;
+    public float SkySunPower;
+    public float SkyDarkening;
+    public float SkyHorizonBleedScale;
+    public float SkyHorizonBleedPower;
+    public float SkySunBleedPower;
+    public Vector3 ScatteringTopColor;
+    public Vector3 ScatteringHorizonColor;
+    public Vector3 ScatteringSunColor;
+    public float ScatteringHorizonPower;
+    public float ScatteringSunPower;
+    public float ScatteringDarkening;
+    public float ScatteringHorizonBleedScale;
+    public float ScatteringHorizonBleedPower;
+    public float ScatteringSunBleedPower;
+    public Vector2Literal ScatteringDistance;
+    public float ScatteringPower;
+    public float ScatteringCap;
 
     public ScatteringData(ResourceBinaryReader reader) 
     {
@@ -147,15 +147,15 @@ public struct ScatteringData
 
 public struct LightingData 
 {
-    Vector3	KeyLightColor;
-    Vector3	SpecularColor;
-    Vector3	KeyFillColor;
-    Vector3	ShadowFillColor;
-    Vector3	RightFillColor;
-    Vector3	LeftFillColor;
-    Vector3	UpFillColor;
-    Vector3	DownFillColor;
-    float AmbientIrradianceScale;
+    public Vector3 KeyLightColor;
+    public Vector3 SpecularColor;
+    public Vector3 KeyFillColor;
+    public Vector3 ShadowFillColor;
+    public Vector3 RightFillColor;
+    public Vector3 LeftFillColor;
+    public Vector3 UpFillColor;
+    public Vector3 DownFillColor;
+    public float AmbientIrradianceScale;
 
     public LightingData(ResourceBinaryReader reader) 
     {
@@ -174,16 +174,16 @@ public struct LightingData
 
 public struct CloudsData 
 {
-    ColorRGB Layer1LiteColor;
-    ColorRGB Layer1DarkColor;
-    ColorRGB Layer2LiteColor;
-    ColorRGB Layer2DarkColor;
-    Vector2Literal LayerDensity;
-    Vector2Literal LayerFeathering;
-    Vector2Literal LayerOpacity;
-    Vector2Literal LayerSpeed;
-    Vector2Literal LayerScale;
-    float DirectionAngle;
+    public ColorRGB Layer1LiteColor;
+    public ColorRGB Layer1DarkColor;
+    public ColorRGB Layer2LiteColor;
+    public ColorRGB Layer2DarkColor;
+    public Vector2Literal LayerDensity;
+    public Vector2Literal LayerFeathering;
+    public Vector2Literal LayerOpacity;
+    public Vector2Literal LayerSpeed;
+    public Vector2Literal LayerScale;
+    public float DirectionAngle;
 
     public CloudsData(ResourceBinaryReader reader) 
     {
