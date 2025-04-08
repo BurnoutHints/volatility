@@ -2,7 +2,7 @@
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.Resources.Texture;
+namespace Volatility.Resources;
 
 public class TextureHeaderPC : TextureHeaderBase
 {
@@ -32,11 +32,11 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public TextureHeaderPC() : base() { }
 
-    public TextureHeaderPC(string path) : base(path) { }
+    public TextureHeaderPC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         PushAll(); // Need to determine if should be moved
 
@@ -60,9 +60,9 @@ public class TextureHeaderPC : TextureHeaderBase
         writer.Write(new byte[4]);  // Padding
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         reader.BaseStream.Seek(8, SeekOrigin.Begin);    // Skip over Data & Interface pointers
         Unknown0 = reader.ReadUInt32();

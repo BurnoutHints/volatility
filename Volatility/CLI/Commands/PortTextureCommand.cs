@@ -1,5 +1,4 @@
 ﻿using Volatility.Resources;
-using Volatility.Resources.Texture;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;

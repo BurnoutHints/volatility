@@ -2,7 +2,7 @@
 
 using Volatility.Utilities;
 
-namespace Volatility.Resources.Renderable;
+namespace Volatility.Resources;
 
 // The Renderable resource type contains all the 3D data used by each
 // Model resource in Burnout Paradise. Essentially, Renderables hold the
@@ -23,9 +23,9 @@ public abstract class RenderableBase : Resource
 
     public override ResourceType GetResourceType() => ResourceType.Renderable;
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         BoundingSphere[0] = reader.ReadSingle();            // X
         BoundingSphere[1] = reader.ReadSingle();            // Y
@@ -43,7 +43,7 @@ public abstract class RenderableBase : Resource
         // TODO: Parse RenderableMeshes
     }
 
-    public RenderableBase(string path) : base(path) { }
+    public RenderableBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 

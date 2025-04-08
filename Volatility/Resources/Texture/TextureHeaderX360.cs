@@ -5,7 +5,7 @@ using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
 
-namespace Volatility.Resources.Texture;
+namespace Volatility.Resources;
 
 public class TextureHeaderX360 : TextureHeaderBase
 {
@@ -40,7 +40,7 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public TextureHeaderX360() : base() { }
 
-    public TextureHeaderX360(string path) : base(path) { }
+    public TextureHeaderX360(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
@@ -125,9 +125,9 @@ public class TextureHeaderX360 : TextureHeaderBase
         Format.MipAddress = CalculateMipAddressX360(Width, Height);
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer)
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        base.WriteToStream(writer);
+        base.WriteToStream(writer, endianness);
 
         // X360 stores Texture values in LE
         writer.SetEndianness(Endian.LE);
@@ -153,9 +153,9 @@ public class TextureHeaderX360 : TextureHeaderBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader)
+    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        base.ParseFromStream(reader);
+        base.ParseFromStream(reader, endianness);
 
         // X360 stores Texture values in LE
         reader.SetEndianness(Endian.LE);
