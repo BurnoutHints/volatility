@@ -58,14 +58,17 @@ public static class ResourceFactory
         { (ResourceType.EnvironmentKeyframe, Platform.PS3), path => new EnvironmentKeyframe(path, Endian.BE) },
     };
 
-    public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath)
+    public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
     {
         Console.WriteLine($"Constructing {platform} {resourceType} resource property data...");
 
         var key = (resourceType, platform);
         if (resourceCreators.TryGetValue(key, out var creator))
         {
-            return creator(filePath);
+            var output = creator(filePath);
+            if (x64)
+                output.SetResourceArch(Arch.x64);
+            return output;
         }
         else
         {
