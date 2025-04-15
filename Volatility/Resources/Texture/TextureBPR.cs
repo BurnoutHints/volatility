@@ -2,7 +2,7 @@
 
 namespace Volatility.Resources;
 
-public class TextureHeaderBPR : TextureHeaderBase
+public class TextureBPR : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
@@ -21,9 +21,9 @@ public class TextureHeaderBPR : TextureHeaderBase
         set => _Dimension = value;
     }
 
-    public TextureHeaderBPR() : base() { }
+    public TextureBPR() : base() { }
 
-    public TextureHeaderBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TextureBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }

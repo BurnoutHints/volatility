@@ -121,6 +121,34 @@ public abstract class Resource
 
         // Volatility doesn't have a bundle unpacker yet...
     }
+
+    public string GetSecondaryResourcePath(string primaryPath)
+    {
+        // This is very Texture-focused for DGI's unpacker.
+        // Please use YAP if this logic still exists and you need
+        // to use secondary resources for other resource types!
+        string secondaryExtension = Unpacker switch
+        {
+            Unpacker.Bnd2Manager => "_2.bin",
+            Unpacker.DGI => "_texture.dat",
+            Unpacker.YAP => "_secondary.dat",
+            Unpacker.Raw => "_texture.dat", // Fallback for now
+            Unpacker.Volatility => throw new NotImplementedException(),
+            _ => throw new NotImplementedException(),
+        };
+	
+        string primaryExtension = Unpacker switch
+        {
+            Unpacker.Bnd2Manager => "_1.bin",
+            Unpacker.DGI => ".dat",
+            Unpacker.YAP => "_primary.dat",
+            Unpacker.Raw => ".dat", // Fallback for now
+            Unpacker.Volatility => throw new NotImplementedException(),
+            _ => throw new NotImplementedException(),
+        };
+
+        return $"{Path.GetDirectoryName(primaryPath)}{Path.DirectorySeparatorChar}{Path.GetFileName(primaryPath).Split(primaryExtension)[0]}{secondaryExtension}";
+    }
     
     public virtual void PushAll() { }
     public virtual void PullAll() { }

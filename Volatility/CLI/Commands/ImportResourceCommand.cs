@@ -69,15 +69,6 @@ internal partial class ImportResourceCommand : ICommand
 					return;
 				}
 
-				var serializer = new SerializerBuilder()
-    				.DisableAliases()
-    				.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
-    				.WithTypeConverter(new ResourceYamlTypeConverter())
-    				.WithTypeConverter(new StringEnumYamlTypeConverter())
-    				.Build();
-				
-				var serializedString = new string("");
-
     			bool isX64 = Format.EndsWith("x64", StringComparison.OrdinalIgnoreCase);
     			if (isX64)
     			    Format = Format[..^3];
@@ -111,40 +102,14 @@ internal partial class ImportResourceCommand : ICommand
 
 				Directory.CreateDirectory(directoryPath);
 
-				serializedString = serializer.Serialize(resource);
-				using (StreamWriter streamWriter = new StreamWriter(filePath))
-				{
-					await streamWriter.WriteAsync(serializedString);
-				};
-
 				// Texture-specific logic. Will need to refactor this pipeline
 				if (resourceType == ResourceType.Texture)
 				{
-                    string texturePath = Path.Combine
-					(
-						Path.GetDirectoryName(sourceFile),
-						Path.GetFileNameWithoutExtension(sourceFile) +
-                        // TODO: Resource-defined Secondary path support
-                        resource.Unpacker switch
-                        {
-                            Unpacker.Bnd2Manager => "_2.bin",
-                            Unpacker.DGI => "_texture.dat",
-                            Unpacker.YAP => "_secondary.dat",
-                            Unpacker.Raw => "_texture.dat", // Fallback for now
-                            Unpacker.Volatility => throw new NotImplementedException(),
-                            _ => throw new NotImplementedException(),
-                        }
-                    );
+					string texturePath = resource.GetSecondaryResourcePath(sourceFile);
 
 					if (File.Exists(texturePath))
 					{
-						string outPath = Path.Combine
-						(
-							directoryPath,
-							Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
-						);
-
-						File.Copy(texturePath, $"{outPath}.{resourceType}Bitmap", Overwrite);
+						(resource as TextureBase).BitmapBuffer = File.ReadAllBytes(texturePath);
 					}
 				}
 
@@ -211,7 +176,23 @@ internal partial class ImportResourceCommand : ICommand
 					    }
 					}
 				}
-                Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
+				
+				var serializer = new SerializerBuilder()
+    				.DisableAliases()
+					.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
+					.WithTypeConverter(new ResourceYamlTypeConverter())
+					.WithTypeConverter(new StringEnumYamlTypeConverter())
+					.WithTypeConverter(new BinaryDataSerializer())
+					.ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull | DefaultValuesHandling.OmitDefaults)
+    				.Build();
+				
+				var serializedString = serializer.Serialize(resource);
+				using (StreamWriter streamWriter = new StreamWriter(filePath))
+				{
+					await streamWriter.WriteAsync(serializedString);
+				};
+                
+				Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
 			}));
 		}
 		await Task.WhenAll(tasks);

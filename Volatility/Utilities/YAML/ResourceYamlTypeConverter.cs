@@ -8,6 +8,7 @@ using System.Reflection;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
+using YamlDotNet.RepresentationModel;
 
 using Volatility.Resources;
 
@@ -52,6 +53,12 @@ public class ResourceYamlTypeConverter : IYamlTypeConverter
 
             foreach (var member in members)
             {
+                if (member.MemberType == MemberTypes.Field && 
+                    ((FieldInfo)member).FieldType == typeof(IntPtr))
+                {
+                    continue;
+                }
+
                 if (!processedMembers.Contains(member.Name))
                 {
                     object memberValue = null;
@@ -63,7 +70,32 @@ public class ResourceYamlTypeConverter : IYamlTypeConverter
                     {
                         memberValue = ((FieldInfo)member).GetValue(value);
                     }
-                    typeProperties[member.Name] = memberValue;
+                    
+                    if (member.MemberType == MemberTypes.Property && 
+                        ((PropertyInfo)member).GetCustomAttribute<BinaryDataAttribute>() != null && 
+                        memberValue is byte[] binaryData)
+                    {
+                        byte[] compressed = ZLibUtilities.Compress(binaryData);
+                        string base64 = Convert.ToBase64String(compressed);
+                        typeProperties[member.Name] = new YamlScalarNode(Convert.ToBase64String(compressed))
+                        {
+                            Tag = "tag:yaml.org,2002:binary"
+                        };                    
+                    }
+                    else if (member.MemberType == MemberTypes.Field && 
+                        ((FieldInfo)member).GetCustomAttribute<BinaryDataAttribute>() != null && 
+                        memberValue is byte[] fieldBinaryData)
+                    {
+                        byte[] compressed = ZLibUtilities.Compress(fieldBinaryData);
+                        typeProperties[member.Name] = new YamlScalarNode(Convert.ToBase64String(compressed))
+                        {
+                            Tag = "tag:yaml.org,2002:binary"
+                        };
+                    }
+                    else
+                    {
+                        typeProperties[member.Name] = memberValue;
+                    }                    
                     processedMembers.Add(member.Name);
                 }
             }

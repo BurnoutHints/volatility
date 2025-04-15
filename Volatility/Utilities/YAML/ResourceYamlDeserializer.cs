@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 using YamlDotNet.Serialization;
 
 namespace Volatility.Utilities;
@@ -12,7 +11,13 @@ public static class ResourceYamlDeserializer
 {
     public static object DeserializeResource(Type resourceClass, string yaml)
     {
-        var deserializer = new DeserializerBuilder().Build();
+var deserializer = new DeserializerBuilder()
+    .WithTagMapping("tag:yaml.org,2002:binary", typeof(byte[]))
+    .WithTypeConverter(new BinaryTypeConverter())
+    .IgnoreUnmatchedProperties()
+    .Build();
+
+            
         var root = deserializer.Deserialize<Dictionary<string, object>>(yaml);
 
         var hierarchyTypes = new List<Type>();
@@ -42,8 +47,10 @@ public static class ResourceYamlDeserializer
         string mergedYaml = serializer.Serialize(mergedProperties);
 
         var finalDeserializer = new DeserializerBuilder()
+            .WithTypeConverter(new BinaryTypeConverter())
             .IgnoreUnmatchedProperties()
             .Build();
+            
         using (var reader = new StringReader(mergedYaml))
         {
             var resource = finalDeserializer.Deserialize(reader, resourceClass);

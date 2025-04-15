@@ -21,12 +21,12 @@ internal class AutotestCommand : ICommand
     {
         if (!string.IsNullOrEmpty(Path))
         {
-            TextureHeaderBase? header = Format switch
+            TextureBase? header = Format switch
             {
-                "BPR" => new TextureHeaderBPR(Path),
-                "TUB" => new TextureHeaderPC(Path),
-                "X360" => new TextureHeaderX360(Path),
-                "PS3" => new TextureHeaderPS3(Path),
+                "BPR" => new TextureBPR(Path),
+                "TUB" => new TexturePC(Path),
+                "X360" => new TextureX360(Path),
+                "PS3" => new TexturePS3(Path),
                 _ => throw new InvalidPlatformException(),
             };
 
@@ -45,7 +45,7 @@ internal class AutotestCommand : ICommand
          */
             
         // TUB Texture data test case
-        TextureHeaderPC textureHeaderPC = new TextureHeaderPC
+        TexturePC TexturePC = new TexturePC
         {
             AssetName = "autotest_header_PC",
             ResourceID = GetResourceIDFromName("autotest_header_PC", Endian.LE),
@@ -56,10 +56,10 @@ internal class AutotestCommand : ICommand
             GRTexture = true
         };
 
-        TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
+        TestHeaderRW("autotest_header_PC.dat", TexturePC);
 
         // BPR Texture data test case
-        TextureHeaderBPR textureHeaderBPR = new TextureHeaderBPR
+        TextureBPR TextureBPR = new TextureBPR
         {
             AssetName = "autotest_header_BPR",
             ResourceID = GetResourceIDFromName("autotest_header_BPR", Endian.LE),
@@ -73,17 +73,17 @@ internal class AutotestCommand : ICommand
         // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
 
         // Write 32 bit test BPR header
-        TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
+        TestHeaderRW("autotest_header_BPR.dat", TextureBPR);
 
-        textureHeaderBPR.SetResourceArch(Arch.x64);
-        textureHeaderBPR.AssetName = "autotest_header_BPRx64";
-        textureHeaderBPR.ResourceID = GetResourceIDFromName(textureHeaderBPR.AssetName, Endian.LE);
+        TextureBPR.SetResourceArch(Arch.x64);
+        TextureBPR.AssetName = "autotest_header_BPRx64";
+        TextureBPR.ResourceID = GetResourceIDFromName(TextureBPR.AssetName, Endian.LE);
 
         // Write 64 bit test BPR header
-        TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
+        TestHeaderRW("autotest_header_BPRx64.dat", TextureBPR);
 
         // PS3 Texture data test case
-        TextureHeaderPS3 textureHeaderPS3 = new TextureHeaderPS3
+        TexturePS3 TexturePS3 = new TexturePS3
         {
             AssetName = "autotest_header_PS3",
             ResourceID = GetResourceIDFromName("autotest_header_PS3", Endian.BE),
@@ -93,11 +93,11 @@ internal class AutotestCommand : ICommand
             MipmapLevels = 11,
             GRTexture = true
         };
-        textureHeaderPS3.PushAll();
-        TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
+        TexturePS3.PushAll();
+        TestHeaderRW("autotest_header_PS3.dat", TexturePS3);
 
         // X360 Texture data test case
-        TextureHeaderX360 textureHeaderX360 = new TextureHeaderX360
+        TextureX360 TextureX360 = new TextureX360
         {
             AssetName = "autotest_header_X360",
             ResourceID = GetResourceIDFromName("autotest_header_X360", Endian.BE),
@@ -115,8 +115,8 @@ internal class AutotestCommand : ICommand
             MipmapLevels = 11,
             GRTexture = true
         };
-        textureHeaderX360.PushAll();
-        TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
+        TextureX360.PushAll();
+        TestHeaderRW("autotest_header_X360.dat", TextureX360);
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
@@ -129,7 +129,7 @@ internal class AutotestCommand : ICommand
         Path = args.TryGetValue("path", out object? path) ? path as string : "";
     }
 
-    public void TestHeaderRW(string name, TextureHeaderBase header, bool skipImport = false) 
+    public void TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
     {
         using (FileStream fs = new FileStream(name, FileMode.Create))
         {
@@ -155,11 +155,11 @@ internal class AutotestCommand : ICommand
             if (skipImport)
                 return;
             
-            TextureHeaderBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
+            TextureBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
                                 provider: null,
                                 objectType: header.GetType(),
                                 argTypes: [typeof(string)],
-                                args: new object[] { fs.Name }) as TextureHeaderBase;
+                                args: new object[] { fs.Name }) as TextureBase;
 
             try
             {

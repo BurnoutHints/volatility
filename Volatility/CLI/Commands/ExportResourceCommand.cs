@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.Serialization;
 
 using Volatility.Resources;
@@ -102,28 +103,34 @@ internal partial class ExportResourceCommand : ICommand
 
 				Directory.CreateDirectory(Path.GetDirectoryName(OutputPath));
 
-                using (FileStream fs = new(OutputPath, FileMode.Create))
-                {
-					Endian endian = resource.GetResourceEndian() != Endian.Agnostic 
-						? resource.GetResourceEndian() 
-						: EndianMapping.GetDefaultEndian(platform);
+				using (FileStream fs = new(OutputPath, FileMode.Create))
+				{
+				    Endian endian = resource.GetResourceEndian() != Endian.Agnostic 
+				                        ? resource.GetResourceEndian() 
+				                        : EndianMapping.GetDefaultEndian(platform);
 
-					using (EndianAwareBinaryWriter writer = new(fs, endian))
-					{
-                        // The way this is handled is pending a pipeline rewrite
-                        if (resourceType == ResourceType.Texture)
-                        {
-							(resource as TextureHeaderBase).PushAll();
-                            // TODO: Export bitmap data
-                        }
-                        resource.WriteToStream(writer);
-						if (resourceType == ResourceType.Splicer)
-						{
-							(resource as Splicer).SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
-                        }
+				    using (EndianAwareBinaryWriter primaryWriter = new(fs, endian))
+				    {
+				        if (resource is TextureBase texture)
+				        {
+				            texture.PushAll();
 
-					}
-                }
+				            string secondaryResourcePath = resource.GetSecondaryResourcePath(OutputPath);
+
+				            using (FileStream secondaryFs = new FileStream(secondaryResourcePath, FileMode.Create))
+				            using (EndianAwareBinaryWriter secondaryWriter = new EndianAwareBinaryWriter(secondaryFs, endian))
+				            {
+				                secondaryWriter.Write(texture.BitmapBuffer);
+				            }
+				        }
+				        if (resourceType == ResourceType.Splicer)
+				        {
+				            (resource as Splicer).SpliceSamples(primaryWriter, Path.GetDirectoryName(sourceFile));
+				        }
+						
+						resource.WriteToStream(primaryWriter);
+				    }
+				}
 
                 Console.WriteLine($"Exported {Path.GetFileName(ResourcePath)} as {Path.GetFullPath(OutputPath)}.");
 			}));

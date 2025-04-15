@@ -8,7 +8,7 @@
 // Learn More:
 // https://burnout.wiki/wiki/Texture
 
-public abstract class TextureHeaderBase : Resource
+public abstract class TextureBase : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.Texture;
 
@@ -66,6 +66,18 @@ public abstract class TextureHeaderBase : Resource
             PushInternalDimension();
         }
     }
+
+    // Raw texture data.
+    private byte[] _bitmapBuffer;
+
+    // "BinaryData" gets picked up by serializer/deserializer
+    [BinaryData]
+    public byte[] BitmapBuffer 
+    {
+        get => _bitmapBuffer;
+        set => _bitmapBuffer = value;
+    }
+
     public abstract void PushInternalDimension();
     public abstract void PullInternalDimension();
     public abstract void PushInternalFormat();
@@ -104,9 +116,9 @@ public abstract class TextureHeaderBase : Resource
         PushInternalFlags();
     }
 
-    public TextureHeaderBase() : base() => Depth = 1;
+    public TextureBase() : base() => Depth = 1;
 
-    public TextureHeaderBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TextureBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 // BPR formatted but converted for each platform
 public enum DIMENSION : int
