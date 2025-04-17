@@ -6,13 +6,13 @@ namespace Volatility.Utilities;
 
 public static class PS3TextureUtilities
 {
-    public static void PS3GTFToDDS(TextureHeaderPS3 ps3Header, string sourceBitmapPath, string destinationBitmapPath, bool verbose = false)
+    public static void PS3GTFToDDS(TexturePS3 ps3Texture, string sourceBitmapPath, string destinationBitmapPath, bool verbose = false)
     {
         byte[] header = new byte[0xE];
         using MemoryStream ps3Stream = new(header);
-        using EndianAwareBinaryWriter writer = new(ps3Stream, ps3Header.GetResourceEndian());
+        using EndianAwareBinaryWriter writer = new(ps3Stream, ps3Texture.GetResourceEndian());
                 
-        ps3Header.WriteToStream(writer);
+        ps3Texture.WriteToStream(writer);
         ps3Stream.ReadExactly(header, 0, 0xE);
 
         writer.Close();

@@ -4,7 +4,7 @@ using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
-public class TextureHeaderPS3 : TextureHeaderBase
+public class TexturePS3 : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.BE; 
     public override Platform GetResourcePlatform() => Platform.PS3;
@@ -20,9 +20,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
 
-    public TextureHeaderPS3() : base() { }
+    public TexturePS3() : base() { }
 
-    public TextureHeaderPS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TexturePS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {

@@ -4,7 +4,7 @@ namespace Volatility.Utilities;
 
 internal class X360TextureUtilities
 {
-    public static void ConvertMipmapsToX360(TextureHeaderBase header, GPUTEXTUREFORMAT format, string inputPath, string outputPath)
+    public static void ConvertMipmapsToX360(TextureBase header, GPUTEXTUREFORMAT format, string inputPath, string outputPath)
     {
         using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read);
         using var reader = new BinaryReader(stream);
@@ -37,7 +37,7 @@ internal class X360TextureUtilities
         }
     }
 
-    private static byte[][] AlignAndPackMipmaps(byte[][] mipmaps, TextureHeaderBase textureInfo, GPUTEXTUREFORMAT format)
+    private static byte[][] AlignAndPackMipmaps(byte[][] mipmaps, TextureBase textureInfo, GPUTEXTUREFORMAT format)
     {
         const int alignment = 4096;
         var alignedMipmaps = new byte[mipmaps.Length][];
@@ -124,19 +124,19 @@ internal class X360TextureUtilities
         };
     }
 
-    public static void WriteUntiled360TextureFile(TextureHeaderX360 xboxHeader, string textureBitmapPath, string outPath = "")
+    public static void WriteUntiled360TextureFile(TextureX360 xboxTexture, string textureBitmapPath, string outPath = "")
     {
         if (string.IsNullOrEmpty(outPath))
         {
             outPath = textureBitmapPath;
         }
-        if (xboxHeader.Format.Tiled)
+        if (xboxTexture.Format.Tiled)
         {
             FileStream stream = new FileStream(textureBitmapPath, FileMode.Open, FileAccess.Read);
             byte[] bitmapData = new byte[stream.Length];
             
             stream.Read(bitmapData);
-            bitmapData = ConvertToLinearTexture(bitmapData, (int)xboxHeader.Format.Size.Width, (int)xboxHeader.Format.Size.Height, xboxHeader.Format.DataFormat);
+            bitmapData = ConvertToLinearTexture(bitmapData, (int)xboxTexture.Format.Size.Width, (int)xboxTexture.Format.Size.Height, xboxTexture.Format.DataFormat);
             stream.Close();
             
             stream = new FileStream(outPath, FileMode.OpenOrCreate, FileAccess.Write);
