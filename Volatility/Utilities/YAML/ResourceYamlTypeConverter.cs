@@ -1,15 +1,10 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 
+using Volatility.Resources;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
-
-using Volatility.Resources;
 
 namespace Volatility.Utilities;
 
@@ -39,12 +34,12 @@ public class ResourceYamlTypeConverter : IYamlTypeConverter
         var processedMembers = new HashSet<string>();
 
         Dictionary<string, object> root = new Dictionary<string, object>();
-        Dictionary<string, object> currentDict = null;
+        Dictionary<string, object>? currentDict = null;
 
         for (int i = 0; i < hierarchyTypes.Count; i++)
         {
             Type t = hierarchyTypes[i];
-            var typeProperties = new Dictionary<string, object>();
+            var typeProperties = new Dictionary<string, object?>();
 
             var members = t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Cast<MemberInfo>()
@@ -54,7 +49,7 @@ public class ResourceYamlTypeConverter : IYamlTypeConverter
             {
                 if (!processedMembers.Contains(member.Name))
                 {
-                    object memberValue = null;
+                    object? memberValue = null;
                     if (member.MemberType == MemberTypes.Property)
                     {
                         memberValue = ((PropertyInfo)member).GetValue(value);
@@ -171,7 +166,8 @@ public class ResourceYamlTypeConverter : IYamlTypeConverter
         {
             return genericDict.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
         }
-        else if (obj is Dictionary<string, object> dict)
+
+        if (obj is Dictionary<string, object> dict)
         {
             return dict;
         }

@@ -109,11 +109,13 @@ public abstract class Resource
         {
             return Unpacker.Bnd2Manager;
         }
-        else if (filename.EndsWith("_primary.dat")) // YAP
+        
+        if (filename.EndsWith("_primary.dat")) // YAP
         {
             return Unpacker.YAP;
         }
-        else if (filename.EndsWith(".dat")) // DGI
+        
+        if (filename.EndsWith(".dat")) // DGI
         {
             return Unpacker.DGI;
         }

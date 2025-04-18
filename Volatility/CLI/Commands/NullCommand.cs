@@ -11,6 +11,4 @@ internal class NullCommand : ICommand
     public void SetArgs(Dictionary<string, object> args) { }
 
     public void ShowUsage() { }
-
-    public NullCommand() { }
 }

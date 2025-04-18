@@ -1,9 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 using YamlDotNet.Serialization;
 
 namespace Volatility.Utilities;
@@ -57,7 +51,8 @@ public static class ResourceYamlDeserializer
         {
             return genericDict.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
         }
-        else if (obj is Dictionary<string, object> dict)
+
+        if (obj is Dictionary<string, object> dict)
         {
             return dict;
         }

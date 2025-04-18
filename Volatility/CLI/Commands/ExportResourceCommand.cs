@@ -1,11 +1,10 @@
 using System.Runtime.Serialization;
-
 using Volatility.Resources;
 using Volatility.Utilities;
 
 namespace Volatility.CLI.Commands;
 
-internal partial class ExportResourceCommand : ICommand
+internal class ExportResourceCommand : ICommand
 {
 	public static string CommandToken => "ExportResource";
 	public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
@@ -139,6 +138,4 @@ internal partial class ExportResourceCommand : ICommand
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
-
-	public ExportResourceCommand() { }
 }

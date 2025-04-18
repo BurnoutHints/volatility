@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 
 using Volatility.Resources;
@@ -48,7 +49,7 @@ internal class AutotestCommand : ICommand
         TexturePC texturePC = new TexturePC
         {
             AssetName = "autotest_header_PC",
-            ResourceID = GetResourceIDFromName("autotest_header_PC", Endian.LE),
+            ResourceID = GetResourceIDFromName("autotest_header_PC"),
             Format = D3DFORMAT.D3DFMT_DXT1,
             Width = 1024,
             Height = 512,
@@ -62,7 +63,7 @@ internal class AutotestCommand : ICommand
         TextureBPR textureBPR = new TextureBPR
         {
             AssetName = "autotest_header_BPR",
-            ResourceID = GetResourceIDFromName("autotest_header_BPR", Endian.LE),
+            ResourceID = GetResourceIDFromName("autotest_header_BPR"),
             Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
             Width = 1024,
             Height = 512,
@@ -77,7 +78,7 @@ internal class AutotestCommand : ICommand
 
         textureBPR.SetResourceArch(Arch.x64);
         textureBPR.AssetName = "autotest_header_BPRx64";
-        textureBPR.ResourceID = GetResourceIDFromName(textureBPR.AssetName, Endian.LE);
+        textureBPR.ResourceID = GetResourceIDFromName(textureBPR.AssetName);
 
         // Write 64 bit test BPR header
         TestHeaderRW("autotest_header_BPRx64.dat", textureBPR);
@@ -155,7 +156,7 @@ internal class AutotestCommand : ICommand
             if (skipImport)
                 return;
             
-            TextureBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
+            TextureBase? newHeader = TypeDescriptor.CreateInstance(
                                 provider: null,
                                 objectType: header.GetType(),
                                 argTypes: [typeof(string)],
@@ -233,6 +234,4 @@ internal class AutotestCommand : ICommand
         Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
         Console.ResetColor();
     }
-
-    public AutotestCommand() { }
 }

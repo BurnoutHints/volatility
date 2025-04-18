@@ -49,8 +49,6 @@ internal interface ICommand
                         || name.Contains("_body"))
                         files.RemoveAt(i);
                     break;
-                default:
-                    break;
             }
         }
         return files.ToArray();

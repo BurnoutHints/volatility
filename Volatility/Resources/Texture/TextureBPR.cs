@@ -1,4 +1,6 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using System.Text;
+
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
@@ -11,7 +13,7 @@ public class TextureBPR : TextureBase
     public DXGI_FORMAT Format;                                  // Format
     public byte[] Flags = new byte[4];                          // Unknown flags, 0
     public ushort ArraySize = 1;                                // Generally 1, likely for stacked textures
-    public byte MostDetailedMip = 0;                            // The highest detailed mip to use
+    public byte MostDetailedMip;                                // The highest detailed mip to use
     public uint ArrayIndex = 377024;                            // Doc says < 32 but it's always 377024 (C0 C0 05 00)?
     public uint ContentsSize;                                   // PS4/Switch specific field, TODO: Calculate this
 
@@ -21,7 +23,7 @@ public class TextureBPR : TextureBase
         set => _Dimension = value;
     }
 
-    public TextureBPR() : base() { }
+    public TextureBPR() { }
 
     public TextureBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
@@ -57,7 +59,7 @@ public class TextureBPR : TextureBase
 
         if (GetResourceArch() == Arch.x64)
         {
-            writer.Write(System.Text.Encoding.ASCII.GetBytes("Volatili"));
+            writer.Write("Volatili"u8.ToArray());
         }
     }
 
@@ -98,7 +100,7 @@ public class TextureBPR : TextureBase
     }
 }
 
-public enum D3D11_USAGE : int   // 32 bit value
+public enum D3D11_USAGE // 32 bit value
 {
     D3D11_USAGE_DEFAULT = 0,
     D3D11_USAGE_IMMUTABLE = 1,
@@ -106,7 +108,7 @@ public enum D3D11_USAGE : int   // 32 bit value
     D3D11_USAGE_STAGING = 3
 }
 
-public enum DXGI_FORMAT : int   // 32 bit value
+public enum DXGI_FORMAT // 32 bit value
 {
     DXGI_FORMAT_UNKNOWN = 0,
     DXGI_FORMAT_R32G32B32A32_TYPELESS = 1,
@@ -229,4 +231,4 @@ public enum DXGI_FORMAT : int   // 32 bit value
     DXGI_FORMAT_V408 = 132,
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE = 133,
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 134
-};
+}

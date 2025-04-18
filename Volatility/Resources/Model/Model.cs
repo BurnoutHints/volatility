@@ -127,7 +127,7 @@ public class Model : Resource
         }
     }
 
-    public Model() : base() { }
+    public Model() { }
 
     public Model(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 

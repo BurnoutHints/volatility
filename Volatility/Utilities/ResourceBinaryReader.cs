@@ -1,5 +1,3 @@
-using Volatility.Utilities;
-
 public class ResourceBinaryReader : EndianAwareBinaryReader
 {
     public ResourceBinaryReader(Stream input, Endian endianness) : base(input, endianness) { }
@@ -25,7 +23,7 @@ public class ResourceBinaryReader : EndianAwareBinaryReader
 
     public ColorRGB ReadColorRGB()
     {
-        return (ColorRGB)ReadVector3();
+        return ReadVector3();
     }
 
     public Vector4 ReadVector4()
@@ -35,6 +33,6 @@ public class ResourceBinaryReader : EndianAwareBinaryReader
 
     public ColorRGBA ReadColorRGBA()
     {
-        return (ColorRGBA)ReadVector4();
+        return ReadVector4();
     }
 }

@@ -57,7 +57,7 @@ public class Splicer : BinaryResource
             // NameHash (null)
             _ = reader.ReadInt32();
             
-            Splices[i] = new SPLICE_Data()
+            Splices[i] = new SPLICE_Data
             {
                 SpliceIndex = reader.ReadUInt16(),
                 ESpliceType = reader.ReadSByte(),
@@ -82,7 +82,7 @@ public class Splicer : BinaryResource
         SampleRefs = new SPLICE_SampleRef[numSampleRefs];
         for (int i = 0; i < numSampleRefs; i++)
         {
-            SampleRefs[i] = new SPLICE_SampleRef()
+            SampleRefs[i] = new SPLICE_SampleRef
             {
                 SampleIndex = reader.ReadUInt16(),
                 ESpliceType = reader.ReadSByte(),
@@ -131,13 +131,13 @@ public class Splicer : BinaryResource
 
         writer.BaseStream.Position = DataOffset;
 
-        writer.Write((int)1); // version
+        writer.Write(1); // version
 
         int sampleRefTOCPosition = (int)writer.BaseStream.Position; // Saving this for later
 
-        writer.Write((int)0); // pSampleRefTOC
+        writer.Write(0); // pSampleRefTOC
 
-        writer.Write((int)Splices.Length); // NumSplices
+        writer.Write(Splices.Length); // NumSplices
 
         // Write Splices
         for (int i = 0; i < Splices.Length; i++)
@@ -228,7 +228,7 @@ public class Splicer : BinaryResource
         return _samples;
     }
 
-    public Splicer() : base() { }
+    public Splicer() { }
 
     public Splicer(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
     

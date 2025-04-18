@@ -1,4 +1,4 @@
-﻿[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+﻿[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class EditorTooltipAttribute : Attribute
 {
     public string Tooltip { get; }

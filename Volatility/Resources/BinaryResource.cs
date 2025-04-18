@@ -20,7 +20,7 @@ public class BinaryResource : Resource
         DataOffset = dataOffset;
     }
 
-    public BinaryResource() : base() { }
+    public BinaryResource() { }
     
     public BinaryResource(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 

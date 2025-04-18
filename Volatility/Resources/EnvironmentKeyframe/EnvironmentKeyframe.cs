@@ -18,7 +18,7 @@ public class EnvironmentKeyframe : Resource
     public LightingData LightingSettings;
     public CloudsData CloudSettings;
 
-    public EnvironmentKeyframe() : base() { }
+    public EnvironmentKeyframe() { }
 
     public EnvironmentKeyframe(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { } 
 

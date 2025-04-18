@@ -20,7 +20,7 @@ public class TexturePS3 : TextureBase
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
 
-    public TexturePS3() : base() { }
+    public TexturePS3() { }
 
     public TexturePS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
@@ -73,8 +73,6 @@ public class TexturePS3 : TextureBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
                 CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
-                break;
-            default:
                 break;
         }
     }
@@ -177,7 +175,7 @@ public enum CELL_GCM_LOCATION : byte
     CELL_GCM_LOCATION_MAIN = 2      // Main memory 
 }
 
-public enum StoreType : int
+public enum StoreType
 {
     TYPE_NA = -1,
     TYPE_1D = 1,

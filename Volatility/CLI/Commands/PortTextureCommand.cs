@@ -1,4 +1,6 @@
-﻿using Volatility.Resources;
+﻿using System.Collections;
+
+using Volatility.Resources;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;
@@ -37,17 +39,24 @@ internal class PortTextureCommand : ICommand
         {
             tasks.Add(Task.Run(async () =>
             {
-                TextureBase? SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
-                TextureBase? DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
+                SourceFormat = x64Hack(SourceFormat, out bool sourceX64);
+                DestinationFormat = x64Hack(DestinationFormat, out bool destinationX64);
+                
+                if (!Enum.TryParse(SourceFormat,  true, out Platform src) ||
+                    !Enum.TryParse(DestinationFormat, true, out Platform dst))
+                {
+                    throw new NotImplementedException($"Unable to determine resource platform(s) from specified parameters!");
+                }
+                
+                TextureBase? SourceTexture = 
+                    ResourceFactory.CreateResource(ResourceType.Texture, src, SourcePath, sourceX64) as TextureBase;
+                TextureBase? DestinationTexture = 
+                    ResourceFactory.CreateResource(ResourceType.Texture, dst, DestinationPath, destinationX64) as TextureBase;
 
                 if (SourceTexture == null || DestinationTexture == null)
                 {
                     throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
                 }
-
-                // TODO: Cleanup!!
-                SourceFormat = BPRx64Hack(SourceTexture, SourceFormat);
-                DestinationFormat = BPRx64Hack(DestinationTexture, DestinationFormat);
 
                 SourceTexture.PullAll();
 
@@ -352,30 +361,13 @@ internal class PortTextureCommand : ICommand
         Verbose = args.TryGetValue("verbose", out var verbose) && (bool)verbose;
         UseGTF = args.TryGetValue("usegtf", out var usegtf) && (bool)usegtf;
     }
-
-    public string BPRx64Hack(TextureBase header, string format)
+    
+    public string x64Hack(string format, out bool isX64)
     {
-        if (header.GetResourcePlatform() == Platform.BPR && format.EndsWith("X64"))
-        {
-            header.SetResourceArch(Arch.x64);
-            return "BPR";
-        }
+        isX64 = format.EndsWith("x64", StringComparison.OrdinalIgnoreCase);
+        if (isX64)
+            return format[..^3];
         return format;
-    }
-
-    public static TextureBase? ConstructHeader(string Path, string Format, bool Verbose = true) 
-    {
-        // TODO: set x64 bool when constructing x64
-        if (Verbose) Console.WriteLine($"Constructing {Format} texture property data...");
-        return Format switch
-        {
-            "BPR" => new TextureBPR(Path),
-            "BPRX64" => new TextureBPR(Path),
-            "TUB" => new TexturePC(Path),
-            "X360" => new TextureX360(Path),
-            "PS3" => new TexturePS3(Path),
-            _ => throw new InvalidPlatformException(),
-        };
     }
 
     public static void CopyBaseClassProperties(TextureBase source, TextureBase destination)
@@ -540,7 +532,5 @@ internal class PortTextureCommand : ICommand
         { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5 },
         // TODO: Add more mappings
     };
-
-    public PortTextureCommand() { }
 }
 

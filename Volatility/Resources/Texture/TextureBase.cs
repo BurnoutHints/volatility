@@ -24,7 +24,7 @@ public abstract class TextureBase : Resource
     [EditorCategory("Texture"), EditorLabel("Amount of Mipmaps"), EditorTooltip("The amount of mipmaps present in the texture. Note that there will always be at least one (the base image).")]
     public byte MipmapLevels { get; set; }
 
-    protected bool _GRTexture = false;
+    protected bool _GRTexture;
     public bool GRTexture       // Vehicle & Wheel GRs 
     {
         get => _GRTexture;
@@ -34,7 +34,7 @@ public abstract class TextureBase : Resource
             PushInternalFlags();
         }
     }
-    protected bool _WorldTexture = false;
+    protected bool _WorldTexture;
     public bool WorldTexture    // GlobalBackdrops & WorldTex
     {
         get => _WorldTexture;
@@ -44,7 +44,7 @@ public abstract class TextureBase : Resource
             PushInternalFlags();
         }
     }
-    protected bool _PropTexture = false;
+    protected bool _PropTexture;
     public bool PropTexture     // GlobalProps
     {
         get => _PropTexture;
@@ -104,12 +104,12 @@ public abstract class TextureBase : Resource
         PushInternalFlags();
     }
 
-    public TextureBase() : base() => Depth = 1;
+    public TextureBase() => Depth = 1;
 
     public TextureBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 // BPR formatted but converted for each platform
-public enum DIMENSION : int
+public enum DIMENSION
 {
     [EditorLabel("1D")]
     DIMENSION_1D = 6,

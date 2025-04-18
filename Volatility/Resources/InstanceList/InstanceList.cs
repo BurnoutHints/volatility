@@ -21,7 +21,7 @@ public class InstanceList : Resource
 
     //uint ArraySize, VersionNumber;
 
-    public InstanceList() : base() { }
+    public InstanceList() { }
 
     public InstanceList(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 

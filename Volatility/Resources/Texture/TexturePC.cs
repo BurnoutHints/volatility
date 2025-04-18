@@ -30,7 +30,7 @@ public class TexturePC : TextureBase
     public TEXTURETYPE TextureType;             // Dimension in BPR
     public byte Flags;                          // Flags
 
-    public TexturePC() : base() { }
+    public TexturePC() { }
 
     public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
@@ -150,7 +150,7 @@ public class TexturePC : TextureBase
     }
 }
 
-public enum D3DFORMAT : int
+public enum D3DFORMAT
 {
     D3DFMT_UNKNOWN = 0,
     D3DFMT_R8G8B8 = 20,

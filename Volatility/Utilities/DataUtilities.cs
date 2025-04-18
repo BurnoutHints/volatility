@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Globalization;
 using System.Text;
 
 namespace Volatility.Utilities;
@@ -95,14 +96,13 @@ public static class DataUtilities
         {
             return min;
         }
-        else if (value > max)
+        
+        if (value > max)
         {
             return max;
         }
-        else
-        {
-            return value;
-        }
+
+        return value;
     }
 
     public static bool TryParseEnum<TEnum>(string input, out TEnum result) where TEnum : struct, Enum
@@ -112,7 +112,7 @@ public static class DataUtilities
         // Hexadecimal input
         if (input.StartsWith("0x"))
         {
-            if (int.TryParse(input.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out int numericValue))
+            if (int.TryParse(input.Substring(2), NumberStyles.HexNumber, null, out int numericValue))
             {
                 return EnumIsDefined(numericValue, out result);
             }

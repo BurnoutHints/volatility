@@ -70,9 +70,7 @@ public static class ResourceFactory
                 output.SetResourceArch(Arch.x64);
             return output;
         }
-        else
-        {
-            throw new InvalidPlatformException($"The '{resourceType}' type is not supported for the '{platform}' platform.");
-        }
+
+        throw new InvalidPlatformException($"The '{resourceType}' type is not supported for the '{platform}' platform.");
     }
 }

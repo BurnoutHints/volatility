@@ -5,7 +5,7 @@ namespace Volatility.Utilities;
 public class BitReader : IDisposable
 {
     private readonly byte[] buffer;
-    private int currentBit = 0;
+    private int currentBit;
 
     public BitReader(byte[] data) => buffer = data;
 

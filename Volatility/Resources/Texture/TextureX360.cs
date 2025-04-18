@@ -11,8 +11,20 @@ public class TextureX360 : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.BE;
     public override Platform GetResourcePlatform() => Platform.X360;
+    
+    // 3‑bit – Unused/reserved for derived classes
+    // 6‑bit – Debug async‑lock pending count
+    // 1‑bit – Update timestamp on command‑buffer run
+    // 1‑bit – CPU‑cached memory enabled
+    // 1‑bit – Resource created by D3D
+    // 1‑bit – Debug async‑lock locked
+    // 1‑bit – Debug async‑lock active
+    // 1‑bit – Debug command‑buffer used
+    // 5‑bit – Debug internal ref count
+    // 4‑bit – Lock count
+    // 4‑bit – Lock ID
+    // 4‑bit – Resource type (D3DRESOURCETYPE)
 
-    // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
     
     [EditorHidden]
@@ -22,23 +34,23 @@ public class TextureX360 : TextureBase
     public uint ReferenceCount = 1;
 
     [EditorCategory("Texture/Xbox 360"), EditorLabel("Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
-    public uint Fence = 0;
+    public uint Fence;
 
     [EditorCategory("Texture/Xbox 360"), EditorLabel("Read Fence"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
-    public uint ReadFence = 0;
+    public uint ReadFence;
 
     [EditorCategory("Texture/Xbox 360"), EditorLabel("Identifier"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
-    public uint Identifier = 0;
+    public uint Identifier;
 
     [EditorCategory("Texture/Xbox 360"), EditorLabel("Base Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
-    public uint BaseFlush = 65535;
+    public uint BaseFlush = 0xFFFF;
 
     [EditorCategory("Texture/Xbox 360"), EditorLabel("Mip Flush"), EditorTooltip("Not much is known about this value. Editing is not advised.")]
-    public uint MipFlush = 65535;
+    public uint MipFlush = 0xFFFF;
 
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
-    public TextureX360() : base() { }
+    public TextureX360() { }
 
     public TextureX360(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 

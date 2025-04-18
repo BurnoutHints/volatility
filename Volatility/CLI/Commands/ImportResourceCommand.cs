@@ -1,11 +1,10 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
-
 using Volatility.Resources;
 using Volatility.Utilities;
+
+using YamlDotNet.Serialization;
 
 namespace Volatility.CLI.Commands;
 
@@ -151,7 +150,7 @@ internal partial class ImportResourceCommand : ICommand
                 // Splicer-specific logic. Will need to refactor this pipeline
                 if (resourceType == ResourceType.Splicer)
                 {
-                    string sxPath = Path.Combine("tools", $"sx.exe");
+                    string sxPath = Path.Combine("tools", "sx.exe");
 					bool sxExists = File.Exists(sxPath);
 
                     Splicer? splicer = resource as Splicer;
@@ -228,5 +227,4 @@ internal partial class ImportResourceCommand : ICommand
 		Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
 		Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
 	}
-    public ImportResourceCommand() { }
 }

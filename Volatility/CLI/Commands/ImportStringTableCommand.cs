@@ -75,7 +75,7 @@ internal class ImportStringTableCommand : ICommand
         GC.WaitForPendingFinalizers();
         GC.Collect();
 
-        Console.WriteLine($"Finished importing all ResourceStringTable data into the ResourceDB.");
+        Console.WriteLine("Finished importing all ResourceStringTable data into the ResourceDB.");
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -138,6 +138,4 @@ internal class ImportStringTableCommand : ICommand
 
         return entriesByType;
     }
-
-    public ImportStringTableCommand() { }
 }
