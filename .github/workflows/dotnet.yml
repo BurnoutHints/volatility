@@ -9,6 +9,8 @@ on:
 jobs:
   create_release:
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Create release
         id: create_release
@@ -114,5 +116,5 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\":\" Release v${{ github.run_number }} is now out. See https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}\"}" \
+               -d "{\"content\":\"New release created: v${{ github.run_number }}. See https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}\"}" \
                "${{ secrets.WEBHOOK_LINK }}"
