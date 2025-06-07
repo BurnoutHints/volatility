@@ -1,9 +1,11 @@
 ﻿using System.Text;
 using System.Xml.Linq;
 
-using Newtonsoft.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 using static Volatility.Utilities.ResourceIDUtilities;
+using static Volatility.Utilities.DictUtilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -19,6 +21,12 @@ internal class ImportStringTableCommand : ICommand
     public bool Recursive { get; set; }
     public bool Verbose { get; set; }
 
+    private class ResourceEntry
+    {
+        public string Name { get; set; } = "";
+        public List<string> Appearances { get; set; } = new();
+    }
+
     public async Task Execute()
     {
         if (string.IsNullOrEmpty(ImportPath))
@@ -28,55 +36,63 @@ internal class ImportStringTableCommand : ICommand
         }
 
         var filePaths = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Any, Recursive);
-        var allEntries = new Dictionary<string, Dictionary<string, string>>();
-
         if (filePaths.Length == 0)
         {
             Console.WriteLine("Error: No files or folders found within the specified path!");
             return;
         }
 
-        List<Task<Dictionary<string, Dictionary<string, string>>>> tasks = new();
+        Console.WriteLine($"Importing data from ResourceStringTables into the ResourceDB... this may take a while!");
 
-        foreach (string filePath in filePaths)
-        {
-            tasks.Add(ProcessFileAsync(filePath));
-        }
+        string directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "ResourceDB");
+        Directory.CreateDirectory(directoryPath);
+        string yamlFile = Path.Combine(directoryPath, "ResourceDB.yaml");
 
-        var results = await Task.WhenAll(tasks);
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
 
+        var allEntries = File.Exists(yamlFile)
+            ? deserializer.Deserialize<Dictionary<string, Dictionary<string, ResourceEntry>>>(await File.ReadAllTextAsync(yamlFile))
+              ?? new Dictionary<string, Dictionary<string, ResourceEntry>>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, Dictionary<string, ResourceEntry>>(StringComparer.OrdinalIgnoreCase);
+
+        var results = await Task.WhenAll(filePaths.Select(ProcessFileAsync));
         foreach (var fileResult in results)
         {
-            foreach (var typeEntry in fileResult)
+            foreach (var typePair in fileResult)
             {
-                if (!allEntries.ContainsKey(typeEntry.Key))
+                var typeDict = allEntries.GetOrCreate(typePair.Key, () => new Dictionary<string, ResourceEntry>());
+                foreach (var resPair in typePair.Value)
                 {
-                    allEntries[typeEntry.Key] = new Dictionary<string, string>();
-                }
-
-                foreach (var resource in typeEntry.Value)
-                {
-                    allEntries[typeEntry.Key][resource.Key] = resource.Value; // Assumes overwrite logic or add logic
+                    if (!typeDict.TryGetValue(resPair.Key, out var existing))
+                    {
+                        typeDict[resPair.Key] = resPair.Value;
+                    }
+                    else
+                    {
+                        if (Overwrite)
+                            existing.Name = resPair.Value.Name;
+                        foreach (var fn in resPair.Value.Appearances)
+                            if (!existing.Appearances.Contains(fn))
+                                existing.Appearances.Add(fn);
+                    }
                 }
             }
         }
 
-        string directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "ResourceDB");
-        Directory.CreateDirectory(directoryPath);
+        var serializer = new SerializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
 
-        foreach (var group in allEntries)
-        {
-            string jsonFileName = Path.Combine(directoryPath, $"{group.Key}.json");
-            string json = JsonConvert.SerializeObject(group.Value, Formatting.Indented);
-            await File.WriteAllTextAsync(jsonFileName, json);
-            Console.WriteLine($"Resource string data for {group.Key} written to file.");
-        }
+        string yaml = serializer.Serialize(allEntries);
+        await File.WriteAllTextAsync(yamlFile, yaml, Encoding.UTF8);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
 
-        Console.WriteLine($"Finished importing all ResourceStringTable data into the ResourceDB.");
+        Console.WriteLine($"Finished importing all ResourceDB (v2) data at {yamlFile}.");
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -88,54 +104,45 @@ internal class ImportStringTableCommand : ICommand
         Verbose = args.TryGetValue("verbose", out var ve) && (bool)ve;
     }
 
-    private async Task<Dictionary<string, Dictionary<string, string>>> ProcessFileAsync(string filePath)
+    private async Task<Dictionary<string, Dictionary<string, ResourceEntry>>> ProcessFileAsync(string filePath)
     {
-        Dictionary<string, Dictionary<string, string>> entriesByType = new Dictionary<string, Dictionary<string, string>>();
-        byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
-        string fileContent = Encoding.UTF8.GetString(fileBytes);
-        int startIndex = fileContent.IndexOf("<ResourceStringTable>");
-        int endIndex = fileContent.IndexOf("</ResourceStringTable>") + "</ResourceStringTable>".Length;
+        var entriesByType = new Dictionary<string, Dictionary<string, ResourceEntry>>(StringComparer.OrdinalIgnoreCase);
+        var fileName = Path.GetFileName(filePath)!;
+        var text = Encoding.UTF8.GetString(await File.ReadAllBytesAsync(filePath));
 
-        if (startIndex == -1 || endIndex == -1 || endIndex <= startIndex)
+        int start = text.IndexOf("<ResourceStringTable>");
+        int end = text.IndexOf("</ResourceStringTable>") + "</ResourceStringTable>".Length;
+        if (start < 0 || end <= start)
         {
-            Console.WriteLine($"ResourceStringTable not found in {filePath}, skipping...");
+            if (Verbose) Console.WriteLine($"Skipping (no table): {fileName}");
             return entriesByType;
         }
 
-        string xmlContent = fileContent.Substring(startIndex, endIndex - startIndex);
-
-        if (string.IsNullOrEmpty(xmlContent))
-        {
-            Console.WriteLine($"Found ResourceStringTable {filePath} is malformed, skipping...");
-            return entriesByType;
-        }
-
-        XDocument xmlDoc = XDocument.Parse(xmlContent);
+        XDocument xmlDoc = XDocument.Parse(text[start..end]);
         var entries = xmlDoc.Descendants("Resource")
-                            .Select(x => new
-                            {
-                                Id = Endian == "be" ? FlipResourceIDEndian((string)x.Attribute("id")) : (string)x.Attribute("id"),
-                                Type = (string)x.Attribute("type"),
-                                Name = (string)x.Attribute("name")
-                            }).ToList();
-
-        if (!entries.Any())
-        {
-            Console.WriteLine($"No entries found in ResourceStringTable {filePath}, skipping...");
-            return entriesByType;
-        }
-
-        foreach (var entry in entries)
-        {
-            if (!entriesByType.ContainsKey(entry.Type))
+            .Select(x => new
             {
-                entriesByType[entry.Type] = new Dictionary<string, string>();
-                if (Verbose) Console.WriteLine($"Found {entry.Type} entry in {Path.GetFileName(filePath)} - {entry.Name}");
+                Id = Endian == "be"
+                    ? FlipResourceIDEndian((string)x.Attribute("id")!)
+                    : (string)x.Attribute("id")!,
+                Type = (string)x.Attribute("type")!,
+                Name = (string)x.Attribute("name")!
+            }).ToList();
+
+        foreach (var e in entries)
+        {
+            var dict = entriesByType.GetOrCreate(e.Type, () => new Dictionary<string, ResourceEntry>());
+            if (!dict.TryGetValue(e.Id, out var existing))
+            {
+                dict[e.Id] = new ResourceEntry { Name = e.Name, Appearances = { fileName } };
+                if (Verbose) Console.WriteLine($"Found {e.Type} entry in {Path.GetFileName(filePath)} - {e.Name}");
             }
-
-            if (Overwrite || !entriesByType[entry.Type].ContainsKey(entry.Id))
+            else
             {
-                entriesByType[entry.Type][entry.Id] = entry.Name;
+                if (Overwrite)
+                    existing.Name = e.Name;
+                if (!existing.Appearances.Contains(fileName))
+                    existing.Appearances.Add(fileName);
             }
         }
 
