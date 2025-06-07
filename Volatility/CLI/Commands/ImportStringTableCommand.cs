@@ -11,12 +11,13 @@ internal class ImportStringTableCommand : ICommand
 {
     public static string CommandToken => "ImportStringTable";
     public static string CommandDescription => "Imports entries into the ResourceDB from files containing a ResourceStringTable.";
-    public static string CommandParameters => "[--endian=<le,be>] --path=<file path>";
+    public static string CommandParameters => "[--verbose] [--endian=<le,be>] --path=<file path>";
 
     public string? Endian { get; set; }
     public string? ImportPath { get; set; }
     public bool Overwrite { get; set; }
     public bool Recursive { get; set; }
+    public bool Verbose { get; set; }
 
     public async Task Execute()
     {
@@ -84,6 +85,7 @@ internal class ImportStringTableCommand : ICommand
         ImportPath = args.TryGetValue("path", out object? path) ? path as string : "";
         Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
         Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
+        Verbose = args.TryGetValue("verbose", out var ve) && (bool)ve;
     }
 
     private async Task<Dictionary<string, Dictionary<string, string>>> ProcessFileAsync(string filePath)
@@ -128,6 +130,7 @@ internal class ImportStringTableCommand : ICommand
             if (!entriesByType.ContainsKey(entry.Type))
             {
                 entriesByType[entry.Type] = new Dictionary<string, string>();
+                if (Verbose) Console.WriteLine($"Found {entry.Type} entry in {Path.GetFileName(filePath)} - {entry.Name}");
             }
 
             if (Overwrite || !entriesByType[entry.Type].ContainsKey(entry.Id))
