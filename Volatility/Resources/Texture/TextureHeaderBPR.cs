@@ -9,7 +9,7 @@ public class TextureHeaderBPR : TextureHeaderBase
 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT;         // Usually default, implemented for parity sake
     public DXGI_FORMAT Format;                                          // Format
-    public byte[] Flags = new byte[4];                                  // Unknown flags, 0
+    public BPRTextureFlags Flags;                                       // Somewhat unknown flags, 0 on PC
     public ushort ArraySize = 1;                                        // Generally 1, likely for stacked textures
     
     [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Tile Mode"), EditorTooltip("When placed texture mode is enabled, this specifies the way the texture is tiled.")]
@@ -45,7 +45,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
         writer.Write((uint)0);                  // Unknown0
         writer.Write((uint)Format);
-        writer.Write(Flags);
+        writer.Write((uint)Flags);
         writer.Write(Width);
         writer.Write(Height);
         writer.Write(Depth);
@@ -76,7 +76,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
         Format = (DXGI_FORMAT)reader.ReadInt32();
-        reader.Read(Flags);
+        Flags = (BPRTextureFlags)reader.ReadUInt32();
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();
         Depth = reader.ReadUInt16();
@@ -270,4 +270,21 @@ public enum XG_TILE_MODE : int
     XG_TILE_MODE_LINEAR_GENERAL = 31,
     XG_TILE_MODE_TILED_2D_DEPTH = XG_TILE_MODE_UNC_DEPTH_7,
     XG_TILE_MODE_PC = 0x5C0C0   // PC-specific unknown
+}
+
+[Flags]
+public enum BPRTextureFlags : uint
+{
+    NoInitialPixelData = 0x1,
+    RenderTarget = 0x2,
+    CPUWriteAccess = 0x4,
+    EnableMipGeneration = 0x8,
+    Unknown0x10 = 0x10,
+    Unknown0x20 = 0x20,
+    DepthStencil = 0x40,
+    Unknown0x80 = 0x80,
+    Unknown0x100 = 0x100,
+    PlacedTexture = 0x200,
+    NoDepthCompression = 0x400000,
+    NoColourCompression = 0x800000,
 }
