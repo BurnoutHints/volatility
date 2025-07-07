@@ -9,7 +9,7 @@ internal partial class ExportResourceCommand : ICommand
 {
 	public static string CommandToken => "ExportResource";
 	public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
-	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<file path>";
+	public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path>";
 
 	public string? Format { get; set; }
 	public string? ResourcePath { get; set; }
@@ -84,18 +84,12 @@ internal partial class ExportResourceCommand : ICommand
                     return;
                 }
 
-                string json = File.ReadAllText(sourceFile);
-
-                int startIndex = json.IndexOf('{');
-                if (startIndex != -1)
-                {
-                    json = json.Substring(startIndex);
-                }
+                string yaml = File.ReadAllText(sourceFile);
 
                 Resource resource = ResourceFactory.CreateResource(resourceType, platform, "");
 				try
 				{
-                    resource = (Resource?)ResourceJsonConverter.DeserializeResource(resource.GetType(), json);
+                    resource = (Resource?)ResourceYamlDeserializer.DeserializeResource(resource.GetType(), yaml);
                     if (resource is not Resource)
 					{
                         throw new SerializationException();
@@ -110,7 +104,11 @@ internal partial class ExportResourceCommand : ICommand
 
                 using (FileStream fs = new(OutputPath, FileMode.Create))
                 {
-					using (EndianAwareBinaryWriter writer = new(fs, resource.GetResourceEndian()))
+					Endian endian = resource.GetResourceEndian() != Endian.Agnostic 
+						? resource.GetResourceEndian() 
+						: EndianMapping.GetDefaultEndian(platform);
+
+					using (EndianAwareBinaryWriter writer = new(fs, endian))
 					{
                         // The way this is handled is pending a pipeline rewrite
                         if (resourceType == ResourceType.Texture)

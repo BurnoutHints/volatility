@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -69,17 +69,18 @@ internal partial class ImportResourceCommand : ICommand
 					return;
 				}
 
-				var settings = new JsonSerializerSettings
-				{
-					Converters = new List<JsonConverter>
-					{
-						new ResourceJsonConverter(),
-						new StringEnumConverter()
-					},
-					Formatting = Formatting.Indented
-				};
+				var serializer = new SerializerBuilder()
+    				.DisableAliases()
+    				.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
+    				.WithTypeConverter(new ResourceYamlTypeConverter())
+    				.WithTypeConverter(new StringEnumYamlTypeConverter())
+    				.Build();
 				
 				var serializedString = new string("");
+
+    			bool isX64 = Format.EndsWith("x64", StringComparison.OrdinalIgnoreCase);
+    			if (isX64)
+    			    Format = Format[..^3];
 
                 if (!DataUtilities.TryParseEnum(Format, out Platform platform)) 
 				{
@@ -92,7 +93,7 @@ internal partial class ImportResourceCommand : ICommand
                     return;
                 }
 
-                Resource resource = ResourceFactory.CreateResource(resType, platform, sourceFile);
+                Resource resource = ResourceFactory.CreateResource(resType, platform, sourceFile, isX64);
 
 				var resourceClass = resource.GetType();
 				var resourceType = resource.GetResourceType();
@@ -110,7 +111,7 @@ internal partial class ImportResourceCommand : ICommand
 
 				Directory.CreateDirectory(directoryPath);
 
-				serializedString = JsonConvert.SerializeObject(resource, settings);
+				serializedString = serializer.Serialize(resource);
 				using (StreamWriter streamWriter = new StreamWriter(filePath))
 				{
 					await streamWriter.WriteAsync(serializedString);
