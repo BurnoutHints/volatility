@@ -12,9 +12,6 @@ public class TextureHeaderBPR : TextureHeaderBase
     public byte[] Flags = new byte[4];                                  // Unknown flags, 0
     public ushort ArraySize = 1;                                        // Generally 1, likely for stacked textures
     
-    [EditorCategory("Texture/Remastered")]
-    public byte MostDetailedMip = 0;                            // The highest detailed mip to use
-    
     [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Tile Mode"), EditorTooltip("When placed texture mode is enabled, this specifies the way the texture is tiled.")]
     public XG_TILE_MODE PlacedTileMode = XG_TILE_MODE.XG_TILE_MODE_PC;  // PC uses unknown value 0x0005C0C0, labeled "XG_TILE_MODE_PC" for now
 

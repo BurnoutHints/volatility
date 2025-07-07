@@ -117,7 +117,7 @@ public class TextureHeaderX360 : TextureHeaderBase
         Format.Pitch = CalculatePitchX360(Width, Height);
 
         Format.MaxMipLevel = (byte)(MipmapLevels - 1);
-        Format.MinMipLevel = 0;
+        Format.MinMipLevel = MostDetailedMip;
 
         Format.PackedMips = Format.MaxMipLevel > 0;
 
