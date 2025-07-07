@@ -8,8 +8,14 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override Platform GetResourcePlatform() => Platform.BPR;
 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT;         // Usually default, implemented for parity sake
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Format"), EditorTooltip("The DXGI format of the texture.")]
     public DXGI_FORMAT Format;                                          // Format
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Flags"), EditorTooltip("Flags that are primarily used on console platforms. \"Placed texture\" is unsupported on PC.")]
     public BPRTextureFlags Flags;                                       // Somewhat unknown flags, 0 on PC
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Texture Array Size"), EditorTooltip("When using the stacked texture mode, specifies the amount of texture in the array. Use \"1\" otherwise.")]
     public ushort ArraySize = 1;                                        // Generally 1, likely for stacked textures
     
     [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Tile Mode"), EditorTooltip("When placed texture mode is enabled, this specifies the way the texture is tiled.")]
