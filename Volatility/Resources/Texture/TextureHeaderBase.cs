@@ -24,6 +24,11 @@ public abstract class TextureHeaderBase : Resource
     [EditorCategory("Texture"), EditorLabel("Amount of Mipmaps"), EditorTooltip("The amount of mipmaps present in the texture. Note that there will always be at least one (the base image).")]
     public byte MipmapLevels { get; set; }
 
+    // TODO: Figure out a solution for platforms that don't support most detailed mipmap (TUB PC & PS3).
+    // Trimming to the most detailed mip is a possible solution, but is destructive if the user ever wanted to port the exported texture to another platform.
+    [EditorCategory("Texture"), EditorLabel("Most Detailed Mipmap"), EditorTooltip("The index of the most detailed mipmap. Note that index 0 is the highest resolution (the base image).")]
+    public byte MostDetailedMip { get; set; }
+
     [EditorHidden]
     protected bool _GRTexture = false;
     

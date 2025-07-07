@@ -7,13 +7,22 @@ public class TextureHeaderBPR : TextureHeaderBase
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
 
-    public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT; // Usually default, implemented for parity sake
-    public DXGI_FORMAT Format;                                  // Format
-    public byte[] Flags = new byte[4];                          // Unknown flags, 0
-    public ushort ArraySize = 1;                                // Generally 1, likely for stacked textures
-    public byte MostDetailedMip = 0;                            // The highest detailed mip to use
-    public uint ArrayIndex = 377024;                            // Doc says < 32 but it's always 377024 (C0 C0 05 00)?
-    public uint ContentsSize;                                   // PS4/Switch specific field, TODO: Calculate this
+    public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT;         // Usually default, implemented for parity sake
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Format"), EditorTooltip("The DXGI format of the texture.")]
+    public DXGI_FORMAT Format;                                          // Format
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Flags"), EditorTooltip("Flags that are primarily used on console platforms. \"Placed texture\" is unsupported on PC.")]
+    public BPRTextureFlags Flags;                                       // Somewhat unknown flags, 0 on PC
+
+    [EditorCategory("Texture/Remastered"), EditorLabel("Texture Array Size"), EditorTooltip("When using the stacked texture mode, specifies the amount of texture in the array. Use \"1\" otherwise.")]
+    public ushort ArraySize = 1;                                        // Generally 1, likely for stacked textures
+    
+    [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Tile Mode"), EditorTooltip("When placed texture mode is enabled, this specifies the way the texture is tiled.")]
+    public XG_TILE_MODE PlacedTileMode = XG_TILE_MODE.XG_TILE_MODE_PC;  // PC uses unknown value 0x0005C0C0, labeled "XG_TILE_MODE_PC" for now
+
+    [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Texture Data Size"), EditorTooltip("When placed texture mode is enabled, this specifies the size of the texture data.")]
+    public uint PlacedDataSize;                                         // TODO: Calculate this PS4/Switch/XBOne specific field
 
     public override DIMENSION Dimension
     {
@@ -42,7 +51,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
         writer.Write((uint)0);                  // Unknown0
         writer.Write((uint)Format);
-        writer.Write(Flags);
+        writer.Write((uint)Flags);
         writer.Write(Width);
         writer.Write(Height);
         writer.Write(Depth);
@@ -51,8 +60,8 @@ public class TextureHeaderBPR : TextureHeaderBase
         writer.Write(MipmapLevels);
         writer.Write((ushort)0);                // Unknown1
         writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // Unknown2, 64 bit
-        writer.Write(ArrayIndex);
-        writer.Write(ContentsSize);
+        writer.Write((int)PlacedTileMode);
+        writer.Write(PlacedDataSize);
         writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureData, 64 bit
 
         if (GetResourceArch() == Arch.x64)
@@ -73,7 +82,7 @@ public class TextureHeaderBPR : TextureHeaderBase
         reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
         Format = (DXGI_FORMAT)reader.ReadInt32();
-        reader.Read(Flags);
+        Flags = (BPRTextureFlags)reader.ReadUInt32();
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();
         Depth = reader.ReadUInt16();
@@ -82,8 +91,8 @@ public class TextureHeaderBPR : TextureHeaderBase
         MipmapLevels = reader.ReadByte();
         reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
         reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
-        ArrayIndex = (uint)reader.ReadInt32();
-        ContentsSize = (uint)reader.ReadInt32();
+        PlacedTileMode = (XG_TILE_MODE)reader.ReadInt32();
+        PlacedDataSize = (uint)reader.ReadInt32();
         reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
     }
 
@@ -230,3 +239,58 @@ public enum DXGI_FORMAT : int   // 32 bit value
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE = 133,
     DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 134
 };
+public enum XG_TILE_MODE : int
+{
+    XG_TILE_MODE_INVALID = -1,
+    XG_TILE_MODE_COMP_DEPTH_0 = 0,
+    XG_TILE_MODE_COMP_DEPTH_1 = 1,
+    XG_TILE_MODE_COMP_DEPTH_2 = 2,
+    XG_TILE_MODE_COMP_DEPTH_3 = 3,
+    XG_TILE_MODE_COMP_DEPTH_4 = 4,
+    XG_TILE_MODE_UNC_DEPTH_5 = 5,
+    XG_TILE_MODE_UNC_DEPTH_6 = 6,
+    XG_TILE_MODE_UNC_DEPTH_7 = 7,
+    XG_TILE_MODE_LINEAR = 8,
+    XG_TILE_MODE_DISPLAY = 9,
+    XG_TILE_MODE_2D_DISPLAY = 10,
+    XG_TILE_MODE_TILED_DISPLAY = 11,
+    XG_TILE_MODE_TILED_2D_DISPLAY = 12,
+    XG_TILE_MODE_1D_THIN = 13,  // 8x8x1
+    XG_TILE_MODE_2D_THIN = 14,
+    XG_TILE_MODE_3D_THIN = 15,
+    XG_TILE_MODE_TILED_1D_THIN = 16,
+    XG_TILE_MODE_TILED_2D_THIN = 17,
+    XG_TILE_MODE_TILED_3D_THIN = 18,
+    XG_TILE_MODE_1D_THICK = 19, // 4x4x4
+    XG_TILE_MODE_2D_THICK = 20,
+    XG_TILE_MODE_3D_THICK = 21,
+    XG_TILE_MODE_TILED_1D_THICK = 22,
+    XG_TILE_MODE_TILED_2D_THICK = 23,
+    XG_TILE_MODE_TILED_3D_THICK = 24,
+    XG_TILE_MODE_2D_XTHICK = 25,
+    XG_TILE_MODE_3D_XTHICK = 26,
+    XG_TILE_MODE_RESERVED_27 = 27,
+    XG_TILE_MODE_RESERVED_28 = 28,
+    XG_TILE_MODE_RESERVED_29 = 29,
+    XG_TILE_MODE_RESERVED_30 = 30,
+    XG_TILE_MODE_LINEAR_GENERAL = 31,
+    XG_TILE_MODE_TILED_2D_DEPTH = XG_TILE_MODE_UNC_DEPTH_7,
+    XG_TILE_MODE_PC = 0x5C0C0   // PC-specific unknown
+}
+
+[Flags]
+public enum BPRTextureFlags : uint
+{
+    NoInitialPixelData = 0x1,
+    RenderTarget = 0x2,
+    CPUWriteAccess = 0x4,
+    EnableMipGeneration = 0x8,
+    Unknown0x10 = 0x10,
+    Unknown0x20 = 0x20,
+    DepthStencil = 0x40,
+    Unknown0x80 = 0x80,
+    Unknown0x100 = 0x100,
+    PlacedTexture = 0x200,
+    NoDepthCompression = 0x400000,
+    NoColourCompression = 0x800000,
+}
