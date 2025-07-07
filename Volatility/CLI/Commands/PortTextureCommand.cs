@@ -302,8 +302,8 @@ internal class PortTextureCommand : ICommand
                     // Set ContentsSize for BPR textures if applicable.
                     if (DestinationTexture is TextureHeaderBPR destBPRTexture && File.Exists(destinationBitmapPath))
                     {
-                        destBPRTexture.ContentsSize = (uint)new FileInfo(destinationBitmapPath).Length;
-                        if (Verbose) Console.WriteLine($"BPR ContentsSize set to {destBPRTexture.ContentsSize} (file: {destinationBitmapPath}).");
+                        destBPRTexture.PlacedDataSize = (uint)new FileInfo(destinationBitmapPath).Length;
+                        if (Verbose) Console.WriteLine($"BPR PlacedDataSize set to {destBPRTexture.PlacedDataSize} (file: {destinationBitmapPath}).");
                     }
 
                     // Write header data (now after bitmap data to ensure any final edits are included)
