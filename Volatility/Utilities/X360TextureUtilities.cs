@@ -4,7 +4,7 @@ namespace Volatility.Utilities;
 
 internal class X360TextureUtilities
 {
-    public static void ConvertMipmapsToX360(TextureHeaderBase header, GPUTEXTUREFORMAT format, string inputPath, string outputPath)
+    public static void ConvertMipmapsToX360(TextureBase header, GPUTEXTUREFORMAT format, string inputPath, string outputPath)
     {
         using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read);
         using var reader = new BinaryReader(stream);
@@ -37,7 +37,7 @@ internal class X360TextureUtilities
         }
     }
 
-    private static byte[][] AlignAndPackMipmaps(byte[][] mipmaps, TextureHeaderBase textureInfo, GPUTEXTUREFORMAT format)
+    private static byte[][] AlignAndPackMipmaps(byte[][] mipmaps, TextureBase textureInfo, GPUTEXTUREFORMAT format)
     {
         const int alignment = 4096;
         var alignedMipmaps = new byte[mipmaps.Length][];
@@ -124,7 +124,7 @@ internal class X360TextureUtilities
         };
     }
 
-    public static void WriteUntiled360TextureFile(TextureHeaderX360 xboxHeader, string textureBitmapPath, string outPath = "")
+    public static void WriteUntiled360TextureFile(TextureX360 xboxHeader, string textureBitmapPath, string outPath = "")
     {
         if (string.IsNullOrEmpty(outPath))
         {

@@ -113,7 +113,7 @@ internal partial class ExportResourceCommand : ICommand
                         // The way this is handled is pending a pipeline rewrite
                         if (resourceType == ResourceType.Texture)
                         {
-							(resource as TextureHeaderBase).PushAll();
+							(resource as TextureBase).PushAll();
                             // TODO: Export bitmap data
                         }
                         resource.WriteToStream(writer);

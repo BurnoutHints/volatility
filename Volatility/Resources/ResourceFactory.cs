@@ -7,22 +7,22 @@ public static class ResourceFactory
     {
         // Texture resources
         { (ResourceType.Texture, Platform.BPR), path => {
-            var resource = new TextureHeaderBPR(path);
+            var resource = new TextureBPR(path);
             resource.PullAll();
             return resource;
         } },
         { (ResourceType.Texture, Platform.TUB), path => {
-            var resource = new TextureHeaderPC(path);
+            var resource = new TexturePC(path);
             resource.PullAll();
             return resource;
         } },
         { (ResourceType.Texture, Platform.X360), path => {
-            var resource = new TextureHeaderX360(path);
+            var resource = new TextureX360(path);
             resource.PullAll();
             return resource;
         } },
         { (ResourceType.Texture, Platform.PS3), path => {
-            var resource = new TextureHeaderPS3(path);
+            var resource = new TexturePS3(path);
             resource.PullAll();
             return resource;
         } },
