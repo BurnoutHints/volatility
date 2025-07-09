@@ -1,8 +1,9 @@
+using System.Text;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -157,60 +158,65 @@ internal partial class ImportResourceCommand : ICommand
                     Splicer? splicer = resource as Splicer;
 
 					byte[][]? samples = splicer?.GetLoadedSamples();
-
+					using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+					byte[] salt = Encoding.UTF8.GetBytes("Volatility_");	
                     for (int i = 0; i < samples?.Length; i++)
-					{
-						string sampleName = $"{resource.AssetName}_{i}";
-
-						string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
+                    {
+                        string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
 
                         Directory.CreateDirectory(sampleDirectory);
+						
+						hasher.AppendData(salt);
+						hasher.AppendData(samples[i]);
 
-						Console.WriteLine($"Writing extracted sample {sampleName}.snr");
-					    await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i]);
+                        string sampleName = $"{resource.AssetName}_{Convert.ToHexString(hasher.GetHashAndReset())}";
+						
+                        Console.WriteLine($"Writing extracted sample {sampleName}.snr");
+                        await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i]);
 
-						if (sxExists)
-						{
-							string samplePathName = Path.Combine(sampleDirectory, sampleName);
+                        if (sxExists)
+                        {
+                            string samplePathName = Path.Combine(sampleDirectory, sampleName);
 
-							string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
+                            string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
 
-							Directory.CreateDirectory(convertedSamplePathName);
+                            Directory.CreateDirectory(convertedSamplePathName);
 
-							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
+                            convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
 
                             ProcessStartInfo start = new ProcessStartInfo
-					        {
-					            FileName = sxPath,
-					            Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
-					            RedirectStandardOutput = true,
-					            RedirectStandardError = true,
-					            UseShellExecute = false,
-					            CreateNoWindow = true
-					        };
+                            {
+                                FileName = sxPath,
+                                Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
 
-					        using (Process process = new Process())
-					        {
-					            process.StartInfo = start;
-					            process.OutputDataReceived += (sender, e) =>
-					            {
-					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-					            };
+                            using (Process process = new Process())
+                            {
+                                process.StartInfo = start;
+                                process.OutputDataReceived += (sender, e) =>
+                                {
+                                    if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                };
 
-					            process.ErrorDataReceived += (sender, e) =>
-					            {
-					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-					            };
+                                process.ErrorDataReceived += (sender, e) =>
+                                {
+                                    if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                };
 
                                 Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
                                 process.Start();
-					            process.BeginOutputReadLine();
-					            process.BeginErrorReadLine();
-					            process.WaitForExit();
-					        }
-					    }
-					}
-				}
+                                process.BeginOutputReadLine();
+                                process.BeginErrorReadLine();
+                                process.WaitForExit();
+                            }
+                        }
+                    }
+
+                }
                 Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
 			}));
 		}
