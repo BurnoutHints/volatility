@@ -60,4 +60,27 @@ public class EndianAwareBinaryWriter : BinaryWriter
     {
         base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value) : value);
     }
+
+    public void Write(Vector2 value, bool intrinsic = false)
+    {
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.X) : value.X);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.Y) : value.Y);
+        if (intrinsic) base.Write(new byte[0x8]);
+    }
+
+    public void Write(Vector3 value, bool intrinsic = false)
+    {
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.X) : value.X);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.Y) : value.Y);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.Z) : value.Z);
+        if (intrinsic) base.Write(new byte[0x4]);
+    }
+
+    public void Write(Vector4 value)
+    {
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.X) : value.X);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.Y) : value.Y);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.Z) : value.Z);
+        base.Write(_endianness == Endian.BE ? EndianUtilities.SwapEndian(value.W) : value.W);
+    }
 }
