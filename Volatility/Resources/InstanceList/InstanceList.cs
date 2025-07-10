@@ -13,7 +13,7 @@ public class InstanceList : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;
     
-    [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
+    [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorReadOnly, EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
     public uint NumInstances;
 
     [EditorLabel("Instances"), EditorCategory("Instance List"), EditorTooltip("The list of instances in this list.")]
