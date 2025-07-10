@@ -1,4 +1,5 @@
-﻿using Volatility.Resources;
+﻿using System.Reflection;
+using Volatility.Resources;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;
@@ -51,7 +52,7 @@ internal class PortTextureCommand : ICommand
 
                 SourceTexture.PullAll();
 
-                CopyBaseClassProperties(SourceTexture, DestinationTexture);
+                CopyProperties(SourceTexture, DestinationTexture);
 
                 // Manual header format conversion
                 bool flipEndian = false;
@@ -373,10 +374,25 @@ internal class PortTextureCommand : ICommand
         };
     }
 
-    public static void CopyBaseClassProperties(TextureBase source, TextureBase destination)
+    public static void CopyProperties(TextureBase source, TextureBase destination)
     {
-        var properties = typeof(TextureBase).GetProperties();
-        foreach (var prop in properties)
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+
+        var srcType = source.GetType();
+        var dstType = destination.GetType();
+
+        var typeToReflect = srcType == dstType
+            ? srcType
+            : typeof(TextureBase);
+
+        var props = typeToReflect
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead
+                     && p.CanWrite
+                     && p.GetIndexParameters().Length == 0);
+
+        foreach (var prop in props)
         {
             var value = prop.GetValue(source);
             prop.SetValue(destination, value);
