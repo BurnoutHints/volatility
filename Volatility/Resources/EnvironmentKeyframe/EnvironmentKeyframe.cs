@@ -41,6 +41,76 @@ public class EnvironmentKeyframe : Resource
         LightingSettings = new LightingData(reader);
         CloudSettings = new CloudsData(reader);
     }
+
+    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    {
+        base.WriteToStream(writer, endianness);
+
+        writer.Write((uint)0x8);
+        writer.Write(new byte[0xC]);
+
+        writer.Write(BloomSettings.Luminance);
+        writer.Write(BloomSettings.Threshold);
+        writer.Write(new byte[0x8]);
+        writer.Write(BloomSettings.Scale);
+
+        writer.Write(VignetteSettings.Angle);
+        writer.Write(VignetteSettings.Sharpness);
+        writer.Write(new byte[0x8]);
+        writer.Write(VignetteSettings.Amount, intrinsic: true);
+        writer.Write(VignetteSettings.Center, intrinsic: true);
+        writer.Write(VignetteSettings.InnerColor);
+        writer.Write(VignetteSettings.OuterColor);
+
+        writer.Write((uint)0x1); // TODO: handle external ColourCube import
+        writer.Write(new byte[0xC]);
+
+        writer.Write(ScatteringSettings.SkyTopColor, intrinsic: true);
+        writer.Write(ScatteringSettings.SkyHorizonColor, intrinsic: true);
+        writer.Write(ScatteringSettings.SkySunColor, intrinsic: true);
+        writer.Write(ScatteringSettings.SkyHorizonPower);
+        writer.Write(ScatteringSettings.SkySunPower);
+        writer.Write(ScatteringSettings.SkyDarkening);
+        writer.Write(ScatteringSettings.SkyHorizonBleedScale);
+        writer.Write(ScatteringSettings.SkyHorizonBleedPower);
+        writer.Write(new byte[0x8]);
+        writer.Write(ScatteringSettings.ScatteringTopColor, intrinsic: true);
+        writer.Write(ScatteringSettings.ScatteringHorizonColor, intrinsic: true);
+        writer.Write(ScatteringSettings.ScatteringSunColor, intrinsic: true);
+        writer.Write(ScatteringSettings.ScatteringHorizonPower);
+        writer.Write(ScatteringSettings.ScatteringSunPower);
+        writer.Write(ScatteringSettings.ScatteringDarkening);
+        writer.Write(ScatteringSettings.ScatteringHorizonBleedScale);
+        writer.Write(ScatteringSettings.ScatteringHorizonBleedPower);
+        writer.Write(ScatteringSettings.ScatteringSunBleedPower);
+        writer.Write(ScatteringSettings.ScatteringDistance, intrinsic: false);
+        writer.Write(ScatteringSettings.ScatteringPower);
+        writer.Write(ScatteringSettings.ScatteringCap);
+        writer.Write(new byte[0x8]);
+
+        writer.Write(LightingSettings.KeyLightColor, intrinsic: true);
+        writer.Write(LightingSettings.SpecularColor, intrinsic: true);
+        writer.Write(LightingSettings.KeyFillColor, intrinsic: true);
+        writer.Write(LightingSettings.ShadowFillColor, intrinsic: true);
+        writer.Write(LightingSettings.RightFillColor, intrinsic: true);
+        writer.Write(LightingSettings.LeftFillColor, intrinsic: true);
+        writer.Write(LightingSettings.UpFillColor, intrinsic: true);
+        writer.Write(LightingSettings.DownFillColor, intrinsic: true);
+        writer.Write(LightingSettings.AmbientIrradianceScale);
+        writer.Write(new byte[0xC]);
+
+        writer.Write(CloudSettings.Layer1LiteColor, intrinsic: true);
+        writer.Write(CloudSettings.Layer2LiteColor, intrinsic: true);
+        writer.Write(CloudSettings.Layer1DarkColor, intrinsic: true);
+        writer.Write(CloudSettings.Layer2DarkColor, intrinsic: true);
+        writer.Write(CloudSettings.LayerDensity, intrinsic: false);
+        writer.Write(CloudSettings.LayerFeathering, intrinsic: false);
+        writer.Write(CloudSettings.LayerOpacity, intrinsic: false);
+        writer.Write(CloudSettings.LayerSpeed, intrinsic: false);
+        writer.Write(CloudSettings.LayerScale, intrinsic: false);
+        writer.Write(CloudSettings.DirectionAngle);
+        writer.Write(new byte[0x4]);
+    }
 }
 
 public struct BloomData
