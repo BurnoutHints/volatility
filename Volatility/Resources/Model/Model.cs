@@ -60,8 +60,7 @@ public class Model : Resource
         // Resource ID References
         for (int i = 0; i < models; i++)
         {
-            writer.Write(ModelDatas[i].ResourceReference.Endian == Endian.BE ? new byte[4] : ModelDatas[i].ResourceReference.ID);
-            writer.Write(ModelDatas[i].ResourceReference.Endian == Endian.LE ? new byte[4] : ModelDatas[i].ResourceReference.ID);
+            writer.Write(ModelDatas[i].ResourceReference.ReferenceID);
             writer.Write(renderablesPtr + (i * 0x4));
             writer.Write((uint)0x0); // Unknown. Always 0 in BPR, not always 0 on X360
         }
@@ -120,9 +119,7 @@ public class Model : Resource
                 (reader.GetEndianness() == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
             );
 
-            modelData.ResourceReference.ID = reader.ReadBytes(4);
-            modelData.ResourceReference.Endian = reader.GetEndianness();
-
+            modelData.ResourceReference.ReferenceID = reader.ReadUInt32();
             ModelDatas.Add(modelData);
         }
     }
@@ -134,7 +131,7 @@ public class Model : Resource
     public struct ModelData
     {
         [EditorCategory("Model Data"), EditorLabel("Resource Reference")]
-        public ResourceID ResourceReference;
+        public ResourceImport ResourceReference;
 
         [EditorCategory("Model Data"), EditorLabel("Model State")]
         public State State;
