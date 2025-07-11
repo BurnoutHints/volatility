@@ -62,7 +62,7 @@ public class EnvironmentKeyframe : Resource
         writer.Write(VignetteSettings.InnerColor);
         writer.Write(VignetteSettings.OuterColor);
 
-        writer.Write((uint)0x1); // TODO: handle external ColourCube import
+        writer.Write((uint)0x0); // TODO: handle external ColourCube import
         writer.Write(new byte[0xC]);
 
         writer.Write(ScatteringSettings.SkyTopColor, intrinsic: true);
@@ -73,6 +73,7 @@ public class EnvironmentKeyframe : Resource
         writer.Write(ScatteringSettings.SkyDarkening);
         writer.Write(ScatteringSettings.SkyHorizonBleedScale);
         writer.Write(ScatteringSettings.SkyHorizonBleedPower);
+        writer.Write(ScatteringSettings.SkySunBleedPower);
         writer.Write(new byte[0x8]);
         writer.Write(ScatteringSettings.ScatteringTopColor, intrinsic: true);
         writer.Write(ScatteringSettings.ScatteringHorizonColor, intrinsic: true);
