@@ -1,5 +1,7 @@
 ﻿using YamlDotNet.Serialization;
 
+using static Volatility.Utilities.ResourceIDUtilities;
+
 namespace Volatility.Resources;
 
 public struct ResourceImport
@@ -13,15 +15,21 @@ public struct ResourceImport
     public ResourceID ReferenceID;
     public bool ExternalImport;
 
-    public ResourceImport() { }
+    public ResourceImport() 
+    {
+        Name = string.Empty;
+    }
 
     public ResourceImport(ResourceID id, bool externalImport = false, bool useCalculatedName = false)
     {
         ReferenceID = id;
         ExternalImport = externalImport;
-        // TODO: find name in ResourceDB, pending ResourceDB v3
-        // if (useCalculatedName || resource was found in db)
-        //     ReferenceID = 0x0;
+        Name = GetNameByResourceID(id);
+
+        if (Name.Length > 0 && useCalculatedName)
+        {
+            ReferenceID = 0x0;
+        }
     }
 
     public ResourceImport(string name, bool externalImport = false)

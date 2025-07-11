@@ -89,14 +89,14 @@ public static class ResourceIDUtilities
         return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(ResourceID)));
     }
 
-    public static string GetNameByResourceID(string id, string type)
+    public static string GetNameByResourceID(string id)
     {
         string path = Path.Combine
         (
-            Directory.GetCurrentDirectory(), 
-            "data", 
-            "ResourceDB", 
-            $"{type}.json"
+            Directory.GetCurrentDirectory(),
+            "data",
+            "ResourceDB",
+            "ResourceDB.json"
         );
 
         if (File.Exists(path))
@@ -108,21 +108,27 @@ public static class ResourceIDUtilities
 
         return "";
     }
-    public static string GetNameByResourceID(ResourceID id, string type)
+
+    public static string GetNameByResourceID(ResourceID id)
     {
         string path = Path.Combine
         (
             Directory.GetCurrentDirectory(),
             "data",
             "ResourceDB",
-            $"{type}.json"
+            "ResourceDB.json"
         );
 
         if (File.Exists(path))
         {
-            Dictionary<string, string>? data = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+            Dictionary<string, string>? data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            return data.TryGetValue($"{id.ToString():X8}", out string? value) ? value : "";
+            using var reader = File.OpenText(path);
+            using var json = new JsonTextReader(reader);
+            new JsonSerializer()
+                .Populate(json, data);
+
+            return data.TryGetValue(id.ToString(), out string? value) ? value : "";
         }
 
         return "";

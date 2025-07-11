@@ -86,7 +86,7 @@ public abstract class Resource
                     : name
                     , 16);
 
-                string newName = GetNameByResourceID(ResourceID, GetResourceType().ToString());
+                string newName = GetNameByResourceID(ResourceID);
                 AssetName = !string.IsNullOrEmpty(newName)
                     ? newName
                     : ResourceID.ToString();
