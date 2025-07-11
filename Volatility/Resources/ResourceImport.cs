@@ -30,7 +30,7 @@ public struct ResourceImport
         ExternalImport = externalImport;
     }
 
-    public static bool ReadExternalImport(byte index, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
+    public static bool ReadExternalImport(int index, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
     {
         // In-resource imports block
         if (reader.BaseStream.Length >= importBlockOffset + (0x10 * index) + 0x10)
@@ -62,7 +62,7 @@ public struct ResourceImport
     }
 
 
-    public static ResourceID GetYAMLImportValueAt(string yamlPath, byte index)
+    public static ResourceID GetYAMLImportValueAt(string yamlPath, int index)
     {
         var yaml = File.ReadAllText(yamlPath);
         var deser = new DeserializerBuilder().Build();

@@ -96,9 +96,16 @@ public class Model : Resource
 
         Flags = reader.ReadByte();
 
+        var maxLength = new[]
+        {
+            lodDistancesPtr + numRenderables * sizeof(uint),
+            renderablesPtr + numRenderables * sizeof(uint),
+            renderableStatesPtr + numRenderables
+        }.Max();
+
         // This currently does a lot of seeking.
         // It may improve performance if we separate this.
-        for (uint i = 0; i < numRenderables; i++)
+        for (int i = 0; i < numRenderables; i++)
         {
             ModelData modelData = new ModelData();
             
@@ -119,7 +126,8 @@ public class Model : Resource
                 (reader.GetEndianness() == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
             );
 
-            modelData.ResourceReference.ReferenceID = reader.ReadUInt32();
+            ResourceImport.ReadExternalImport(i, reader, maxLength, out modelData.ResourceReference);
+
             ModelDatas.Add(modelData);
         }
     }
