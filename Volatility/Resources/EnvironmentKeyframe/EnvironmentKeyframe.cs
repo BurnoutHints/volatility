@@ -157,10 +157,13 @@ public struct VignetteData
 
 public struct TintData 
 {
-    public ulong ColorCubePtr; // TODO: Update with new ResourceID system
+    public ResourceImport ColorCubeReference;
     public TintData(ResourceBinaryReader reader, Arch arch) 
     {
-        ColorCubePtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+        ColorCubeReference.ReferenceID = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+        
+        if (ResourceImport.ReadExternalImport(0, reader, 0x240, out ResourceImport ExternalReference))
+            ColorCubeReference = ExternalReference;
     }
 }
 
