@@ -21,25 +21,11 @@ public struct Transform
     public Vector3 Scale;    
 }
 
-// Experimenting with a new way to store ResourceIDs.
-public struct ResourceID
+public readonly struct ResourceID
 {
-    [Newtonsoft.Json.JsonIgnore]
-    public byte[] ID;
-
-    public string HexID
-    {
-        get => BitConverter.ToString(ID).Replace("-", "").ToLower();
-        set => ID = Enumerable.Range(0, value.Length / 2)
-                              .Select(x => Convert.ToByte(value.Substring(x * 2, 2), 16))
-                              .ToArray();
-    }
-
-    public Endian Endian;
-
-    public ResourceID()
-    {
-        ID = new byte[4];
-        Endian = default;
-    }
+    public readonly ulong Value;
+    public ResourceID(ulong v) => Value = v;
+    public static implicit operator ulong(ResourceID r) => r.Value;
+    public static implicit operator ResourceID(ulong v) => new ResourceID(v);
+    public override string ToString() => $"{Value:X8}";
 }
