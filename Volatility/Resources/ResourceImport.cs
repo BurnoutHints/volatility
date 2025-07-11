@@ -4,21 +4,42 @@ namespace Volatility.Resources;
 
 public struct ResourceImport
 {
+    // The idea here is that if the name is populated but
+    // the ID is empty, the name will be calculated into an ID
+    // on export. If both a name and ID exist, use the ID, as
+    // this will keep consistency for imported assets. If you
+    // want to use the calculated name, clear the ReferenceID field.
+    public string Name;
     public ResourceID ReferenceID;
     public bool ExternalImport;
 
+    public ResourceImport() { }
+
+    public ResourceImport(ResourceID id, bool externalImport = false, bool useCalculatedName = false)
+    {
+        ReferenceID = id;
+        ExternalImport = externalImport;
+        // TODO: find name in ResourceDB, pending ResourceDB v3
+        // if (useCalculatedName || resource was found in db)
+        //     ReferenceID = 0x0;
+    }
+
+    public ResourceImport(string name, bool externalImport = false)
+    {
+        Name = name;
+        ExternalImport = externalImport;
+    }
+
     public static bool ReadExternalImport(byte index, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
     {
-        resourceImport.ExternalImport = true;
-
         // In-resource imports block
         if (reader.BaseStream.Length >= importBlockOffset + (0x10 * index) + 0x10)
         {
             long originalPosition = reader.BaseStream.Position;
             
             reader.BaseStream.Seek(importBlockOffset + (0x10 * index), SeekOrigin.Begin);
-            
-            resourceImport.ReferenceID = reader.ReadUInt64();
+
+            resourceImport = new ResourceImport(reader.ReadUInt64(), externalImport: true);
             
             reader.BaseStream.Seek(originalPosition, SeekOrigin.Begin);
             
@@ -31,7 +52,7 @@ public struct ResourceImport
 
             string directory = Path.GetDirectoryName(fs.Name);
 
-            resourceImport.ReferenceID = GetYAMLImportValueAt(Path.Combine(directory, baseName + "_imports.yaml"), index);
+            resourceImport = new ResourceImport(GetYAMLImportValueAt(Path.Combine(directory, baseName + "_imports.yaml"), index), externalImport: true);
 
             return true;
         }
