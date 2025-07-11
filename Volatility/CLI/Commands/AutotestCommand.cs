@@ -48,7 +48,7 @@ internal class AutotestCommand : ICommand
         TexturePC textureHeaderPC = new TexturePC
         {
             AssetName = "autotest_header_PC",
-            ResourceID = GetResourceIDFromName("autotest_header_PC", Endian.LE),
+            ResourceID = GetResourceIDFromName("autotest_header_PC"),
             Format = D3DFORMAT.D3DFMT_DXT1,
             Width = 1024,
             Height = 512,
@@ -62,7 +62,7 @@ internal class AutotestCommand : ICommand
         TextureBPR textureHeaderBPR = new TextureBPR
         {
             AssetName = "autotest_header_BPR",
-            ResourceID = GetResourceIDFromName("autotest_header_BPR", Endian.LE),
+            ResourceID = GetResourceIDFromName("autotest_header_BPR"),
             Format = DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM,
             Width = 1024,
             Height = 512,
@@ -77,7 +77,7 @@ internal class AutotestCommand : ICommand
 
         textureHeaderBPR.SetResourceArch(Arch.x64);
         textureHeaderBPR.AssetName = "autotest_header_BPRx64";
-        textureHeaderBPR.ResourceID = GetResourceIDFromName(textureHeaderBPR.AssetName, Endian.LE);
+        textureHeaderBPR.ResourceID = GetResourceIDFromName(textureHeaderBPR.AssetName);
 
         // Write 64 bit test BPR header
         TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
@@ -86,7 +86,7 @@ internal class AutotestCommand : ICommand
         TexturePS3 textureHeaderPS3 = new TexturePS3
         {
             AssetName = "autotest_header_PS3",
-            ResourceID = GetResourceIDFromName("autotest_header_PS3", Endian.BE),
+            ResourceID = GetResourceIDFromName("autotest_header_PS3"),
             Format = CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45,
             Width = 1024,
             Height = 512,
@@ -100,7 +100,7 @@ internal class AutotestCommand : ICommand
         TextureX360 textureHeaderX360 = new TextureX360
         {
             AssetName = "autotest_header_X360",
-            ResourceID = GetResourceIDFromName("autotest_header_X360", Endian.BE),
+            ResourceID = GetResourceIDFromName("autotest_header_X360"),
             Format = new GPUTEXTURE_FETCH_CONSTANT
             {
                 Tiled = true,

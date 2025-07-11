@@ -5,7 +5,7 @@ namespace Volatility.Resources;
 public abstract class Resource
 {
     [EditorCategory("Resource Info"), EditorLabel("Resource ID"), EditorTooltip("The CRC32 ID used to identify the resource in the game engine.")]
-    public string ResourceID = "";
+    public ResourceID ResourceID = 0x00000000;
 
     [EditorCategory("Resource Info"), EditorLabel("Asset Name"), EditorTooltip("The asset's name in the resource depot.")]
     public string AssetName = "invalid";
@@ -68,30 +68,33 @@ public abstract class Resource
             Unpacker = GetUnpackerFromFileName(Path.GetFileName(ImportedFileName));
             if (Unpacker != Unpacker.Raw)
             {
+                int idx = name.LastIndexOf('_');
                 name = Unpacker switch
                 {
                     Unpacker.DGI => name.Replace("_", ""),
-                    Unpacker.Bnd2Manager => name.Substring(0, name.LastIndexOf('_')),
-                    Unpacker.YAP => name.Substring(0, name.LastIndexOf('_'))
+                    Unpacker.Bnd2Manager or Unpacker.YAP when idx > 0 => name[..idx],
+                    Unpacker.Bnd2Manager or Unpacker.YAP => name,                    
+                    _ => name
                 };
             }
             if (ValidateResourceID(name))
             {
                 // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
                 // This makes it easy to cross reference assets between all platforms.
-                ResourceID = (importEndianness == Endian.LE && Unpacker != Unpacker.YAP)
+                ResourceID = Convert.ToUInt64((importEndianness == Endian.LE && Unpacker != Unpacker.YAP)
                     ? FlipResourceIDEndian(name)
-                    : name;
+                    : name
+                    , 16);
 
                 string newName = GetNameByResourceID(ResourceID, GetResourceType().ToString());
                 AssetName = !string.IsNullOrEmpty(newName)
                     ? newName
-                    : ResourceID;
+                    : ResourceID.ToString("X8");
             }
             else
             {
                 // TODO: Add new entry to ResourceDB
-                ResourceID = GetResourceIDFromName(name, importEndianness);
+                ResourceID = Convert.ToUInt64(GetResourceIDFromName(name, importEndianness), 16);
                 AssetName = name;
             }
 
@@ -105,23 +108,18 @@ public abstract class Resource
 
     private static Unpacker GetUnpackerFromFileName(string filename)
     {
-        if (filename.EndsWith("_1.bin")) // bnd2-manager
+        var name = Path.GetFileName(filename);
+        return name switch
         {
-            return Unpacker.Bnd2Manager;
-        }
-        else if (filename.EndsWith("_primary.dat")) // YAP
-        {
-            return Unpacker.YAP;
-        }
-        else if (filename.EndsWith(".dat")) // DGI
-        {
-            return Unpacker.DGI;
-        }
-        return Unpacker.Raw;
-
-        // Volatility doesn't have a bundle unpacker yet...
+            var n when n.EndsWith("_1.bin", StringComparison.OrdinalIgnoreCase) => Unpacker.Bnd2Manager,
+            var n when n.EndsWith("_primary.dat", StringComparison.OrdinalIgnoreCase) => Unpacker.YAP,
+            var n when n.EndsWith(".dat", StringComparison.OrdinalIgnoreCase)
+                      && n.Count(c => c == '_') == 3 => Unpacker.DGI,
+            var n when n.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) => Unpacker.YAP,
+            _ => Unpacker.Raw,
+        };
     }
-    
+
     public virtual void PushAll() { }
     public virtual void PullAll() { }
 }
