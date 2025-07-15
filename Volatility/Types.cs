@@ -27,5 +27,6 @@ public readonly struct ResourceID
     public ResourceID(ulong v) => Value = v;
     public static implicit operator ulong(ResourceID r) => r.Value;
     public static implicit operator ResourceID(ulong v) => new ResourceID(v);
+    public static readonly ResourceID Default = new ResourceID(0UL);
     public override string ToString() => $"{Value:X8}";
 }

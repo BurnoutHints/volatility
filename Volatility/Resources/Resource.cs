@@ -5,7 +5,7 @@ namespace Volatility.Resources;
 public abstract class Resource
 {
     [EditorCategory("Resource Info"), EditorLabel("Resource ID"), EditorTooltip("The CRC32 ID used to identify the resource in the game engine.")]
-    public ResourceID ResourceID = 0x00000000;
+    public ResourceID ResourceID = ResourceID.Default;
 
     [EditorCategory("Resource Info"), EditorLabel("Asset Name"), EditorTooltip("The asset's name in the resource depot.")]
     public string AssetName = "invalid";
