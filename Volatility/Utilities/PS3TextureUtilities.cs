@@ -10,9 +10,9 @@ public static class PS3TextureUtilities
     {
         byte[] header = new byte[0xE];
         using MemoryStream ps3Stream = new(header);
-        using EndianAwareBinaryWriter writer = new(ps3Stream, ps3Header.GetResourceEndian());
+        using BinaryWriter writer = new(ps3Stream);
                 
-        ps3Header.WriteToStream(writer);
+        ps3Header.WriteToStream(writer, ps3Header.GetResourceEndian());
         ps3Stream.ReadExactly(header, 0, 0xE);
 
         writer.Close();

@@ -1,5 +1,7 @@
 ﻿using System.Text;
 
+using Volatility.Extensions;
+
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
@@ -16,7 +18,6 @@ public class TexturePS3 : TextureBase
     public CELL_GCM_LOCATION Location;
     public uint Pitch;
     public uint Offset;
-    public nint Buffer;
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
 
@@ -81,24 +82,24 @@ public class TexturePS3 : TextureBase
 
     public override void PushInternalFormat() { /* TODO But don't throw an error! */ }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic)
     {
-        base.WriteToStream(writer, endianness);
+        base.WriteToStream(writer, n);
 
-        writer.Write((byte)Format);
-        writer.Write(MipmapLevels);
-        writer.Write((byte)CellDimension);
-        writer.Write(CubeMapEnable ? (byte)1 : (byte)0);
-        writer.Write(Remap); // Does this need to be swapped?
-        writer.Write(Width);
-        writer.Write(Height);
-        writer.Write(Depth);
-        writer.Write((byte)Location);
+        writer.WriteEnum(Format, n);
+        writer.Write(MipmapLevels, n);
+        writer.WriteEnum(CellDimension, n);
+        writer.Write(CubeMapEnable);
+        writer.Write(Remap, n); // Does this need to be swapped?
+        writer.Write(Width, n);
+        writer.Write(Height, n);
+        writer.Write(Depth, n);
+        writer.WriteEnum(Location, n);
         writer.Write((byte)0); // Padding
         writer.Write(Pitch);
         writer.Write(Offset);
-        writer.Write((uint)Buffer);
-        writer.Write((int)StoreType);
+        writer.WritePointer(GetResourceArch(), 0x0, n); // Buffer
+        writer.WriteEnum(StoreType, n);
         writer.Write(StoreFlags);
 
         // Padding that's usually just garbage data.
@@ -106,29 +107,28 @@ public class TexturePS3 : TextureBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
+        base.ParseFromStream(reader, n);
 
-        Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
+        Format = reader.ReadEnum<CELL_GCM_COLOR_FORMAT>(n);
         MipmapLevels = reader.ReadByte();
-        CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();
-        CubeMapEnable = reader.ReadByte() != 0 ? true : false;
-        Remap = reader.ReadUInt32(); // Does this need to be swapped?
-        Width = reader.ReadUInt16();
-        Height = reader.ReadUInt16();
-        Depth = reader.ReadUInt16();
-        Location = (CELL_GCM_LOCATION)reader.ReadByte();
-        reader.BaseStream.Seek(1, SeekOrigin.Current);
-        Pitch = reader.ReadUInt32();
-        Offset = reader.ReadUInt32();
-        Buffer = (nint)reader.ReadUInt32();
-        StoreType = (StoreType)reader.ReadInt32();
+        CellDimension = reader.ReadEnum<CELL_GCM_TEXTURE_DIMENSION>(n);
+        CubeMapEnable = reader.ReadBoolean();
+        Remap = reader.ReadUInt32(n); // Does this need to be swapped?
+        Width = reader.ReadUInt16(n);
+        Height = reader.ReadUInt16(n);
+        Depth = reader.ReadUInt16(n);
+        Location = reader.ReadEnum<CELL_GCM_LOCATION>(n);
+        reader.BaseStream.Seek(sizeof(byte), SeekOrigin.Current);
+        Pitch = reader.ReadUInt32(n);
+        Offset = reader.ReadUInt32(n);
+        _ = reader.ReadPointer(GetResourceArch(), n);  // Buffer
+        StoreType = reader.ReadEnum<StoreType>(n);
 
         // These were read in LE before the EndianAware update, so
         // we'll continue to read them in LE until it causes an issue
-        reader.SetEndianness(Endian.LE);    
-        StoreFlags = reader.ReadUInt32();   
+        StoreFlags = reader.ReadUInt32(Endian.LE);   
     }
 }
 

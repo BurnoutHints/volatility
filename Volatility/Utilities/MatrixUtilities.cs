@@ -1,4 +1,6 @@
-﻿namespace Volatility.Utilities;
+﻿using Volatility.Extensions;
+
+namespace Volatility.Utilities;
 
 public static class MatrixUtilities
 {
@@ -34,24 +36,24 @@ public static class MatrixUtilities
         return transform;
     }
 
-    public static Matrix44Affine ReadMatrix44Affine(BinaryReader reader)
+    public static Matrix44Affine ReadMatrix44Affine(BinaryReader reader, Endian n)
     {
-        float m11 = reader.ReadSingle();
-        float m12 = reader.ReadSingle();
-        float m13 = reader.ReadSingle();
-        float m14 = reader.ReadSingle();
-        float m21 = reader.ReadSingle();
-        float m22 = reader.ReadSingle();
-        float m23 = reader.ReadSingle();
-        float m24 = reader.ReadSingle();
-        float m31 = reader.ReadSingle();
-        float m32 = reader.ReadSingle();
-        float m33 = reader.ReadSingle();
-        float m34 = reader.ReadSingle();
-        float m41 = reader.ReadSingle();
-        float m42 = reader.ReadSingle();
-        float m43 = reader.ReadSingle();
-        float m44 = reader.ReadSingle();
+        float m11 = reader.ReadSingle(n);
+        float m12 = reader.ReadSingle(n);
+        float m13 = reader.ReadSingle(n);
+        float m14 = reader.ReadSingle(n);
+        float m21 = reader.ReadSingle(n);
+        float m22 = reader.ReadSingle(n);
+        float m23 = reader.ReadSingle(n);
+        float m24 = reader.ReadSingle(n);
+        float m31 = reader.ReadSingle(n);
+        float m32 = reader.ReadSingle(n);
+        float m33 = reader.ReadSingle(n);
+        float m34 = reader.ReadSingle(n);
+        float m41 = reader.ReadSingle(n);
+        float m42 = reader.ReadSingle(n);
+        float m43 = reader.ReadSingle(n);
+        float m44 = reader.ReadSingle(n);
 
         return new Matrix44Affine(
             m11, m12, m13, m14,

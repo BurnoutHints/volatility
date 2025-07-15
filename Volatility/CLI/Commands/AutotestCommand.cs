@@ -145,10 +145,10 @@ internal class AutotestCommand : ICommand
                 Console.ResetColor();
             }
 
-            using (EndianAwareBinaryWriter writer = new(fs, header.GetResourceEndian()))
+            using (BinaryWriter writer = new(fs))
             {
                 Console.WriteLine($"AUTOTEST - Writing autotest {name} to working directory...");
-                header.WriteToStream(writer);
+                header.WriteToStream(writer, header.GetResourceEndian());
                 writer.Close();
             }
 

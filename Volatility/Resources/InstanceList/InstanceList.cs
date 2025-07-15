@@ -1,4 +1,6 @@
-﻿using static Volatility.Utilities.MatrixUtilities;
+﻿using Volatility.Extensions;
+
+using static Volatility.Utilities.MatrixUtilities;
 
 namespace Volatility.Resources;
 
@@ -25,15 +27,15 @@ public class InstanceList : Resource
 
     public InstanceList(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
+        base.ParseFromStream(reader, n);
 
         // Absolute pointers (not relative to any specific point in the file)
-        IntPtr instanceListPtr = reader.ReadInt32();
+        long instanceListPtr = (long)reader.ReadPointer(GetResourceArch(), n);
 
-        uint size = reader.ReadUInt32();
-        NumInstances = reader.ReadUInt32();
+        uint entries = reader.ReadUInt32(n);
+        NumInstances = reader.ReadUInt32(n);
 
         // Version
         if (reader.ReadUInt32() != 1)
@@ -43,33 +45,35 @@ public class InstanceList : Resource
 
         reader.BaseStream.Seek(instanceListPtr, SeekOrigin.Begin);
 
-        for (int i = 0; i < size; i++) 
+        long instanceBlockSize = GetResourceArch() == Arch.x64 ? 0x60 : 0x50;
+
+        for (int i = 0; i < entries; i++) 
         {
-            reader.BaseStream.Seek(instanceListPtr.ToInt32() + 0x50 * i, SeekOrigin.Begin);
+            reader.BaseStream.Seek(instanceListPtr + (instanceBlockSize * i), SeekOrigin.Begin);
 
-            ModelPtr _model = (ModelPtr)reader.ReadUInt32();
-            short _backdropZoneID = reader.ReadInt16();
+            ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, n, instanceListPtr + (instanceBlockSize * entries), out ResourceImport _model);
 
-            //ushort _padding1 = reader.ReadUInt16(); 
-            //uint _padding2 = reader.ReadUInt32();
+            if (GetResourceArch() == Arch.x64) _ = reader.ReadUInt32(n);
+
+            short _backdropZoneID = reader.ReadInt16(n);
+
             reader.BaseStream.Seek(0x6, SeekOrigin.Current);
 
-            float _maxVisibleDistanceSquared = reader.ReadSingle();
+            float _maxVisibleDistanceSquared = reader.ReadSingle(n);
 
-            Transform _transform = Matrix44AffineToTransform(ReadMatrix44Affine(reader));
+            Transform _transform = Matrix44AffineToTransform(ReadMatrix44Affine(reader, n));
 
-            reader.BaseStream.Seek(instanceListPtr.ToInt32() + 0x50 * (int)size + 0x10 * i, SeekOrigin.Begin);
+            reader.BaseStream.Seek(instanceListPtr + instanceBlockSize * entries + 0x10 * i, SeekOrigin.Begin);
 
             Instances.Add(new Instance
             {
-                Model = _model,
+                ModelReference = _model,
                 BackdropZoneID = _backdropZoneID,
-                // Padding1 = _padding1, Padding2 = _padding2,
                 MaxVisibleDistanceSquared = _maxVisibleDistanceSquared,
                 Transform = _transform,
                 ResourceId = new ResourceImport
                 {
-                    ReferenceID = reader.ReadUInt32(),
+                    ReferenceID = reader.ReadUInt32(n),
                     ExternalImport = false
                 },
             });
@@ -92,7 +96,6 @@ public struct Instance
 
     [EditorLabel("Max Visible Distance Squared"), EditorCategory("InstanceList/Instances"), EditorTooltip("The maximum distance that this instance can be seen (in meters), squared.")]
     public float MaxVisibleDistanceSquared; // Unused?
-
-    [EditorHidden]
-    public ModelPtr Model;  // Always seems to be zero. May be a runtime variable? Hiding for now.
+    
+    public ResourceImport ModelReference;
 }

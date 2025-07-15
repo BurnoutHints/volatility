@@ -1,5 +1,7 @@
 ﻿using System.Text;
 
+using Volatility.Extensions;
+
 using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
@@ -20,8 +22,8 @@ public class TexturePC : TextureBase
         }
     }
 
-    public readonly nint TextureDataPtr;      // Set at game runtime, 0
-    public readonly nint TextureInterfacePtr; // Set at game runtime, 0
+    public readonly uint TextureDataPtr;      // Set at game runtime, 0
+    public readonly uint TextureInterfacePtr; // Set at game runtime, 0
     public uint Unknown0;                       // Flags
     public readonly ushort MemoryClass = 1;     // D3DPool, Always 1
     public byte Unknown1;                       // Flags
@@ -34,47 +36,48 @@ public class TexturePC : TextureBase
 
     public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic)
     {
-        base.WriteToStream(writer, endianness);
+        base.WriteToStream(writer, n);
 
         PushAll(); // Need to determine if should be moved
 
-        writer.Write(TextureDataPtr.ToInt32());
-        writer.Write(TextureInterfacePtr.ToInt32());
-        writer.Write(Unknown0);     // Unknown
-        writer.Write(MemoryClass);
-        writer.Write(Unknown1);     // Unknown
-        writer.Write(Unknown2);     // Unknown
+        writer.WritePointer(GetResourceArch(), TextureDataPtr, n);
+        writer.WritePointer(GetResourceArch(), TextureInterfacePtr, n);
+        writer.Write(Unknown0, n);     // Unknown
+        writer.Write(MemoryClass, n);
+        writer.Write(Unknown1, n);     // Unknown
+        writer.Write(Unknown2, n);     // Unknown
         writer.Write(OutputFormat);
 
         // Not validated!!
         // TODO: Validate correct variable size
-        writer.Write(Width);
-        writer.Write(Height);
+        writer.Write(Width, n);
+        writer.Write(Height, n);
         writer.Write((byte)Depth);
         writer.Write(MipmapLevels);
 
-        writer.Write((byte)TextureType);
+        writer.WriteEnum(TextureType, n);
         writer.Write(Flags);
         writer.Write(new byte[4]);  // Padding
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
+        base.ParseFromStream(reader, n);
 
-        reader.BaseStream.Seek(8, SeekOrigin.Begin);    // Skip over Data & Interface pointers
-        Unknown0 = reader.ReadUInt32();
-        reader.BaseStream.Seek(2, SeekOrigin.Current);  // Skip over MemoryClass
+        _ = reader.ReadPointer(GetResourceArch(), n);  // Skip over Data & Interface pointers
+        _ = reader.ReadPointer(GetResourceArch(), n);
+        Unknown0 = reader.ReadUInt32(n);
+        reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);    // Skip over MemoryClass
         Unknown1 = reader.ReadByte();
         Unknown2 = reader.ReadByte();
         OutputFormat = reader.ReadBytes(4);
-        Width = reader.ReadUInt16();
-        Height = reader.ReadUInt16();
-        reader.BaseStream.Seek(1, SeekOrigin.Current);
+        Width = reader.ReadUInt16(n);
+        Height = reader.ReadUInt16(n);
+        reader.BaseStream.Seek(sizeof(byte), SeekOrigin.Current);
         MipmapLevels = reader.ReadByte();
-        TextureType = (TEXTURETYPE)reader.ReadByte();
+        TextureType = reader.ReadEnum<TEXTURETYPE>(n);
         Flags = reader.ReadByte();
         // Skip reading 4 byte padding
     }

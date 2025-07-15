@@ -2,6 +2,8 @@
 
 using YamlDotNet.Serialization;
 
+using Volatility.Extensions;
+
 using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.Resources;
@@ -40,7 +42,7 @@ public struct ResourceImport
         ExternalImport = externalImport;
     }
 
-    public static bool ReadExternalImport(int index, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
+    public static bool ReadExternalImport(int index, BinaryReader reader, Endian n, long importBlockOffset, out ResourceImport resourceImport)
     {
         long originalPosition = reader.BaseStream.Position;
 
@@ -49,7 +51,7 @@ public struct ResourceImport
         {
             reader.BaseStream.Seek(importBlockOffset + (0x10 * index), SeekOrigin.Begin);
 
-            resourceImport = new ResourceImport(reader.ReadUInt64(), externalImport: true);
+            resourceImport = new ResourceImport(reader.ReadUInt64(n), externalImport: true);
             
             reader.BaseStream.Seek(originalPosition, SeekOrigin.Begin);
             
@@ -74,7 +76,7 @@ public struct ResourceImport
         return false;
     }
 
-    public static bool ReadExternalImport(long fileOffset, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
+    public static bool ReadExternalImport(long fileOffset, BinaryReader reader, Endian n, long importBlockOffset, out ResourceImport resourceImport)
     {
         long originalPosition = reader.BaseStream.Position;
 
@@ -83,8 +85,8 @@ public struct ResourceImport
         // In-resource imports block
         while (reader.BaseStream.Position + 0x10 <= reader.BaseStream.Length)
         {
-            ulong resourceValue = reader.ReadUInt64();
-            long entryKey = reader.ReadUInt32();
+            ulong resourceValue = reader.ReadUInt64(n);
+            long entryKey = reader.ReadUInt32(n);
 
             if (entryKey == fileOffset)
             {

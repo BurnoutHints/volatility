@@ -1,5 +1,7 @@
 ﻿using YamlDotNet.Serialization;
 
+using Volatility.Extensions;
+
 namespace Volatility.Resources;
 
 public class EnvironmentTimeline : Resource
@@ -8,41 +10,39 @@ public class EnvironmentTimeline : Resource
 
     public LocationData[] Locations;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic)
     {
-        base.WriteToStream(writer, endianness);
+        base.WriteToStream(writer, n);
 
-        writer.Write(0x1);              // Version
-        writer.Write(Locations.Length);
-        writer.Write(0x10);             // Locations Pointer
-        writer.Write(0x0);              // Padding
-        
-        
+        writer.Write(0x1, n);              // Version
+        writer.Write(Locations.Length, n);
+        writer.Write(0x10, n);             // Locations Pointer
+        writer.Write(0x0, n);              // Padding
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
+        base.ParseFromStream(reader, n);
 
         Arch arch = GetResourceArch();
 
-        int version = reader.ReadInt32();
+        int version = reader.ReadInt32(n);
         if (version != 1)
         {
             throw new InvalidDataException($"Version mismatch! Version should be 1. (Found version {version})");
         }
 
-        uint LocationCount = reader.ReadUInt32();
+        uint LocationCount = reader.ReadUInt32(n);
         Locations = new LocationData[LocationCount];
 
-        uint LocationsPtr = reader.ReadUInt32();
+        uint LocationsPtr = reader.ReadUInt32(n);
 
         for (int i = 0; i < LocationCount; i++) 
         {
             reader.BaseStream.Seek(LocationsPtr + ((arch == Arch.x64 ? 0x18 : 0xC) * i), SeekOrigin.Begin);
-            uint KeyframeCount = (uint)(arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong KeyframeTimesPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong KeyframeRefsPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+            uint KeyframeCount = reader.ReadUInt32Padded(arch, n);
+            ulong KeyframeTimesPtr = reader.ReadPointer(arch, n);
+            ulong KeyframeRefsPtr = reader.ReadPointer(arch, n);
 
             Locations[i].Keyframes = new KeyframeReference[KeyframeCount];
 
@@ -56,11 +56,11 @@ public class EnvironmentTimeline : Resource
             {
                 reader.BaseStream.Seek((long)KeyframeTimesPtr + (0x4 * j), SeekOrigin.Begin);
 
-                Locations[i].Keyframes[j].KeyframeTime = reader.ReadSingle();
+                Locations[i].Keyframes[j].KeyframeTime = reader.ReadSingle(n);
 
                 reader.BaseStream.Seek((long)KeyframeRefsPtr + (0x4 * j), SeekOrigin.Begin);
 
-                ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, maxLength, out Locations[i].Keyframes[j].ResourceReference);
+                ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, n, maxLength, out Locations[i].Keyframes[j].ResourceReference);
             }
         }
     }

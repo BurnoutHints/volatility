@@ -25,22 +25,8 @@ public abstract class Resource
     public virtual Arch GetResourceArch() => Arch;
     public virtual void SetResourceArch(Arch newArch) { Arch = newArch; }
 
-    public virtual void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic) 
-    { 
-        if (GetResourceEndian() != Endian.Agnostic)
-            writer.SetEndianness(GetResourceEndian());
-
-        else if (endianness != Endian.Agnostic)
-            writer.SetEndianness(endianness);
-    }
-    public virtual void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic) 
-    {
-        if (GetResourceEndian() != Endian.Agnostic)
-            reader.SetEndianness(GetResourceEndian());
-
-        else if (endianness != Endian.Agnostic)
-            reader.SetEndianness(endianness);
-    }
+    public virtual void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic) { }
+    public virtual void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic) { }
 
     public Resource() { }
 
@@ -100,7 +86,7 @@ public abstract class Resource
 
         }
 
-        using (ResourceBinaryReader reader = new ResourceBinaryReader(new FileStream($"{path}", FileMode.Open), importEndianness))
+        using (BinaryReader reader = new BinaryReader(new FileStream($"{path}", FileMode.Open)))
         {
             ParseFromStream(reader, importEndianness);
         }
@@ -269,12 +255,4 @@ public enum Unpacker
     Bnd2Manager = 2,
     DGI = 3,
     YAP = 4,
-}
-
-public enum Arch
-{
-    [EditorLabel("32 bit (Default)")]
-    x32 = 0,
-    [EditorLabel("64 bit (Console BPR)")]
-    x64 = 1
 }

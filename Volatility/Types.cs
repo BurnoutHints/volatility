@@ -1,5 +1,4 @@
 ﻿// Temporary Types
-global using ModelPtr = System.IntPtr;
 
 // Permenant Types
 global using Vector2 = System.Numerics.Vector2;         // VectorIntrinsic
@@ -13,6 +12,14 @@ global using Matrix44Affine = System.Numerics.Matrix4x4;
 global using ColorRGB = System.Numerics.Vector3;
 global using ColorRGBA = System.Numerics.Vector4;
 global using Vector2Literal = System.Numerics.Vector2;
+
+public enum Arch
+{
+    [EditorLabel("32 bit (Default)")]
+    x32 = 0,
+    [EditorLabel("64 bit (Console BPR)")]
+    x64 = 1
+}
 
 public struct Transform
 {

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 
 using Volatility.Utilities;
+using Volatility.Extensions;
 
 namespace Volatility.Resources;
 
@@ -17,33 +18,46 @@ public abstract class RenderableBase : Resource
     public ushort Version;
     public ushort NumMeshes;
     public uint Meshes;                         // TODO
-    public BitArray Flags = new BitArray(16);
-    public uint IndexBuffer;                    // Only on PC platforms
-    public uint VertexBuffer;                   // Only on PC platforms
+    public RenderableFlags Flags;
+    public ulong IndexBuffer;                    // Only on PC platforms
+    public ulong VertexBuffer;                   // Only on PC platforms
 
     public override ResourceType GetResourceType() => ResourceType.Renderable;
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
-
-        BoundingSphere[0] = reader.ReadSingle();            // X
-        BoundingSphere[1] = reader.ReadSingle();            // Y
-        BoundingSphere[2] = reader.ReadSingle();            // Z
-        BoundingSphere[3] = reader.ReadSingle();            // Plus
-        Version = reader.ReadUInt16();
-        NumMeshes = reader.ReadUInt16();
-        Meshes = reader.ReadUInt32();                       // Pointer to a pointer
-        reader.BaseStream.Seek(0x4, SeekOrigin.Current);    // mpObjectScopeTextureInfo
-        using (BitReader bitReader = new BitReader(reader.ReadBytes(4)))
-        {
-            Flags = bitReader.ReadBitsToBitArray(16);
-        }
+        base.ParseFromStream(reader, n);
+        
+        BoundingSphere = reader.ReadVector3Plus(n);
+        Version = reader.ReadUInt16(n);
+        NumMeshes = reader.ReadUInt16(n);
+        if (GetResourceArch() == Arch.x64) _ = reader.ReadUInt32(n);
+        Meshes = reader.ReadUInt32(n);                      // Pointer to a pointer
+        _ = reader.ReadPointer(GetResourceArch(), n);       // mpObjectScopeTextureInfo
+        Flags = reader.ReadEnum<RenderableFlags>(n);
 
         // TODO: Parse RenderableMeshes
     }
 
     public RenderableBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    
+    [Flags]
+    public enum RenderableFlags : ushort
+    {
+        None      = 0x0,
+        Flag1     = 0x1,
+        Flag2     = 0x2,
+        Flag4     = 0x4,
+        Flag8     = 0x8,
+        Flag16    = 0x10,
+        Flag32    = 0x20,
+        Flag64    = 0x40,
+        Flag128   = 0x80,
+        Flag256   = 0x100,
+        Flag512   = 0x200,
+        Flag1024  = 0x400,
+        Flag2048  = 0x800,
+    }
 }
 
 

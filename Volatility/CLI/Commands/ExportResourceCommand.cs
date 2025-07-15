@@ -108,7 +108,7 @@ internal partial class ExportResourceCommand : ICommand
 						? resource.GetResourceEndian() 
 						: EndianMapping.GetDefaultEndian(platform);
 
-					using (EndianAwareBinaryWriter writer = new(fs, endian))
+					using (BinaryWriter writer = new(fs))
 					{
                         // The way this is handled is pending a pipeline rewrite
 						switch (resource)
@@ -117,11 +117,11 @@ internal partial class ExportResourceCommand : ICommand
                                 texture.PushAll();
                                 goto default;
                             case Splicer splicer:
-								splicer.WriteToStream(writer);
-								splicer.SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
+								splicer.WriteToStream(writer, endian);
+								splicer.SpliceSamples(writer, endian, Path.GetDirectoryName(sourceFile));
                                 break;
 							default:
-								resource.WriteToStream(writer);
+								resource.WriteToStream(writer, endian);
 								break;
                         }
 					}

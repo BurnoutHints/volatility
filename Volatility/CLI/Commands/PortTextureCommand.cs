@@ -304,12 +304,12 @@ internal class PortTextureCommand : ICommand
 
                     // Write header data (now after bitmap data to ensure any final edits are included)
                     using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
-                    using (EndianAwareBinaryWriter writer = new(fs, DestinationTexture.GetResourceEndian()))
+                    using (BinaryWriter writer = new(fs))
                     {
                         try
                         {
                             if (Verbose) Console.WriteLine($"Writing converted {DestinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
-                            DestinationTexture.WriteToStream(writer);
+                            DestinationTexture.WriteToStream(writer, DestinationTexture.GetResourceEndian());
                         }
                         catch
                         {

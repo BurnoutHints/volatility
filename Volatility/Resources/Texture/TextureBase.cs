@@ -1,4 +1,6 @@
-﻿namespace Volatility.Resources;
+﻿using Volatility.Extensions;
+
+namespace Volatility.Resources;
 
 // The Texture resource type contains in-game images, which are either displayed
 // through Apt UI, applied to models, or used as cubemaps. Textures vary by platform,

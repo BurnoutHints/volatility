@@ -1,3 +1,5 @@
+using Volatility.Extensions;
+
 namespace Volatility.Resources;
 
 // The BinaryFile resource type is a base type used in several
@@ -24,20 +26,20 @@ public class BinaryResource : Resource
     
     public BinaryResource(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
+        base.ParseFromStream(reader, n);
         
-        DataSize = reader.ReadUInt32();
-        DataOffset = reader.ReadUInt32();
+        DataSize = reader.ReadUInt32(n);
+        DataOffset = reader.ReadUInt32(n);
         
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
     
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic)
     {
-        writer.Write(DataSize);
-        writer.Write(DataOffset);
+        writer.Write(DataSize, n);
+        writer.Write(DataOffset, n);
         writer.Write(new byte[8]);
     }
 }

@@ -2,6 +2,7 @@
 using System.Text;
 
 using Volatility.Utilities;
+using Volatility.Extensions;
 
 using static Volatility.Utilities.DataUtilities;
 
@@ -125,13 +126,10 @@ public class TextureX360 : TextureBase
         Format.MipAddress = CalculateMipAddressX360(Width, Height);
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(BinaryWriter writer, Endian n = Endian.Agnostic)
     {
-        base.WriteToStream(writer, endianness);
-
-        // X360 stores Texture values in LE
-        writer.SetEndianness(Endian.LE);
-
+        base.WriteToStream(writer, n);
+        
         StringBuilder sb = new StringBuilder();
 
         foreach (bool bit in D3DResourceFlags)
@@ -140,12 +138,12 @@ public class TextureX360 : TextureBase
         }
 
         writer.Write(BinaryStringToBytes(ConcatBitString(sb.ToString(), (byte)D3DRESOURCETYPE, 4), 4)); // Common
-        writer.Write(ReferenceCount);
-        writer.Write(Fence);
-        writer.Write(ReadFence);
-        writer.Write(Identifier);
-        writer.Write(BaseFlush);
-        writer.Write(MipFlush);
+        writer.Write(ReferenceCount, Endian.LE);
+        writer.Write(Fence, Endian.LE);
+        writer.Write(ReadFence, Endian.LE);
+        writer.Write(Identifier, Endian.LE);
+        writer.Write(BaseFlush, Endian.LE);
+        writer.Write(MipFlush, Endian.LE);
         writer.Write(Format.PackToBytes());
 
         // Padding that's usually just garbage data.
@@ -153,28 +151,25 @@ public class TextureX360 : TextureBase
         writer.Write(new byte[0x2]);
     }
 
-    public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
+    public override void ParseFromStream(BinaryReader reader, Endian n = Endian.Agnostic)
     {
-        base.ParseFromStream(reader, endianness);
-
-        // X360 stores Texture values in LE
-        reader.SetEndianness(Endian.LE);
-
+        base.ParseFromStream(reader, n);
+        
         // Common
         using (BitReader bitReader = new BitReader(reader.ReadBytes(4)))
         {
             D3DResourceFlags = bitReader.ReadBitsToBitArray(28);
             D3DRESOURCETYPE = (D3DRESOURCETYPE)bitReader.ReadBitsToUInt(4);
         }
-
+        
         // UInt values
         reader.BaseStream.Seek(0x4, SeekOrigin.Begin);
-        ReferenceCount = reader.ReadUInt32();
-        Fence = reader.ReadUInt32();
-        ReadFence = reader.ReadUInt32();
-        Identifier = reader.ReadUInt32();
-        BaseFlush = reader.ReadUInt32();
-        MipFlush = reader.ReadUInt32();
+        ReferenceCount = reader.ReadUInt32(Endian.LE);
+        Fence = reader.ReadUInt32(Endian.LE);
+        ReadFence = reader.ReadUInt32(Endian.LE);
+        Identifier = reader.ReadUInt32(Endian.LE);
+        BaseFlush = reader.ReadUInt32(Endian.LE);
+        MipFlush = reader.ReadUInt32(Endian.LE);
 
         // Format
         reader.BaseStream.Seek(0x1C, SeekOrigin.Begin);
