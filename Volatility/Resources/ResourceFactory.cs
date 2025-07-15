@@ -51,11 +51,17 @@ public static class ResourceFactory
         { (ResourceType.Model, Platform.X360), path => new Model(path, Endian.BE) },
         { (ResourceType.Model, Platform.PS3), path => new Model(path, Endian.BE) },
 
-        // Model resources
+        // EnvironmentKeyframe resources
         { (ResourceType.EnvironmentKeyframe, Platform.BPR), path => new EnvironmentKeyframe(path, Endian.LE) },
         { (ResourceType.EnvironmentKeyframe, Platform.TUB), path => new EnvironmentKeyframe(path, Endian.LE) },
         { (ResourceType.EnvironmentKeyframe, Platform.X360), path => new EnvironmentKeyframe(path, Endian.BE) },
         { (ResourceType.EnvironmentKeyframe, Platform.PS3), path => new EnvironmentKeyframe(path, Endian.BE) },
+
+        // EnvironmentTimeline resources
+        { (ResourceType.EnvironmentTimeLine, Platform.BPR), path => new EnvironmentTimeline(path, Endian.LE) },
+        { (ResourceType.EnvironmentTimeLine, Platform.TUB), path => new EnvironmentTimeline(path, Endian.LE) },
+        { (ResourceType.EnvironmentTimeLine, Platform.X360), path => new EnvironmentTimeline(path, Endian.BE) },
+        { (ResourceType.EnvironmentTimeLine, Platform.PS3), path => new EnvironmentTimeline(path, Endian.BE) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
