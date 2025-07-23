@@ -4,7 +4,7 @@ using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
-public class TextureHeaderPS3 : TextureHeaderBase
+public class TexturePS3 : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.BE; 
     public override Platform GetResourcePlatform() => Platform.PS3;
@@ -20,9 +20,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
 
-    public TextureHeaderPS3() : base() { }
+    public TexturePS3() : base() { }
 
-    public TextureHeaderPS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TexturePS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
@@ -72,7 +72,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                Pitch = CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;

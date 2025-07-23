@@ -1,4 +1,5 @@
-﻿using System.IO.Hashing;
+﻿using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Text;
 
 using Newtonsoft.Json;
@@ -88,14 +89,14 @@ public static class ResourceIDUtilities
         return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(ResourceID)));
     }
 
-    public static string GetNameByResourceID(string id, string type)
+    public static string GetNameByResourceID(string id)
     {
         string path = Path.Combine
         (
-            Directory.GetCurrentDirectory(), 
-            "data", 
-            "ResourceDB", 
-            $"{type}.json"
+            Directory.GetCurrentDirectory(),
+            "data",
+            "ResourceDB",
+            "ResourceDB.json"
         );
 
         if (File.Exists(path))
@@ -103,6 +104,31 @@ public static class ResourceIDUtilities
             Dictionary<string, string>? data = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
 
             return data.TryGetValue(id.Replace("_", "").ToLower(), out string? value) ? value : "";
+        }
+
+        return "";
+    }
+
+    public static string GetNameByResourceID(ResourceID id)
+    {
+        string path = Path.Combine
+        (
+            Directory.GetCurrentDirectory(),
+            "data",
+            "ResourceDB",
+            "ResourceDB.json"
+        );
+
+        if (File.Exists(path))
+        {
+            Dictionary<string, string>? data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            using var reader = File.OpenText(path);
+            using var json = new JsonTextReader(reader);
+            new JsonSerializer()
+                .Populate(json, data);
+
+            return data.TryGetValue(id.ToString(), out string? value) ? value : "";
         }
 
         return "";
@@ -118,5 +144,10 @@ public static class ResourceIDUtilities
         }
 
         return BitConverter.ToString(hash).Replace("-", "_").ToUpper();
+    }
+
+    public static ResourceID GetResourceIDFromName(string name)
+    {
+        return BinaryPrimitives.ReadUInt32BigEndian(Crc32.Hash(Encoding.UTF8.GetBytes(name.ToLower())));
     }
 }

@@ -25,7 +25,10 @@ public class Splicer : BinaryResource
     // Used to make reading parsed files easier.
     // May remove or keep as generated values
     // to make reading & editing easier.
+    [EditorReadOnly]
     public IntPtr SampleRefsPtrOffset;
+    
+    [EditorReadOnly]
     public IntPtr SamplePtrOffset;
 
 

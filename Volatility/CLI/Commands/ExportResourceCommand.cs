@@ -111,17 +111,19 @@ internal partial class ExportResourceCommand : ICommand
 					using (EndianAwareBinaryWriter writer = new(fs, endian))
 					{
                         // The way this is handled is pending a pipeline rewrite
-                        if (resourceType == ResourceType.Texture)
-                        {
-							(resource as TextureHeaderBase).PushAll();
-                            // TODO: Export bitmap data
-                        }
-                        resource.WriteToStream(writer);
-						if (resourceType == ResourceType.Splicer)
+						switch (resource)
 						{
-							(resource as Splicer).SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
+							case TextureBase texture:
+                                texture.PushAll();
+                                goto default;
+                            case Splicer splicer:
+								splicer.WriteToStream(writer);
+								splicer.SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
+                                break;
+							default:
+								resource.WriteToStream(writer);
+								break;
                         }
-
 					}
                 }
 

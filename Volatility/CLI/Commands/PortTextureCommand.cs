@@ -1,4 +1,5 @@
-﻿using Volatility.Resources;
+﻿using System.Reflection;
+using Volatility.Resources;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.ResourceIDUtilities;
@@ -37,8 +38,8 @@ internal class PortTextureCommand : ICommand
         {
             tasks.Add(Task.Run(async () =>
             {
-                TextureHeaderBase? SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
-                TextureHeaderBase? DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
+                TextureBase? SourceTexture = ConstructHeader(sourceFile, SourceFormat, Verbose);
+                TextureBase? DestinationTexture = ConstructHeader(DestinationPath, DestinationFormat, Verbose);
 
                 if (SourceTexture == null || DestinationTexture == null)
                 {
@@ -51,140 +52,136 @@ internal class PortTextureCommand : ICommand
 
                 SourceTexture.PullAll();
 
-                CopyBaseClassProperties(SourceTexture, DestinationTexture);
+                CopyProperties(SourceTexture, DestinationTexture);
 
                 // Manual header format conversion
-                var technique = $"{SourceFormat}>>{DestinationFormat}";
                 bool flipEndian = false;
                 int sourceFormatIndex = 0;
                 int destinationFormatIndex = 0;
-                switch (technique)
+                switch ((SourceTexture, DestinationTexture))
                 {
                     // ==== Console <> Console (no endian flip)
 
-                    case "PS3>>X360":
-                        PS3toX360Mapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out GPUTEXTUREFORMAT ps3x360Format);
-                        if (DestinationTexture is TextureHeaderX360 x)
-                        {
-                            x.Format.DataFormat = ps3x360Format;
-                            x.Format.Endian = GPUENDIAN.GPUENDIAN_NONE; // This may need to be the default value for new 360 textures
-                        }
+                    case (TexturePS3 ps3, TextureX360 x360):
+                        PS3toX360Mapping.TryGetValue(ps3.Format, out GPUTEXTUREFORMAT ps3x360Format);
+                        x360.Format.DataFormat = ps3x360Format;
+                        x360.Format.Endian = GPUENDIAN.GPUENDIAN_NONE; // This may need to be the default value for new 360 textures
                         flipEndian = false;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderPS3).Format;
+                        sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3x360Format;
                         if (ps3x360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3x360Format}! (Source is {(SourceTexture as TextureHeaderPS3).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {ps3x360Format}! (Source is {ps3.Format})");
                         break;
-                    case "X360>>PS3":
-                        X360toPS3Mapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
-                        (DestinationTexture as TextureHeaderPS3).Format = x360ps3Format;
+                    case (TextureX360 x360, TexturePS3 ps3):
+                        X360toPS3Mapping.TryGetValue(x360.Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
+                        ps3.Format = x360ps3Format;
                         flipEndian = false;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderX360).Format.DataFormat;
+                        sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360ps3Format;
                         if (x360ps3Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360ps3Format}! (Source is {(SourceTexture as TextureHeaderX360).Format.DataFormat})");
+                            Console.WriteLine($"WARNING: Destination texture format is {x360ps3Format}! (Source is {x360.Format.DataFormat})");
                         break;
 
                     // ==== PC/BPR <> PC/BPR (no endian flip)
 
-                    case "BPR>>BPR":
+                    case (TextureBPR bprsrc, TextureBPR bprdst):
                         // I don't know why this is required as base class format should be copied anyway.
-                        (DestinationTexture as TextureHeaderBPR).Format = (SourceTexture as TextureHeaderBPR).Format;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderBPR).Format;
+                        bprdst.Format = bprsrc.Format;
+                        sourceFormatIndex = (int)bprsrc.Format;
                         destinationFormatIndex = sourceFormatIndex;
                         break;
-                    case "TUB>>BPR":
-                        TUBtoBPRMapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out DXGI_FORMAT tubbprFormat);
-                        (DestinationTexture as TextureHeaderBPR).Format = tubbprFormat;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderPC).Format;
+                    case (TexturePC tub, TextureBPR bpr):
+                        TUBtoBPRMapping.TryGetValue(tub.Format, out DXGI_FORMAT tubbprFormat);
+                        bpr.Format = tubbprFormat;
+                        sourceFormatIndex = (int)tub.Format;
                         destinationFormatIndex = (int)tubbprFormat;
                         if (tubbprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN) 
-                            Console.WriteLine($"WARNING: Destination texture format is {tubbprFormat}! (Source is {(SourceTexture as TextureHeaderPC).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {tubbprFormat}! (Source is {tub.Format})");
                         break;
-                    case "BPR>>TUB":
-                        BPRtoTUBMapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out D3DFORMAT bprtubFormat);
-                        (DestinationTexture as TextureHeaderPC).Format = bprtubFormat;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderBPR).Format;
+                    case (TextureBPR bpr, TexturePC tub):
+                        BPRtoTUBMapping.TryGetValue(bpr.Format, out D3DFORMAT bprtubFormat);
+                        tub.Format = bprtubFormat;
+                        sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprtubFormat;
                         if (bprtubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprtubFormat}! (Source is {(SourceTexture as TextureHeaderBPR).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {bprtubFormat}! (Source is {bpr.Format})");
                         break;
 
                     // ==== Console <> PC/BPR (endian flip)
 
                     // = PS3 Source
-                    case "PS3>>BPR":
-                        PS3toBPRMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out DXGI_FORMAT ps3bprFormat);
-                        (DestinationTexture as TextureHeaderBPR).Format = ps3bprFormat;
+                    case (TexturePS3 ps3, TextureBPR bpr):
+                        PS3toBPRMapping.TryGetValue(ps3.Format, out DXGI_FORMAT ps3bprFormat);
+                        bpr.Format = ps3bprFormat;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderPS3).Format;
+                        sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3bprFormat;
                         if (ps3bprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3bprFormat}! (Source is {(SourceTexture as TextureHeaderPS3).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {ps3bprFormat}! (Source is {ps3.Format})");
                         break;
-                    case "PS3>>TUB":
-                        PS3toTUBMapping.TryGetValue((SourceTexture as TextureHeaderPS3).Format, out D3DFORMAT ps3tubFormat);
-                        (DestinationTexture as TextureHeaderPC).Format = ps3tubFormat;
+                    case (TexturePS3 ps3, TexturePC tub):
+                        PS3toTUBMapping.TryGetValue(ps3.Format, out D3DFORMAT ps3tubFormat);
+                        tub.Format = ps3tubFormat;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderPS3).Format;
+                        sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3tubFormat;
                         if (ps3tubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3tubFormat}! (Source is {(SourceTexture as TextureHeaderPS3).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {ps3tubFormat}! (Source is {ps3.Format})");
                         break;
 
                     // = X360 Source
-                    case "X360>>TUB":
-                        X360toTUBMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out D3DFORMAT x360tubFormat);
-                        (DestinationTexture as TextureHeaderPC).Format = x360tubFormat;
+                    case (TextureX360 x360, TexturePC tub):
+                        X360toTUBMapping.TryGetValue(x360.Format.DataFormat, out D3DFORMAT x360tubFormat);
+                        tub.Format = x360tubFormat;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderX360).Format.DataFormat;
+                        sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360tubFormat;
                         if (x360tubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360tubFormat}! (Source is {(SourceTexture as TextureHeaderX360).Format.DataFormat})");
+                            Console.WriteLine($"WARNING: Destination texture format is {x360tubFormat}! (Source is {x360.Format.DataFormat})");
                         break;
-                    case "X360>>BPR":
-                        X360toBPRMapping.TryGetValue((SourceTexture as TextureHeaderX360).Format.DataFormat, out DXGI_FORMAT x360bprFormat);
-                        (DestinationTexture as TextureHeaderBPR).Format = x360bprFormat;
+                    case (TextureX360 x360, TextureBPR bpr):
+                        X360toBPRMapping.TryGetValue(x360.Format.DataFormat, out DXGI_FORMAT x360bprFormat);
+                        bpr.Format = x360bprFormat;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderX360).Format.DataFormat;
+                        sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360bprFormat;
                         if (x360bprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360bprFormat}! (Source is {(SourceTexture as TextureHeaderX360).Format.DataFormat})");
+                            Console.WriteLine($"WARNING: Destination texture format is {x360bprFormat}! (Source is {x360.Format.DataFormat})");
                         break;
 
                     // = TUB Source
-                    case "TUB>>X360":
-                        TUBtoX360Mapping.TryGetValue((SourceTexture as TextureHeaderPC).Format, out GPUTEXTUREFORMAT tubx360Format);
-                        (DestinationTexture as TextureHeaderX360).Format.DataFormat = tubx360Format;
+                    case (TexturePC tub, TextureX360 x360):
+                        TUBtoX360Mapping.TryGetValue(tub.Format, out GPUTEXTUREFORMAT tubx360Format);
+                        x360.Format.DataFormat = tubx360Format;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderPC).Format;
+                        sourceFormatIndex = (int)tub.Format;
                         destinationFormatIndex = (int)tubx360Format;
                         if (tubx360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {tubx360Format}! (Source is {(SourceTexture as TextureHeaderPC).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {tubx360Format}! (Source is {tub.Format})");
                         break;
                     
                     // = BPR Source
-                    case "BPR>>PS3":
-                        BPRtoPS3Mapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out CELL_GCM_COLOR_FORMAT bprps3format);
-                        (DestinationTexture as TextureHeaderPS3).Format = bprps3format;
+                    case (TextureBPR bpr, TexturePS3 ps3):
+                        BPRtoPS3Mapping.TryGetValue(bpr.Format, out CELL_GCM_COLOR_FORMAT bprps3format);
+                        ps3.Format = bprps3format;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderBPR).Format;
+                        sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprps3format;
                         if (bprps3format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprps3format}! (Source is {(SourceTexture as TextureHeaderBPR).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {bprps3format}! (Source is {bpr.Format})");
                         break;
-                    case "BPR>>X360":
-                        BPRtoX360Mapping.TryGetValue((SourceTexture as TextureHeaderBPR).Format, out GPUTEXTUREFORMAT bprx360Format);
-                        (DestinationTexture as TextureHeaderX360).Format.DataFormat = bprx360Format;
+                    case (TextureBPR bpr, TextureX360 x360):
+                        BPRtoX360Mapping.TryGetValue(bpr.Format, out GPUTEXTUREFORMAT bprx360Format);
+                        x360.Format.DataFormat = bprx360Format;
                         flipEndian = true;
-                        sourceFormatIndex = (int)(SourceTexture as TextureHeaderBPR).Format;
+                        sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprx360Format;
                         if (bprx360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprx360Format}! (Source is {(SourceTexture as TextureHeaderBPR).Format})");
+                            Console.WriteLine($"WARNING: Destination texture format is {bprx360Format}! (Source is {bpr.Format})");
                         break;
 
                     default:
-                        throw new NotImplementedException($"Conversion technique {technique} is not yet implemented.");
+                        throw new NotImplementedException($"Conversion technique {SourceFormat} > {DestinationFormat} is not yet implemented.");
                 };
 
                 // Finalize Destination
@@ -231,14 +228,14 @@ internal class PortTextureCommand : ICommand
 
                 if (!Path.Exists(sourceBitmapPath))
                 {
-                    Console.WriteLine($"Failed to find associated texture data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
+                    Console.WriteLine($"Failed to find associated bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
                 }
 
                 string destinationBitmapPath = $"{Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileName(sourceFile).Split(primaryExtension)[0]}{secondaryExtension}";
 
                 if (Path.Exists(destinationBitmapPath))
                 {
-                    if (Verbose) Console.WriteLine($"Found existing texture data at {destinationBitmapPath}, overwriting...");
+                    if (Verbose) Console.WriteLine($"Found existing bitmap data at {destinationBitmapPath}, overwriting...");
                 }
 
                 try
@@ -251,7 +248,7 @@ internal class PortTextureCommand : ICommand
                         PS3TextureUtilities.PS3GTFToDDS(SourcePath, sourceBitmapPath, destinationBitmapPath, Verbose);
                     }
 
-                    if (DestinationTexture is TextureHeaderX360 destX && SourceTexture.GetResourcePlatform() != Platform.X360)
+                    if (DestinationTexture is TextureX360 destX && SourceTexture.GetResourcePlatform() != Platform.X360)
                     {
                         destX.Format.MaxMipLevel = destX.Format.MinMipLevel;
 
@@ -269,7 +266,7 @@ internal class PortTextureCommand : ICommand
                         //    }
                         //}
                     }
-                    if (SourceTexture is TextureHeaderX360 sourceX)
+                    if (SourceTexture is TextureX360 sourceX)
                     {
                         if (sourceX.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
                         {
@@ -280,14 +277,13 @@ internal class PortTextureCommand : ICommand
                     else
                     {
 
-                        if (!TryConvertTexture(DestinationTexture.Width,
-                                          DestinationTexture.Height,
-                                          DestinationTexture.MipmapLevels,
-                                          technique,
-                                          sourceFormatIndex,
-                                          destinationFormatIndex,
-                                          sourceBitmapPath,
-                                          destinationBitmapPath))
+                        if (!TryConvertTexture(
+                                    SourceTexture,
+                                    DestinationTexture,
+                                    sourceBitmapPath,
+                                    destinationBitmapPath
+                                )
+                            )
                         {
                             if (Verbose) Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
                             File.Copy(sourceBitmapPath, destinationBitmapPath, true);
@@ -300,7 +296,7 @@ internal class PortTextureCommand : ICommand
                     if (Verbose) Console.WriteLine($"Wrote texture bitmap data to {DestinationFormat} destination directory.");
 
                     // Set ContentsSize for BPR textures if applicable.
-                    if (DestinationTexture is TextureHeaderBPR destBPRTexture && File.Exists(destinationBitmapPath))
+                    if (DestinationTexture is TextureBPR destBPRTexture && File.Exists(destinationBitmapPath))
                     {
                         destBPRTexture.PlacedDataSize = (uint)new FileInfo(destinationBitmapPath).Length;
                         if (Verbose) Console.WriteLine($"BPR PlacedDataSize set to {destBPRTexture.PlacedDataSize} (file: {destinationBitmapPath}).");
@@ -353,7 +349,7 @@ internal class PortTextureCommand : ICommand
         UseGTF = args.TryGetValue("usegtf", out var usegtf) && (bool)usegtf;
     }
 
-    public string BPRx64Hack(TextureHeaderBase header, string format)
+    public string BPRx64Hack(TextureBase header, string format)
     {
         if (header.GetResourcePlatform() == Platform.BPR && format.EndsWith("X64"))
         {
@@ -363,74 +359,70 @@ internal class PortTextureCommand : ICommand
         return format;
     }
 
-    public static TextureHeaderBase? ConstructHeader(string Path, string Format, bool Verbose = true) 
+    public static TextureBase? ConstructHeader(string Path, string Format, bool Verbose = true) 
     {
         // TODO: set x64 bool when constructing x64
         if (Verbose) Console.WriteLine($"Constructing {Format} texture property data...");
         return Format switch
         {
-            "BPR" => new TextureHeaderBPR(Path),
-            "BPRX64" => new TextureHeaderBPR(Path),
-            "TUB" => new TextureHeaderPC(Path),
-            "X360" => new TextureHeaderX360(Path),
-            "PS3" => new TextureHeaderPS3(Path),
+            "BPR" => new TextureBPR(Path),
+            "BPRX64" => new TextureBPR(Path),
+            "TUB" => new TexturePC(Path),
+            "X360" => new TextureX360(Path),
+            "PS3" => new TexturePS3(Path),
             _ => throw new InvalidPlatformException(),
         };
     }
 
-    public static void CopyBaseClassProperties(TextureHeaderBase source, TextureHeaderBase destination)
+    public static void CopyProperties(TextureBase source, TextureBase destination)
     {
-        var properties = typeof(TextureHeaderBase).GetProperties();
-        foreach (var prop in properties)
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+
+        var srcType = source.GetType();
+        var dstType = destination.GetType();
+
+        var typeToReflect = srcType == dstType
+            ? srcType
+            : typeof(TextureBase);
+
+        var props = typeToReflect
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead
+                     && p.CanWrite
+                     && p.GetIndexParameters().Length == 0);
+
+        foreach (var prop in props)
         {
             var value = prop.GetValue(source);
             prop.SetValue(destination, value);
         }
     }
 
-    public bool TryConvertTexture(int width, int height, int mipCount, string technique, int inFormat, int outFormat, string inPath, string outPath)
+    public bool TryConvertTexture(TextureBase srcTexture, TextureBase destTexture, string inPath, string outPath)
     {
-        byte[] texture = File.ReadAllBytes(inPath);
-        switch (technique)
+        byte[] bitmap = File.ReadAllBytes(inPath);
+        switch (srcTexture, destTexture)
         {
-            case "PS3>>BPR":
-                if ((CELL_GCM_COLOR_FORMAT)inFormat == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8
-                && (DXGI_FORMAT)outFormat == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
-                    DDSTextureUtilities.A8R8G8B8toB8G8R8A8(texture, width, height, mipCount);
+            case (TexturePS3 ps3, TextureBPR bpr):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8
+                &&  bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
+                    DDSTextureUtilities.A8R8G8B8toB8G8R8A8(bitmap, destTexture.Width, destTexture.Height, destTexture.MipmapLevels);
                 break;
-            case "TUB>>BPR":
-                if ((D3DFORMAT)inFormat == D3DFORMAT.D3DFMT_A8R8G8B8 
-                && (DXGI_FORMAT)outFormat == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
-                    DDSTextureUtilities.A8R8G8B8toB8G8R8A8(texture, width, height, mipCount);
-                if ((D3DFORMAT)inFormat == D3DFORMAT.D3DFMT_A8B8G8R8 
-                && (DXGI_FORMAT)outFormat == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
-                    DDSTextureUtilities.A8B8G8R8toB8G8R8A8(texture, width, height, mipCount);
+            case (TexturePC tub, TextureBPR bpr):
+                if (tub.Format == D3DFORMAT.D3DFMT_A8R8G8B8 
+                &&  bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
+                    DDSTextureUtilities.A8R8G8B8toB8G8R8A8(bitmap, destTexture.Width, destTexture.Height, destTexture.MipmapLevels);
+                if (tub.Format == D3DFORMAT.D3DFMT_A8B8G8R8 
+                &&  bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
+                    DDSTextureUtilities.A8B8G8R8toB8G8R8A8(bitmap, destTexture.Width, destTexture.Height, destTexture.MipmapLevels);
                 break;
             default:
-                texture = [];
+                bitmap = [];
                 return false;
         };
-        File.WriteAllBytes(outPath, texture);
+        File.WriteAllBytes(outPath, bitmap);
         return true;
-    }
-
-    private static Dictionary<TKey, TValue> GetMapping<TKey, TValue>(string technique)
-    {
-        return technique switch
-        {
-            "PS3>>X360" => PS3toX360Mapping as Dictionary<TKey, TValue>,
-            "X360>>PS3" => X360toPS3Mapping as Dictionary<TKey, TValue>,
-            "TUB>>BPR" => TUBtoBPRMapping as Dictionary<TKey, TValue>,
-            "BPR>>TUB" => BPRtoTUBMapping as Dictionary<TKey, TValue>,
-            "PS3>>BPR" => PS3toBPRMapping as Dictionary<TKey, TValue>,
-            "PS3>>TUB" => PS3toTUBMapping as Dictionary<TKey, TValue>,
-            "X360>>TUB" => X360toTUBMapping as Dictionary<TKey, TValue>,
-            "X360>>BPR" => X360toBPRMapping as Dictionary<TKey, TValue>,
-            "TUB>>X360" => TUBtoX360Mapping as Dictionary<TKey, TValue>,
-            "BPR>>PS3" => BPRtoPS3Mapping as Dictionary<TKey, TValue>,
-            "BPR>>X360" => BPRtoX360Mapping as Dictionary<TKey, TValue>,
-            _ => throw new ArgumentException("Invalid technique specified", nameof(technique))
-        };
     }
 
     private static readonly Dictionary<GPUTEXTUREFORMAT, D3DFORMAT> X360toTUBMapping = new()

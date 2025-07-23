@@ -7,7 +7,7 @@ using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
-public class TextureHeaderX360 : TextureHeaderBase
+public class TextureX360 : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.BE;
     public override Platform GetResourcePlatform() => Platform.X360;
@@ -38,9 +38,9 @@ public class TextureHeaderX360 : TextureHeaderBase
 
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
-    public TextureHeaderX360() : base() { }
+    public TextureX360() : base() { }
 
-    public TextureHeaderX360(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TextureX360(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
@@ -68,14 +68,19 @@ public class TextureHeaderX360 : TextureHeaderBase
     {
         // TODO: Implement better parser
         // Not accurate. Only prevents 3D & cubemaps from being GR/Prop Textures
-        GRTexture = PropTexture = Format.Dimension switch
+        bool setFlags = Format.Dimension switch
         {
             GPUDIMENSION.GPUDIMENSION_1D => true,
             GPUDIMENSION.GPUDIMENSION_3D => false,
             GPUDIMENSION.GPUDIMENSION_CUBEMAP => false,
             _ => true,
         };
-        WorldTexture = true;
+
+        TextureBaseUsageFlags f = UsageFlags & ~TextureBaseUsageFlags.AnyTexture;
+        if (setFlags) f |= TextureBaseUsageFlags.GRTexture | TextureBaseUsageFlags.PropTexture;
+        f |= TextureBaseUsageFlags.WorldTexture;
+
+        UsageFlags = f;
 
         base.PullInternalFlags();
     }

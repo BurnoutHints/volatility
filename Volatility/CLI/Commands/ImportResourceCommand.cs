@@ -73,8 +73,9 @@ internal partial class ImportResourceCommand : ICommand
 				var serializer = new SerializerBuilder()
     				.DisableAliases()
     				.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
-    				.WithTypeConverter(new ResourceYamlTypeConverter())
-    				.WithTypeConverter(new StringEnumYamlTypeConverter())
+                    .WithTypeConverter(new ResourceYamlTypeConverter())
+                    .WithTypeConverter(new ResourceIDYamlTypeConverter())
+                    .WithTypeConverter(new StringEnumYamlTypeConverter())
     				.Build();
 				
 				var serializedString = new string("");

@@ -2,7 +2,7 @@
 
 namespace Volatility.Resources;
 
-public class TextureHeaderBPR : TextureHeaderBase
+public class TextureBPR : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.BPR;
@@ -21,7 +21,7 @@ public class TextureHeaderBPR : TextureHeaderBase
     [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Tile Mode"), EditorTooltip("When placed texture mode is enabled, this specifies the way the texture is tiled.")]
     public XG_TILE_MODE PlacedTileMode = XG_TILE_MODE.XG_TILE_MODE_PC;  // PC uses unknown value 0x0005C0C0, labeled "XG_TILE_MODE_PC" for now
 
-    [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Texture Data Size"), EditorTooltip("When placed texture mode is enabled, this specifies the size of the texture data.")]
+    [EditorCategory("Texture/Remastered/Placed Texture"), EditorLabel("Texture Data Size"), EditorReadOnly, EditorTooltip("When placed texture mode is enabled, this specifies the size of the texture data.")]
     public uint PlacedDataSize;                                         // TODO: Calculate this PS4/Switch/XBOne specific field
 
     public override DIMENSION Dimension
@@ -30,9 +30,9 @@ public class TextureHeaderBPR : TextureHeaderBase
         set => _Dimension = value;
     }
 
-    public TextureHeaderBPR() : base() { }
+    public TextureBPR() : base() { }
 
-    public TextureHeaderBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TextureBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }
