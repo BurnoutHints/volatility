@@ -5,7 +5,7 @@ VisualStudioVersion = 17.7.34003.232
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volatility", "Volatility\Volatility.csproj", "{4111E0A2-78F4-4AFD-9EED-056B8FF9160B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vantage", "Vantage\Vantage.csproj", "{38822905-5AD3-4F09-98C4-63FD6F164B5F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vantage.Avalonia", "Vantage\Vantage.Avalonia.csproj", "{38822905-5AD3-4F09-98C4-63FD6F164B5F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
