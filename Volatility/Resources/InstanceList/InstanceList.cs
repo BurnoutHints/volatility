@@ -13,7 +13,7 @@ public class InstanceList : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.InstanceList;
     
-    [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
+    [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorReadOnly, EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
     public uint NumInstances;
 
     [EditorLabel("Instances"), EditorCategory("Instance List"), EditorTooltip("The list of instances in this list.")]
@@ -67,10 +67,10 @@ public class InstanceList : Resource
                 // Padding1 = _padding1, Padding2 = _padding2,
                 MaxVisibleDistanceSquared = _maxVisibleDistanceSquared,
                 Transform = _transform,
-                ResourceId = new ResourceID
+                ResourceId = new ResourceImport
                 {
-                    ID = reader.ReadBytes(4),
-                    Endian = reader.GetEndianness()
+                    ReferenceID = reader.ReadUInt32(),
+                    ExternalImport = false
                 },
             });
         }
@@ -80,7 +80,7 @@ public class InstanceList : Resource
 public struct Instance
 {
     [EditorLabel("Resource ID"), EditorCategory("InstanceList/Instances"), EditorTooltip("The reference to the resource placed by this instance.")]
-    public ResourceID ResourceId;
+    public ResourceImport ResourceId;
 
     [EditorLabel("Transform"), EditorCategory("InstanceList/Instances"), EditorTooltip("The location, rotation, and scale of this instance.")]
     public Transform Transform;

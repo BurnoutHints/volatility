@@ -4,7 +4,7 @@ using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
-public class TextureHeaderPC : TextureHeaderBase
+public class TexturePC : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.TUB;
@@ -30,9 +30,9 @@ public class TextureHeaderPC : TextureHeaderBase
     public TEXTURETYPE TextureType;             // Dimension in BPR
     public byte Flags;                          // Flags
 
-    public TextureHeaderPC() : base() { }
+    public TexturePC() : base() { }
 
-    public TextureHeaderPC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
