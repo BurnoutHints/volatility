@@ -167,49 +167,57 @@ internal partial class ImportResourceCommand : ICommand
 
                         string sampleName = $"{resource.AssetName}_{samples[i].SampleID}";
 						
-                        Console.WriteLine($"Writing extracted sample {sampleName}.snr");
-                        await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i].Data);
+
+						string samplePathName = Path.Combine(sampleDirectory, sampleName);
+
+                        if (!File.Exists($"{samplePathName}.snr") || Overwrite)
+						{
+                            Console.WriteLine($"Writing extracted sample {sampleName}.snr");
+                            await File.WriteAllBytesAsync($"{samplePathName}.snr", samples[i].Data);
+                        }
+						else
+						{
+                            Console.WriteLine($"Skipping extracted sample {sampleName}.snr");
+                        }
 
                         if (sxExists)
-                        {
-                            string samplePathName = Path.Combine(sampleDirectory, sampleName);
+						{
+							string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
 
-                            string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
+							Directory.CreateDirectory(convertedSamplePathName);
 
-                            Directory.CreateDirectory(convertedSamplePathName);
+							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
 
-                            convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
+							ProcessStartInfo start = new ProcessStartInfo
+							{
+								FileName = sxPath,
+								Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
+								RedirectStandardOutput = true,
+								RedirectStandardError = true,
+								UseShellExecute = false,
+								CreateNoWindow = true
+							};
 
-                            ProcessStartInfo start = new ProcessStartInfo
-                            {
-                                FileName = sxPath,
-                                Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            };
+							using (Process process = new Process())
+							{
+								process.StartInfo = start;
+								process.OutputDataReceived += (sender, e) =>
+								{
+									if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+								};
 
-                            using (Process process = new Process())
-                            {
-                                process.StartInfo = start;
-                                process.OutputDataReceived += (sender, e) =>
-                                {
-                                    if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-                                };
+								process.ErrorDataReceived += (sender, e) =>
+								{
+									if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+								};
 
-                                process.ErrorDataReceived += (sender, e) =>
-                                {
-                                    if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-                                };
-
-                                Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-                                process.Start();
-                                process.BeginOutputReadLine();
-                                process.BeginErrorReadLine();
-                                process.WaitForExit();
-                            }
-                        }
+								Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
+								process.Start();
+								process.BeginOutputReadLine();
+								process.BeginErrorReadLine();
+								process.WaitForExit();
+							}
+						}
                     }
 
                 }

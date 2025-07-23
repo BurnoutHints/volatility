@@ -40,7 +40,6 @@ public class Splicer : BinaryResource
         if (version != 1)
         {
             throw new InvalidDataException("Version mismatch! Version should be 1.");
-            return;
         }
         
         int pSampleRefTOC = reader.ReadInt32();
@@ -49,7 +48,6 @@ public class Splicer : BinaryResource
         if (numSplices <= 0)
         {
             throw new InvalidDataException("No splices in Splicer file!");
-            return;
         }
 
         int lowestSampleIndex = new int();
@@ -117,7 +115,7 @@ public class Splicer : BinaryResource
 
         SamplePtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
 
-        _samples = new List<Sample>(numSamples);
+        _samples = new List<Sample>();
         for (int i = 0; i < numSamples; i++)
         {
             reader.BaseStream.Seek(SamplePtrOffset + DataOffset + SamplePtrs[i], SeekOrigin.Begin);
@@ -126,11 +124,14 @@ public class Splicer : BinaryResource
 
             byte[]? data = reader.ReadBytes(length);
 
-            _samples[i] = new Sample
-            {
-                SampleID = SnrID.HashFromBytes(data),
-                Data = data,
-            };
+            _samples.Add
+            (
+                new Sample
+                {
+                    SampleID = SnrID.HashFromBytes(data),
+                    Data = data,
+                }
+            );
 
             data = null;
         }
