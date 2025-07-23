@@ -161,12 +161,11 @@ internal partial class ImportResourceCommand : ICommand
 					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
                     for (int i = 0; i < samples?.Count; i++)
                     {
-                        string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
+                        string sampleDirectory = Path.Combine(directoryPath, "Splicer", "Samples");
 
                         Directory.CreateDirectory(sampleDirectory);
 
-                        string sampleName = $"{resource.AssetName}_{samples[i].SampleID}";
-						
+                        string sampleName = $"{samples[i].SampleID}";
 
 						string samplePathName = Path.Combine(sampleDirectory, sampleName);
 
