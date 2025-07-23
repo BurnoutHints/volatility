@@ -158,22 +158,17 @@ internal partial class ImportResourceCommand : ICommand
 
                     Splicer? splicer = resource as Splicer;
 
-					byte[][]? samples = splicer?.GetLoadedSamples();
-					using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-					byte[] salt = Encoding.UTF8.GetBytes("Volatility_");	
-                    for (int i = 0; i < samples?.Length; i++)
+					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
+                    for (int i = 0; i < samples?.Count; i++)
                     {
                         string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
 
                         Directory.CreateDirectory(sampleDirectory);
-						
-						hasher.AppendData(salt);
-						hasher.AppendData(samples[i]);
 
-                        string sampleName = $"{resource.AssetName}_{Convert.ToHexString(hasher.GetHashAndReset())}";
+                        string sampleName = $"{resource.AssetName}_{samples[i].SampleID}";
 						
                         Console.WriteLine($"Writing extracted sample {sampleName}.snr");
-                        await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i]);
+                        await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i].Data);
 
                         if (sxExists)
                         {

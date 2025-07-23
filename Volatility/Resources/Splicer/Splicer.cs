@@ -20,7 +20,7 @@ public class Splicer : BinaryResource
 
     // This only gets populated when parsing from a stream.
     // Not sure whether this is a good idea to keep as-is.
-    private byte[][] _samples;
+    private List<Sample> _samples;
 
     // Used to make reading parsed files easier.
     // May remove or keep as generated values
@@ -117,14 +117,22 @@ public class Splicer : BinaryResource
 
         SamplePtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
 
-        _samples = new byte[numSamples][];
+        _samples = new List<Sample>(numSamples);
         for (int i = 0; i < numSamples; i++)
         {
             reader.BaseStream.Seek(SamplePtrOffset + DataOffset + SamplePtrs[i], SeekOrigin.Begin);
                           
             int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : SamplePtrs[i + 1]) - SamplePtrs[i]);
 
-            _samples[i] = reader.ReadBytes(length);
+            byte[]? data = reader.ReadBytes(length);
+
+            _samples[i] = new Sample
+            {
+                SampleID = SnrID.HashFromBytes(data),
+                Data = data,
+            };
+
+            data = null;
         }
     }
 
@@ -226,7 +234,7 @@ public class Splicer : BinaryResource
         writer.BaseStream.Seek(tempOffset, SeekOrigin.Begin);
     }
 
-    public byte[][] GetLoadedSamples()
+    public List<Sample> GetLoadedSamples()
     {
         return _samples;
     }
@@ -266,5 +274,11 @@ public class Splicer : BinaryResource
         public byte Priority;
         public byte ERollOffType;
         public ushort Padding2;
+    }
+
+    public struct Sample
+    {
+        public SnrID SampleID;
+        public byte[] Data;
     }
 }
