@@ -1,7 +1,4 @@
-﻿// Temporary Types
-global using ModelPtr = System.IntPtr;
-
-// Permenant Types
+﻿// Permenant Types
 global using Vector2 = System.Numerics.Vector2;         // VectorIntrinsic
 global using Vector3 = System.Numerics.Vector3;         // VectorIntrinsic
 global using Vector3Plus = System.Numerics.Vector4;     // VectorIntrinsic
