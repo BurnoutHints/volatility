@@ -25,9 +25,9 @@ public static class DataUtilities
         return true;
     }
 
-    public static int CalculatePitchPS3(int width, int blockSize)
+    public static uint CalculatePitchPS3(int width, int blockSize)
     {
-        return ((width + 3) / 4) * blockSize;
+        return (uint)(((width + 3) / 4) * blockSize);
     }
 
     public static ushort CalculatePitchX360(ushort width, ushort height)
