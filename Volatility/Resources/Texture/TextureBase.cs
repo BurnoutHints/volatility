@@ -29,33 +29,13 @@ public abstract class TextureBase : Resource
     [EditorCategory("Texture"), EditorLabel("Most Detailed Mipmap"), EditorTooltip("The index of the most detailed mipmap. Note that index 0 is the highest resolution (the base image).")]
     public byte MostDetailedMip { get; set; }
 
-    protected bool _GRTexture = false;
-    public bool GRTexture       // Vehicle & Wheel GRs 
+    protected TextureBaseUsageFlags _usageFlags = TextureBaseUsageFlags.None;
+    public TextureBaseUsageFlags UsageFlags
     {
-        get => _GRTexture;
+        get => _usageFlags;
         set
         {
-            _GRTexture = value;
-            PushInternalFlags();
-        }
-    }
-    protected bool _WorldTexture = false;
-    public bool WorldTexture    // GlobalBackdrops & WorldTex
-    {
-        get => _WorldTexture;
-        set
-        {
-            _WorldTexture = value;
-            PushInternalFlags();
-        }
-    }
-    protected bool _PropTexture = false;
-    public bool PropTexture     // GlobalProps
-    {
-        get => _PropTexture;
-        set
-        {
-            _PropTexture = value;
+            _usageFlags = value;
             PushInternalFlags();
         }
     }
@@ -81,17 +61,28 @@ public abstract class TextureBase : Resource
 
         if (!string.IsNullOrEmpty(ImportedFileName))
         {
-            string folder = "";
             var directoryInfo = new DirectoryInfo(ImportedFileName);
 
             // Two directories up
             if (directoryInfo.Parent?.Parent != null)
             {
-                folder = directoryInfo.Parent.Parent.Name;
+                string folder = directoryInfo.Parent?.Parent?.Name ?? string.Empty;
 
-                WorldTexture = folder.StartsWith("TRK_") || folder.Contains("BACKDROP") || folder.Contains("WORLDTEX");
-                GRTexture = folder.EndsWith("_GR");
-                PropTexture = folder.Contains("PROPS");
+                const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+
+                TextureBaseUsageFlags add = TextureBaseUsageFlags.None;
+
+                if (folder.StartsWith("TRK_", OIC) || folder.Contains("BACKDROP", OIC) || folder.Contains("WORLDTEX", OIC))
+                    add |= TextureBaseUsageFlags.WorldTexture;
+
+                if (folder.EndsWith("_GR", OIC))
+                    add |= TextureBaseUsageFlags.GRTexture;
+
+                if (folder.Contains("PROPS", OIC))
+                    add |= TextureBaseUsageFlags.PropTexture;
+
+                // We only set UsageFlags property once to avoid updating pushing three times
+                UsageFlags = (UsageFlags & ~TextureBaseUsageFlags.AnyTexture) | add;
             }
         }
     }
@@ -124,4 +115,16 @@ public enum DIMENSION : int
     DIMENSION_3D = 8,
     [EditorLabel("Cube")]
     DIMENSION_CUBE = 9
+}
+
+[Flags]
+public enum TextureBaseUsageFlags
+{
+    None = 0,
+
+    GRTexture = 1,      // Vehicle & Wheel GRs 
+    WorldTexture = 2,   // GlobalBackdrops & WorldTex
+    PropTexture = 3,    // GlobalProps
+
+    AnyTexture = WorldTexture | GRTexture | PropTexture
 }

@@ -110,20 +110,28 @@ public class TexturePC : TextureBase
 
     public override void PushInternalFlags()
     {
-        Unknown1 = TrimIntToByte(WorldTexture || GRTexture ? 1 : 0);
-        Unknown2 = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
-        Flags = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
+        bool grOrWorld = (UsageFlags & (TextureBaseUsageFlags.WorldTexture | TextureBaseUsageFlags.GRTexture)) != 0;
+        bool any = (UsageFlags & TextureBaseUsageFlags.AnyTexture) != 0;
+
+        Unknown1 = Convert.ToByte(grOrWorld);
+        Unknown2 = Convert.ToByte(any);
+        Flags = (byte)(any ? (Flags | 0x08) : (Flags & ~0x08));
     }
+
     public override void PullInternalFlags()
     {
         // TODO: More accurate/efficient flag calcuation!
 
+        var f = UsageFlags & ~TextureBaseUsageFlags.AnyTexture;
+
         // Assuming Unknown 2 is probably world, and Unknown 1 is GR?
-        WorldTexture = Unknown2 != 0;
-        GRTexture = Unknown1 != 0;
+        if (Unknown2 != 0) f |= TextureBaseUsageFlags.WorldTexture;
+        if (Unknown1 != 0) f |= TextureBaseUsageFlags.GRTexture;
 
         // We're just a prop in this cruel game of life
-        PropTexture = Unknown1 == 0 && Unknown2 != 0 && Flags != 0;
+        if (Unknown1 == 0 && Unknown2 != 0 && Flags != 0) f |= TextureBaseUsageFlags.PropTexture;
+
+        UsageFlags = f;
 
         // Run after, if directory exists then we use that instead
         base.PullInternalFlags();

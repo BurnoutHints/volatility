@@ -53,7 +53,7 @@ internal class AutotestCommand : ICommand
             Width = 1024,
             Height = 512,
             MipmapLevels = 11,
-            GRTexture = true
+            UsageFlags = TextureBaseUsageFlags.GRTexture
         };
 
         TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
@@ -67,7 +67,7 @@ internal class AutotestCommand : ICommand
             Width = 1024,
             Height = 512,
             MipmapLevels = 11,
-            GRTexture = true
+            UsageFlags = TextureBaseUsageFlags.GRTexture
         };
 
         // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
@@ -91,7 +91,7 @@ internal class AutotestCommand : ICommand
             Width = 1024,
             Height = 512,
             MipmapLevels = 11,
-            GRTexture = true
+            UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderPS3.PushAll();
         TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
@@ -113,7 +113,7 @@ internal class AutotestCommand : ICommand
             Height = 512,
             Depth = 1,
             MipmapLevels = 11,
-            GRTexture = true
+            UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderX360.PushAll();
         TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
