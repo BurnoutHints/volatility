@@ -156,100 +156,143 @@ public class Splicer : BinaryResource
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
+        LoadDependentSamples();
+
         base.WriteToStream(writer, endianness);
 
         writer.BaseStream.Position = DataOffset;
 
         writer.Write(1); // version
 
-        int sampleRefTOCPosition = (int)writer.BaseStream.Position; // Saving this for later
-
-        writer.Write(0); // pSampleRefTOC
+        long pSampleRefTocFieldPos = writer.BaseStream.Position;  // Saving this for later
+        writer.Write(0); // pSampleRefTOC placeholder
 
         writer.Write(Splices.Count); // NumSplices
 
-        // Write Splices
+        var spliceSampleRefPtrPatchPos = new List<long>(Splices.Count);
+        int runningSampleRefIndex = 0;
         for (int i = 0; i < Splices.Count; i++)
         {
-            // NameHash, unused by game
-            writer.Write(Encoding.Default.GetBytes("sper"));
+            var s = Splices[i];
 
-            writer.Write(Splices[i].SpliceIndex);
-            writer.Write(Splices[i].ESpliceType);
-            writer.Write(Splices[i].Num_SampleRefs);
-            writer.Write(Splices[i].Volume);
-            writer.Write(Splices[i].RND_Pitch);
-            writer.Write(Splices[i].RND_Vol);
+            writer.Write(s.NameHash);
+            writer.Write(s.SpliceIndex);
+            writer.Write(s.ESpliceType);
+            writer.Write(s.Num_SampleRefs);
+            writer.Write(s.Volume);
+            writer.Write(s.RND_Pitch);
+            writer.Write(s.RND_Vol);
 
-            // pSampleRefList, filled at runtime
-            writer.Write(Encoding.Default.GetBytes("dunk"));
+            spliceSampleRefPtrPatchPos.Add(writer.BaseStream.Position);
+            writer.Write(0); // pSampleRefList placeholder
+
+            s.SampleListIndex = runningSampleRefIndex;
+            Splices[i] = s;
+            runningSampleRefIndex += s.Num_SampleRefs;
         }
 
-        // Write SampleRefs
+        long sampleRefsStart = writer.BaseStream.Position;
         for (int i = 0; i < SampleRefs.Count; i++)
         {
-            writer.Write(_samples.FindIndex(s => s.SampleID.Equals(SampleRefs[i].Sample)));
-            writer.Write(SampleRefs[i].ESpliceType);
-            writer.Write(SampleRefs[i].Padding);
-            writer.Write(SampleRefs[i].Volume);
-            writer.Write(SampleRefs[i].Pitch);
-            writer.Write(SampleRefs[i].Offset);
-            writer.Write(SampleRefs[i].Az);
-            writer.Write(SampleRefs[i].Duration);
-            writer.Write(SampleRefs[i].FadeIn);
-            writer.Write(SampleRefs[i].FadeOut);
-            writer.Write(SampleRefs[i].RND_Vol);
-            writer.Write(SampleRefs[i].RND_Pitch);
-            writer.Write(SampleRefs[i].Priority);
-            writer.Write(SampleRefs[i].ERollOffType);
-            writer.Write(SampleRefs[i].Padding2);
+            var r = SampleRefs[i];
+            int sampleIndex = _samples.FindIndex(s => s.SampleID.Equals(r.Sample));
+
+            writer.Write((ushort)sampleIndex);
+            writer.Write(r.ESpliceType);
+            writer.Write(r.Padding);
+            writer.Write(r.Volume);
+            writer.Write(r.Pitch);
+            writer.Write(r.Offset);
+            writer.Write(r.Az);
+            writer.Write(r.Duration);
+            writer.Write(r.FadeIn);
+            writer.Write(r.FadeOut);
+            writer.Write(r.RND_Vol);
+            writer.Write(r.RND_Pitch);
+            writer.Write(r.Priority);
+            writer.Write(r.ERollOffType);
+            writer.Write(r.Padding2);
         }
+        long sampleRefsEnd = writer.BaseStream.Position;
 
-        int sampleRefTOC = ((int)writer.BaseStream.Position) - (int)DataOffset; // Saving this for later
-
-        writer.Seek(sampleRefTOCPosition, SeekOrigin.Begin);
-
-        writer.Write(sampleRefTOC);
-
-        writer.Seek(sampleRefTOCPosition + (int)DataOffset, SeekOrigin.Begin);
-    }
-
-    public void SpliceSamples(EndianAwareBinaryWriter writer, string samplesDir)
-    {
-        // Enumerate then write Samples
-        string samplesDirectory = Path.Combine(Path.GetDirectoryName(samplesDir), "Splicer", "Samples");
-
-        string[] paths = Directory.GetFiles(samplesDirectory, "*.snr");
-        byte[][] samples = Array.Empty<byte[]>();
-        int[] lengths = Array.Empty<int>();
-
-        int lowestIndex = 0;
-
-        for (int i = 0; i < paths.Length; i++)
+        // Backpatch each splice's pSampleRefList
+        for (int i = 0; i < Splices.Count; i++)
         {
-            samples[i] = File.ReadAllBytes(paths[i]);
-            lengths[i] = samples[i].Length;
-
-            // Write SamplePtrs
-            writer.Write(lowestIndex);
-
-            lowestIndex += samples[i].Length;
+            long patchPos = spliceSampleRefPtrPatchPos[i];
+            int offset = (int)(sampleRefsStart - DataOffset + Splices[i].SampleListIndex * Marshal.SizeOf<SPLICE_SampleRef>());
+            writer.Seek((int)patchPos, SeekOrigin.Begin);
+            writer.Write(offset);
         }
+        writer.Seek((int)sampleRefsEnd, SeekOrigin.Begin);
 
-        for (int i = 0; i < samples.Length; i++)
+        int numSamples = _samples.Count;
+        int pSampleRefTOC = (int)(writer.BaseStream.Position - DataOffset);
+
+        writer.Write(numSamples);
+
+        // Reserve space for offsets
+        long offsetsStart = writer.BaseStream.Position;
+        for (int i = 0; i < numSamples; i++) writer.Write(0);
+
+        long dataStart = writer.BaseStream.Position;
+        int running = 0;
+        for (int i = 0; i < numSamples; i++)
         {
-            writer.Write(samples[i]);
+            byte[] data = _samples[i].Data;
+            writer.Write(data);
+            long curPos = writer.BaseStream.Position;
+            // backfill this sample's offset
+            long save = writer.BaseStream.Position;
+            writer.Seek((int)(offsetsStart + i * 4), SeekOrigin.Begin);
+            writer.Write(running);
+            writer.Seek((int)save, SeekOrigin.Begin);
+            running += data.Length;
         }
 
-        long tempOffset = writer.BaseStream.Position;
+        // Backfill pSampleRefTOC in header
+        long endPos = writer.BaseStream.Position;
+        writer.Seek((int)pSampleRefTocFieldPos, SeekOrigin.Begin);
+        writer.Write(pSampleRefTOC);
+        writer.Seek((int)endPos, SeekOrigin.Begin);
 
-        // Handle the BinaryResource data size
-        // Not exactly a fan of how this is hardcoded.
+        // Update DataSize
         DataSize = (uint)(writer.BaseStream.Length - 0x10);
+        long pos = writer.BaseStream.Position;
         writer.BaseStream.Seek(0, SeekOrigin.Begin);
         writer.Write(DataSize);
+        writer.BaseStream.Seek(pos, SeekOrigin.Begin);
+    }
 
-        writer.BaseStream.Seek(tempOffset, SeekOrigin.Begin);
+    public void LoadDependentSamples(bool recurse = false)
+    {
+        var needed = SampleRefs.Select(r => r.Sample).Distinct().ToList();
+        string dir = Path.Combine(AppContext.BaseDirectory, "data", "Resources", "Splicer", "Samples");
+        var files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+
+        var map = new Dictionary<SnrID, byte[]>(needed.Count);
+        foreach (var f in files)
+        {
+            var data = File.ReadAllBytes(f);
+            var id = SnrID.HashFromBytes(data);
+            if (!map.ContainsKey(id) && needed.Contains(id))
+                map[id] = data;
+        }
+
+        foreach (var id in needed)
+            if (!map.ContainsKey(id))
+                throw new FileNotFoundException($"Missing sample for {id}");
+
+        _samples = new List<Sample>(needed.Count);
+        SamplePtrs = new IntPtr[needed.Count];
+
+        int running = 0;
+        for (int i = 0; i < needed.Count; i++)
+        {
+            var data = map[needed[i]];
+            _samples.Add(new Sample { SampleID = needed[i], Data = data });
+            SamplePtrs[i] = running;
+            running += data.Length;
+        }
     }
 
     public List<Sample> GetLoadedSamples()
