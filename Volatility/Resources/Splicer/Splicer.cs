@@ -16,21 +16,10 @@ public class Splicer : BinaryResource
     
     public List<SPLICE_Data> Splices;
     public List<SPLICE_SampleRef> SampleRefs;
-    public IntPtr[] SamplePtrs;
 
-    // This only gets populated when parsing from a stream.
-    // Not sure whether this is a good idea to keep as-is.
+    // Only gets populated when parsing from a stream, or when
+    // loading referenced sample IDs through LoadDependentSamples. 
     private List<Sample> _samples;
-
-    // Used to make reading parsed files easier.
-    // May remove or keep as generated values
-    // to make reading & editing easier.
-    [EditorReadOnly]
-    public IntPtr SampleRefsPtrOffset;
-    
-    [EditorReadOnly]
-    public IntPtr SamplePtrOffset;
-
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
@@ -83,28 +72,28 @@ public class Splicer : BinaryResource
 
         int numSampleRefs = Splices[numSplices - 1].SampleListIndex + Splices[numSplices - 1].Num_SampleRefs;
 
-        SampleRefsPtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
+        long _sampleRefsPtrOffset = reader.BaseStream.Position - DataOffset;
 
         reader.BaseStream.Seek(pSampleRefTOC + 0xC + DataOffset, SeekOrigin.Begin);
 
         int numSamples = reader.ReadInt32();
 
-        SamplePtrs = new IntPtr[numSamples];
+        List<long> _samplePtrs = new List<long>(numSamples);
         for (int i = 0; i < numSamples; i++)
         {
-            SamplePtrs[i] = reader.ReadInt32();
+            _samplePtrs.Add(reader.ReadInt32());
         }
 
-        SamplePtrOffset = (nint)(reader.BaseStream.Position - DataOffset);
+        long _samplePtrOffset = reader.BaseStream.Position - DataOffset;
 
         if (_samples == null)
             _samples = new List<Sample>(numSamples);
 
         for (int i = 0; i < numSamples; i++)
         {
-            reader.BaseStream.Seek(SamplePtrOffset + DataOffset + SamplePtrs[i], SeekOrigin.Begin);
+            reader.BaseStream.Seek(_samplePtrOffset + DataOffset + _samplePtrs[i], SeekOrigin.Begin);
                           
-            int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : SamplePtrs[i + 1]) - SamplePtrs[i]);
+            int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : _samplePtrs[i + 1]) - _samplePtrs[i]);
 
             byte[]? data = reader.ReadBytes(length);
 
@@ -120,7 +109,7 @@ public class Splicer : BinaryResource
             data = null;
         }
 
-        reader.BaseStream.Seek(SampleRefsPtrOffset + DataOffset, SeekOrigin.Begin);
+        reader.BaseStream.Seek(_sampleRefsPtrOffset + DataOffset, SeekOrigin.Begin);
 
         if (SampleRefs == null)
             SampleRefs = new List<SPLICE_SampleRef>(numSampleRefs);
@@ -192,12 +181,10 @@ public class Splicer : BinaryResource
         }
 
         long sampleRefsStart = writer.BaseStream.Position;
-        for (int i = 0; i < SampleRefs.Count; i++)
+        foreach (var r in SampleRefs)
         {
-            var r = SampleRefs[i];
-            int sampleIndex = _samples.FindIndex(s => s.SampleID.Equals(r.Sample));
-
-            writer.Write((ushort)sampleIndex);
+            int idx = _samples.FindIndex(s => s.SampleID.Equals(r.Sample));
+            writer.Write((ushort)idx);
             writer.Write(r.ESpliceType);
             writer.Write(r.Padding);
             writer.Write(r.Volume);
@@ -213,18 +200,16 @@ public class Splicer : BinaryResource
             writer.Write(r.ERollOffType);
             writer.Write(r.Padding2);
         }
-        long sampleRefsEnd = writer.BaseStream.Position;
+        int sampleRefSize = Marshal.SizeOf<SPLICE_SampleRef>();
 
         // Backpatch each splice's pSampleRefList
         for (int i = 0; i < Splices.Count; i++)
         {
-            long patchPos = spliceSampleRefPtrPatchPos[i];
-            int offset = (int)(sampleRefsStart - DataOffset + Splices[i].SampleListIndex * Marshal.SizeOf<SPLICE_SampleRef>());
-            writer.Seek((int)patchPos, SeekOrigin.Begin);
-            writer.Write(offset);
+            writer.BaseStream.Position = spliceSampleRefPtrPatchPos[i];
+            int rel = (int)((sampleRefsStart - DataOffset) + Splices[i].SampleListIndex * sampleRefSize);
+            writer.Write(rel);
         }
-        writer.Seek((int)sampleRefsEnd, SeekOrigin.Begin);
-
+        writer.BaseStream.Position = sampleRefsStart;
         int numSamples = _samples.Count;
         int pSampleRefTOC = (int)(writer.BaseStream.Position - DataOffset);
 
@@ -234,13 +219,11 @@ public class Splicer : BinaryResource
         long offsetsStart = writer.BaseStream.Position;
         for (int i = 0; i < numSamples; i++) writer.Write(0);
 
-        long dataStart = writer.BaseStream.Position;
         int running = 0;
         for (int i = 0; i < numSamples; i++)
         {
             byte[] data = _samples[i].Data;
             writer.Write(data);
-            long curPos = writer.BaseStream.Position;
             // backfill this sample's offset
             long save = writer.BaseStream.Position;
             writer.Seek((int)(offsetsStart + i * 4), SeekOrigin.Begin);
@@ -281,18 +264,7 @@ public class Splicer : BinaryResource
         foreach (var id in needed)
             if (!map.ContainsKey(id))
                 throw new FileNotFoundException($"Missing sample for {id}");
-
-        _samples = new List<Sample>(needed.Count);
-        SamplePtrs = new IntPtr[needed.Count];
-
-        int running = 0;
-        for (int i = 0; i < needed.Count; i++)
-        {
-            var data = map[needed[i]];
-            _samples.Add(new Sample { SampleID = needed[i], Data = data });
-            SamplePtrs[i] = running;
-            running += data.Length;
-        }
+        _samples = needed.Select(id => new Sample { SampleID = id, Data = map[id] }).ToList();
     }
 
     public List<Sample> GetLoadedSamples()
