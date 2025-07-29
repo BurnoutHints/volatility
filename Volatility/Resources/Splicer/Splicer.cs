@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Volatility.Resources;
 
@@ -155,8 +154,9 @@ public class Splicer : BinaryResource
        
         int sizeOfSplices = Splices.Count * 0x18; // Size of Splice_Data
         int sizeOfSampleRefs = SampleRefs.Count * 0x2C; // Size of Splice_SampleRef
+        int sizedata = sizeOfSplices + sizeOfSampleRefs;
 
-        writer.Write(sizeOfSplices + sizeOfSampleRefs); // sizedata/pSampleRefTOC
+        writer.Write(sizedata); // sizedata/pSampleRefTOC
 
         writer.Write(Splices.Count); // NumSplices
 
@@ -202,7 +202,7 @@ public class Splicer : BinaryResource
             writer.Write(r.Padding2);
         }
 
-        writer.BaseStream.Position = sampleRefsStart;
+        writer.BaseStream.Position = DataOffset + 0xC + sizedata; // Header + sizedata
         int numSamples = _samples.Count;
         int pSampleRefTOC = (int)(writer.BaseStream.Position - DataOffset);
 
