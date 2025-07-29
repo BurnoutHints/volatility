@@ -152,9 +152,11 @@ public class Splicer : BinaryResource
         writer.BaseStream.Position = DataOffset;
 
         writer.Write(1); // version
+       
+        int sizeOfSplices = Splices.Count * 0x18; // Size of Splice_Data
+        int sizeOfSampleRefs = SampleRefs.Count * 0x2C; // Size of Splice_SampleRef
 
-        long pSampleRefTocFieldPos = writer.BaseStream.Position;  // Saving this for later
-        writer.Write(0); // pSampleRefTOC placeholder
+        writer.Write(sizeOfSplices + sizeOfSampleRefs); // sizedata/pSampleRefTOC
 
         writer.Write(Splices.Count); // NumSplices
 
@@ -172,7 +174,6 @@ public class Splicer : BinaryResource
             writer.Write(s.RND_Pitch);
             writer.Write(s.RND_Vol);
 
-            spliceSampleRefPtrPatchPos.Add(writer.BaseStream.Position);
             writer.Write(0); // pSampleRefList placeholder
 
             s.SampleListIndex = runningSampleRefIndex;
@@ -202,13 +203,6 @@ public class Splicer : BinaryResource
         }
         int sampleRefSize = Marshal.SizeOf<SPLICE_SampleRef>();
 
-        // Backpatch each splice's pSampleRefList
-        for (int i = 0; i < Splices.Count; i++)
-        {
-            writer.BaseStream.Position = spliceSampleRefPtrPatchPos[i];
-            int rel = (int)((sampleRefsStart - DataOffset) + Splices[i].SampleListIndex * sampleRefSize);
-            writer.Write(rel);
-        }
         writer.BaseStream.Position = sampleRefsStart;
         int numSamples = _samples.Count;
         int pSampleRefTOC = (int)(writer.BaseStream.Position - DataOffset);
@@ -231,12 +225,6 @@ public class Splicer : BinaryResource
             writer.Seek((int)save, SeekOrigin.Begin);
             running += data.Length;
         }
-
-        // Backfill pSampleRefTOC in header
-        long endPos = writer.BaseStream.Position;
-        writer.Seek((int)pSampleRefTocFieldPos, SeekOrigin.Begin);
-        writer.Write(pSampleRefTOC);
-        writer.Seek((int)endPos, SeekOrigin.Begin);
 
         // Update DataSize
         DataSize = (uint)(writer.BaseStream.Length - 0x10);
