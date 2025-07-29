@@ -201,7 +201,6 @@ public class Splicer : BinaryResource
             writer.Write(r.ERollOffType);
             writer.Write(r.Padding2);
         }
-        int sampleRefSize = Marshal.SizeOf<SPLICE_SampleRef>();
 
         writer.BaseStream.Position = sampleRefsStart;
         int numSamples = _samples.Count;
