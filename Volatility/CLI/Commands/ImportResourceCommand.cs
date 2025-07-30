@@ -225,21 +225,6 @@ internal partial class ImportResourceCommand : ICommand
                             }
                         }
                     }
-
-                    var _srSerializer = new SerializerBuilder().Build();
-                    foreach (var kv in splicer.SampleRefs)
-                    {
-                        var path = Path.Combine("data", "Splicer", "SampleRefs");
-
-						Directory.CreateDirectory(path);
-
-						path = Path.Combine(path, kv.Key + ".yaml");
-
-						if (!File.Exists(path) || Overwrite)
-							File.WriteAllText(path, _srSerializer.Serialize(kv.Value));
-						else
-							Console.WriteLine($"SampleRef {kv.Key} already exists, skipping...");
-                    }
                 }
                 Console.WriteLine($"Imported {Path.GetFileName(sourceFile)} as {Path.GetFullPath(filePath)}.");
 			}));
