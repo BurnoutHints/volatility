@@ -116,10 +116,6 @@ internal partial class ExportResourceCommand : ICommand
 							case TextureBase texture:
                                 texture.PushAll();
                                 goto default;
-                            case Splicer splicer:
-								splicer.WriteToStream(writer);
-								splicer.SpliceSamples(writer, Path.GetDirectoryName(sourceFile));
-                                break;
 							default:
 								resource.WriteToStream(writer);
 								break;

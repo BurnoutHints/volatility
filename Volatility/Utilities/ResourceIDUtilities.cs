@@ -133,21 +133,4 @@ public static class ResourceIDUtilities
 
         return "";
     }
-
-    public static string GetResourceIDFromName(string name, Endian endian = Endian.LE)
-    {
-        byte[] hash = Crc32.Hash(Encoding.UTF8.GetBytes(name.ToLower()));
-
-        if (endian == Endian.BE) 
-        {
-            Array.Reverse(hash);
-        }
-
-        return BitConverter.ToString(hash).Replace("-", "_").ToUpper();
-    }
-
-    public static ResourceID GetResourceIDFromName(string name)
-    {
-        return BinaryPrimitives.ReadUInt32BigEndian(Crc32.Hash(Encoding.UTF8.GetBytes(name.ToLower())));
-    }
 }

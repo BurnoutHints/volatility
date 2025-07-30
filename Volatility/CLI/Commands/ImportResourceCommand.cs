@@ -1,8 +1,9 @@
+using System.Text;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -73,7 +74,7 @@ internal partial class ImportResourceCommand : ICommand
     				.DisableAliases()
     				.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
                     .WithTypeConverter(new ResourceYamlTypeConverter())
-                    .WithTypeConverter(new ResourceIDYamlTypeConverter())
+                    .WithTypeConverter(new StrongIDYamlTypeConverter())
                     .WithTypeConverter(new StringEnumYamlTypeConverter())
     				.Build();
 				
@@ -157,62 +158,75 @@ internal partial class ImportResourceCommand : ICommand
 
                     Splicer? splicer = resource as Splicer;
 
-					byte[][]? samples = splicer?.GetLoadedSamples();
-
-                    for (int i = 0; i < samples?.Length; i++)
-					{
-						string sampleName = $"{resource.AssetName}_{i}";
-
-						string sampleDirectory = Path.Combine(directoryPath, $"{resource.AssetName}_Samples");
+					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
+                    for (int i = 0; i < samples?.Count; i++)
+                    {
+                        string sampleDirectory = Path.Combine("data", "Splicer", "Samples");
 
                         Directory.CreateDirectory(sampleDirectory);
 
-						Console.WriteLine($"Writing extracted sample {sampleName}.snr");
-					    await File.WriteAllBytesAsync(Path.Combine(sampleDirectory, $"{sampleName}.snr"), samples[i]);
+                        string sampleName = $"{samples[i].SampleID}";
 
-						if (sxExists)
+						string samplePathName = Path.Combine(sampleDirectory, sampleName);
+
+                        if (!File.Exists($"{samplePathName}.snr") || Overwrite)
 						{
-							string samplePathName = Path.Combine(sampleDirectory, sampleName);
+                            Console.WriteLine($"Writing extracted sample {sampleName}.snr");
+                            await File.WriteAllBytesAsync($"{samplePathName}.snr", samples[i].Data);
+                        }
+						else
+						{
+                            Console.WriteLine($"Skipping extracted sample {sampleName}.snr");
+                        }
 
+                        if (sxExists)
+						{
 							string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
 
 							Directory.CreateDirectory(convertedSamplePathName);
 
-							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
+							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName + ".wav");
 
-                            ProcessStartInfo start = new ProcessStartInfo
-					        {
-					            FileName = sxPath,
-					            Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
-					            RedirectStandardOutput = true,
-					            RedirectStandardError = true,
-					            UseShellExecute = false,
-					            CreateNoWindow = true
-					        };
+							if (!File.Exists(convertedSamplePathName) || Overwrite)
+							{
+                                ProcessStartInfo start = new ProcessStartInfo
+                                {
+                                    FileName = sxPath,
+                                    Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"",
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                };
 
-					        using (Process process = new Process())
-					        {
-					            process.StartInfo = start;
-					            process.OutputDataReceived += (sender, e) =>
-					            {
-					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-					            };
+                                using (Process process = new Process())
+                                {
+                                    process.StartInfo = start;
+                                    process.OutputDataReceived += (sender, e) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                    };
 
-					            process.ErrorDataReceived += (sender, e) =>
-					            {
-					                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-					            };
+                                    process.ErrorDataReceived += (sender, e) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                    };
 
-                                Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-                                process.Start();
-					            process.BeginOutputReadLine();
-					            process.BeginErrorReadLine();
-					            process.WaitForExit();
-					        }
-					    }
-					}
-				}
-                Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
+                                    Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
+                                    process.Start();
+                                    process.BeginOutputReadLine();
+                                    process.BeginErrorReadLine();
+                                    process.WaitForExit();
+                                }
+                            }
+							else
+							{
+                                Console.WriteLine($"Converted sample {Path.GetFileName(convertedSamplePathName)} already exists, skipping...");
+                            }
+                        }
+                    }
+                }
+                Console.WriteLine($"Imported {Path.GetFileName(sourceFile)} as {Path.GetFullPath(filePath)}.");
 			}));
 		}
 		await Task.WhenAll(tasks);
