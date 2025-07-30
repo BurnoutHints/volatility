@@ -43,7 +43,7 @@ public static class ResourceYamlDeserializer
 
         var finalDeserializer = new DeserializerBuilder()
             .IgnoreUnmatchedProperties()
-            .WithTypeConverter(new ResourceIDYamlTypeConverter())
+            .WithTypeConverter(new StrongIDYamlTypeConverter())
             .Build();
         using (var reader = new StringReader(mergedYaml))
         {

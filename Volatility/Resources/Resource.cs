@@ -94,7 +94,7 @@ public abstract class Resource
             else
             {
                 // TODO: Add new entry to ResourceDB
-                ResourceID = Convert.ToUInt64(GetResourceIDFromName(name, importEndianness), 16);
+                ResourceID = Convert.ToUInt64(ResourceID.FromIDString(name));
                 AssetName = name;
             }
 

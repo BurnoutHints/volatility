@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Volatility.Utilities;
 
@@ -25,5 +26,18 @@ public static class ClassUtilities
     public static T? GetAttribute<T>(MemberInfo member) where T : Attribute
     {
         return member.GetCustomAttribute<T>();
+    }
+
+    public static Byte[] SerializeStructure<T>(T msg) where T : struct
+    {
+        int objsize = Marshal.SizeOf<T>();
+        byte[] ret = new byte[objsize];
+        IntPtr buff = Marshal.AllocHGlobal(objsize);
+       
+        Marshal.StructureToPtr(msg, buff, true);
+        Marshal.Copy(buff, ret, 0, objsize);
+        Marshal.FreeHGlobal(buff);
+        
+        return ret;
     }
 }
