@@ -165,7 +165,8 @@ public class Splicer : BinaryResource
         writer.BaseStream.Position = DataOffset;
 
         writer.Write(1); // version
-       
+
+        int totalRefs = Splices.Sum(s => s.SampleRefIDs.Count);
         int sizeOfSplices = Splices.Count * 0x18; // Size of Splice_Data
         int sizeOfSampleRefs = SampleRefs.Count * 0x2C; // Size of Splice_SampleRef
         int sizedata = sizeOfSplices + sizeOfSampleRefs;
@@ -174,7 +175,6 @@ public class Splicer : BinaryResource
 
         writer.Write(Splices.Count); // NumSplices
 
-        var spliceSampleRefPtrPatchPos = new List<long>(Splices.Count);
         int runningSampleRefIndex = 0;
         for (int i = 0; i < Splices.Count; i++)
         {
@@ -183,7 +183,7 @@ public class Splicer : BinaryResource
             writer.Write(s.NameHash);
             writer.Write(s.SpliceIndex);
             writer.Write(s.ESpliceType);
-            writer.Write(s.Num_SampleRefs);
+            writer.Write((byte)s.SampleRefIDs.Count);
             writer.Write(s.Volume);
             writer.Write(s.RND_Pitch);
             writer.Write(s.RND_Vol);
@@ -192,28 +192,33 @@ public class Splicer : BinaryResource
 
             s.SampleListIndex = runningSampleRefIndex;
             Splices[i] = s;
-            runningSampleRefIndex += s.Num_SampleRefs;
+            runningSampleRefIndex += s.SampleRefIDs.Count;
         }
 
         long sampleRefsStart = writer.BaseStream.Position;
-        foreach (var r in SampleRefs)
+        foreach (var splice in Splices)
         {
-            int idx = _samples.FindIndex(s => s.SampleID.Equals(r.Value.Sample));
-            writer.Write((ushort)idx);
-            writer.Write(r.Value.ESpliceType);
-            writer.Write(r.Value.Padding);
-            writer.Write(r.Value.Volume);
-            writer.Write(r.Value.Pitch);
-            writer.Write(r.Value.Offset);
-            writer.Write(r.Value.Az);
-            writer.Write(r.Value.Duration);
-            writer.Write(r.Value.FadeIn);
-            writer.Write(r.Value.FadeOut);
-            writer.Write(r.Value.RND_Vol);
-            writer.Write(r.Value.RND_Pitch);
-            writer.Write(r.Value.Priority);
-            writer.Write(r.Value.ERollOffType);
-            writer.Write(r.Value.Padding2);
+            foreach (var refId in splice.SampleRefIDs)
+            {
+                var sr = SampleRefs[refId];
+                int sampleIdx = _samples.FindIndex(x => x.SampleID.Equals(sr.Sample));
+
+                writer.Write((ushort)sampleIdx);
+                writer.Write(sr.ESpliceType);
+                writer.Write(sr.Padding);
+                writer.Write(sr.Volume);
+                writer.Write(sr.Pitch);
+                writer.Write(sr.Offset);
+                writer.Write(sr.Az);
+                writer.Write(sr.Duration);
+                writer.Write(sr.FadeIn);
+                writer.Write(sr.FadeOut);
+                writer.Write(sr.RND_Vol);
+                writer.Write(sr.RND_Pitch);
+                writer.Write(sr.Priority);
+                writer.Write(sr.ERollOffType);
+                writer.Write(sr.Padding2);
+            }
         }
 
         writer.BaseStream.Position = DataOffset + 0xC + sizedata; // Header + sizedata
@@ -240,7 +245,7 @@ public class Splicer : BinaryResource
         }
 
         // Update DataSize
-        DataSize = (uint)(writer.BaseStream.Length - 0x10);
+        DataSize = (uint)(writer.BaseStream.Length - DataOffset);
         long pos = writer.BaseStream.Position;
         writer.BaseStream.Seek(0, SeekOrigin.Begin);
         writer.Write(DataSize);
