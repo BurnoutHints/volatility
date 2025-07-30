@@ -74,7 +74,7 @@ internal partial class ImportResourceCommand : ICommand
     				.DisableAliases()
     				.WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
                     .WithTypeConverter(new ResourceYamlTypeConverter())
-                    .WithTypeConverter(new ResourceIDYamlTypeConverter())
+                    .WithTypeConverter(new StrongIDYamlTypeConverter())
                     .WithTypeConverter(new StringEnumYamlTypeConverter())
     				.Build();
 				
