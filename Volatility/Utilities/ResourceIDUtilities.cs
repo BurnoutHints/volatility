@@ -5,6 +5,7 @@ using System.Text;
 using Newtonsoft.Json;
 
 using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Utilities;
 
@@ -93,9 +94,7 @@ public static class ResourceIDUtilities
     {
         string path = Path.Combine
         (
-            Directory.GetCurrentDirectory(),
-            "data",
-            "ResourceDB",
+            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
             "ResourceDB.json"
         );
 
@@ -113,9 +112,7 @@ public static class ResourceIDUtilities
     {
         string path = Path.Combine
         (
-            Directory.GetCurrentDirectory(),
-            "data",
-            "ResourceDB",
+            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
             "ResourceDB.json"
         );
 

@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+using static Volatility.Utilities.EnvironmentUtilities;
 using static Volatility.Utilities.ResourceIDUtilities;
 using static Volatility.Utilities.DictUtilities;
 
@@ -44,7 +45,7 @@ internal class ImportStringTableCommand : ICommand
 
         Console.WriteLine($"Importing data from ResourceStringTables into the ResourceDB... this may take a while!");
 
-        string directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "ResourceDB");
+        string directoryPath = GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB);
         Directory.CreateDirectory(directoryPath);
         string yamlFile = Path.Combine(directoryPath, "ResourceDB.yaml");
 

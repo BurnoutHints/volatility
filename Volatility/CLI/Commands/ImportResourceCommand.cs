@@ -1,12 +1,12 @@
-using System.Text;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 using YamlDotNet.Serialization;
 
 using Volatility.Resources;
 using Volatility.Utilities;
+
+using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.CLI.Commands;
 
@@ -99,15 +99,12 @@ internal partial class ImportResourceCommand : ICommand
 
 				var resourceClass = resource.GetType();
 				var resourceType = resource.GetResourceType();
-				
-				string dataPath = Path.Combine
-				(
-					Directory.GetCurrentDirectory(),
-					"data",
-					"Resources"
-				);
 
-				string filePath = Path.Combine(dataPath, $"{DBToFileRegex().Replace(resource.AssetName, "")}.{resourceType}");
+				string filePath = Path.Combine
+				(
+					GetEnvironmentDirectory(EnvironmentDirectory.Resources), 
+					$"{DBToFileRegex().Replace(resource.AssetName, "")}.{resourceType}"
+				);
 
 				string? directoryPath = Path.GetDirectoryName(filePath);
 
@@ -153,15 +150,24 @@ internal partial class ImportResourceCommand : ICommand
                 // Splicer-specific logic. Will need to refactor this pipeline
                 if (resourceType == ResourceType.Splicer)
                 {
-                    string sxPath = Path.Combine("tools", $"sx.exe");
-					bool sxExists = File.Exists(sxPath);
+                    string sxPath = Path.Combine
+                    (
+                        GetEnvironmentDirectory(EnvironmentDirectory.Tools),
+                        "sx.exe"
+                    );
+
+                    bool sxExists = File.Exists(sxPath);
 
                     Splicer? splicer = resource as Splicer;
 
 					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
                     for (int i = 0; i < samples?.Count; i++)
                     {
-                        string sampleDirectory = Path.Combine("data", "Splicer", "Samples");
+                        string sampleDirectory = Path.Combine
+                        (
+                            GetEnvironmentDirectory(EnvironmentDirectory.Splicer),
+                            "Samples"
+                        );
 
                         Directory.CreateDirectory(sampleDirectory);
 

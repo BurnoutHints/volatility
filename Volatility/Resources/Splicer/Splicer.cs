@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-using Volatility.Utilities;
+using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Resources;
 
@@ -241,7 +241,12 @@ public class Splicer : BinaryResource
             .Distinct()
             .ToList();
         
-        string dir = Path.Combine(AppContext.BaseDirectory, "data", "Splicer", "Samples");
+        string dir = Path.Combine
+        (
+            GetEnvironmentDirectory(EnvironmentDirectory.Splicer),  
+            "Samples"
+        );
+
         var files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
         var map = new Dictionary<SnrID, byte[]>(needed.Count);

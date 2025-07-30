@@ -3,6 +3,8 @@ using System.Runtime.Serialization;
 using Volatility.Resources;
 using Volatility.Utilities;
 
+using static Volatility.Utilities.EnvironmentUtilities;
+
 namespace Volatility.CLI.Commands;
 
 internal partial class ExportResourceCommand : ICommand
@@ -35,7 +37,13 @@ internal partial class ExportResourceCommand : ICommand
 			return;
 		}
 
-        string filePath = $"{Path.Combine("data", "Resources", ResourcePath)}";
+        string filePath = $"" +
+			$"{	Path.Combine
+				(
+					GetEnvironmentDirectory(EnvironmentDirectory.Resources), 
+					ResourcePath
+				)
+			}";
 
         string[] sourceFiles = ICommand.GetFilePathsInDirectory(filePath, ICommand.TargetFileType.Any, Recursive);
 
