@@ -255,7 +255,7 @@ public class Splicer : BinaryResource
     public void LoadDependentSamples(bool recurse = false)
     {
         var needed = SampleRefs.Select(r => r.Value.Sample).Distinct().ToList();
-        string dir = Path.Combine(AppContext.BaseDirectory, "data", "Resources", "Splicer", "Samples");
+        string dir = Path.Combine(AppContext.BaseDirectory, "data", "Splicer", "Samples");
         var files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
         var map = new Dictionary<SnrID, byte[]>(needed.Count);
