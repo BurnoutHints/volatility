@@ -1,5 +1,10 @@
 using System.Runtime.InteropServices;
 
+using Volatility.Utilities;
+
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+
 namespace Volatility.Resources;
 
 // The Splicer resource type contains multiple sound assets and presets for
@@ -13,12 +18,12 @@ public class Splicer : BinaryResource
 {
     public override ResourceType GetResourceType() => ResourceType.Splicer;
     
-    public List<SPLICE_Data> Splices;
-    public List<SPLICE_SampleRef> SampleRefs;
+    public List<SPLICE_Data> Splices = new();
+    public Dictionary<SnrID, SPLICE_SampleRef> SampleRefs = new();
 
     // Only gets populated when parsing from a stream, or when
     // loading referenced sample IDs through LoadDependentSamples. 
-    private List<Sample> _samples;
+    private List<Sample> _samples = new();
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
@@ -91,7 +96,7 @@ public class Splicer : BinaryResource
         for (int i = 0; i < numSamples; i++)
         {
             reader.BaseStream.Seek(_samplePtrOffset + DataOffset + _samplePtrs[i], SeekOrigin.Begin);
-                          
+
             int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : _samplePtrs[i + 1]) - _samplePtrs[i]);
 
             byte[]? data = reader.ReadBytes(length);
@@ -105,13 +110,15 @@ public class Splicer : BinaryResource
                 }
             );
 
+            Console.WriteLine($"Adding sample {i} as {_samples[i].SampleID}");
+
             data = null;
         }
 
         reader.BaseStream.Seek(_sampleRefsPtrOffset + DataOffset, SeekOrigin.Begin);
 
         if (SampleRefs == null)
-            SampleRefs = new List<SPLICE_SampleRef>(numSampleRefs);
+            SampleRefs = new Dictionary<SnrID, SPLICE_SampleRef>(numSampleRefs);
 
         // Read SampleRefs
         for (int i = 0; i < numSampleRefs; i++)
@@ -137,7 +144,13 @@ public class Splicer : BinaryResource
                 Padding2 = reader.ReadUInt16(),
             };
 
-            SampleRefs.Add(sampleRef);
+            SnrID _sampleRefID = new SnrID
+            {
+                Value = SnrID.HashFromBytes(ClassUtilities.SerializeStructure(sampleRef))
+            };
+
+            if (!SampleRefs.TryAdd(_sampleRefID, sampleRef))
+                Console.WriteLine($"Skipping identical SampleRef {_sampleRefID}");
         }
 
     }
@@ -145,6 +158,7 @@ public class Splicer : BinaryResource
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         LoadDependentSamples();
+        LoadDependentSampleRefs();
 
         base.WriteToStream(writer, endianness);
 
@@ -184,22 +198,22 @@ public class Splicer : BinaryResource
         long sampleRefsStart = writer.BaseStream.Position;
         foreach (var r in SampleRefs)
         {
-            int idx = _samples.FindIndex(s => s.SampleID.Equals(r.Sample));
+            int idx = _samples.FindIndex(s => s.SampleID.Equals(r.Value.Sample));
             writer.Write((ushort)idx);
-            writer.Write(r.ESpliceType);
-            writer.Write(r.Padding);
-            writer.Write(r.Volume);
-            writer.Write(r.Pitch);
-            writer.Write(r.Offset);
-            writer.Write(r.Az);
-            writer.Write(r.Duration);
-            writer.Write(r.FadeIn);
-            writer.Write(r.FadeOut);
-            writer.Write(r.RND_Vol);
-            writer.Write(r.RND_Pitch);
-            writer.Write(r.Priority);
-            writer.Write(r.ERollOffType);
-            writer.Write(r.Padding2);
+            writer.Write(r.Value.ESpliceType);
+            writer.Write(r.Value.Padding);
+            writer.Write(r.Value.Volume);
+            writer.Write(r.Value.Pitch);
+            writer.Write(r.Value.Offset);
+            writer.Write(r.Value.Az);
+            writer.Write(r.Value.Duration);
+            writer.Write(r.Value.FadeIn);
+            writer.Write(r.Value.FadeOut);
+            writer.Write(r.Value.RND_Vol);
+            writer.Write(r.Value.RND_Pitch);
+            writer.Write(r.Value.Priority);
+            writer.Write(r.Value.ERollOffType);
+            writer.Write(r.Value.Padding2);
         }
 
         writer.BaseStream.Position = DataOffset + 0xC + sizedata; // Header + sizedata
@@ -235,7 +249,7 @@ public class Splicer : BinaryResource
 
     public void LoadDependentSamples(bool recurse = false)
     {
-        var needed = SampleRefs.Select(r => r.Sample).Distinct().ToList();
+        var needed = SampleRefs.Select(r => r.Value.Sample).Distinct().ToList();
         string dir = Path.Combine(AppContext.BaseDirectory, "data", "Resources", "Splicer", "Samples");
         var files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
@@ -252,6 +266,42 @@ public class Splicer : BinaryResource
             if (!map.ContainsKey(id))
                 throw new FileNotFoundException($"Missing sample for {id}");
         _samples = needed.Select(id => new Sample { SampleID = id, Data = map[id] }).ToList();
+    }
+
+    public void LoadDependentSampleRefs()
+    {
+        var neededIds = Splices
+            .SelectMany(s => s.SampleRefIDs)
+            .Distinct()
+            .ToList();
+
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        if (SampleRefs == null)
+            SampleRefs = new Dictionary<SnrID, SPLICE_SampleRef>();
+
+        var baseDir = Path.Combine(
+            AppContext.BaseDirectory,
+            "data", "Splicer", "SampleRefs"
+        );
+
+        foreach (var id in neededIds)
+        {
+            if (SampleRefs.ContainsKey(id))
+                continue;
+
+            var yamlFile = Path.Combine(baseDir, $"{id}.yaml");
+            if (!File.Exists(yamlFile))
+                throw new FileNotFoundException($"Missing SampleRef for {id}");
+
+            var yaml = File.ReadAllText(yamlFile);
+            var model = deserializer.Deserialize<SPLICE_SampleRef>(yaml);
+
+            SampleRefs[id] = model;
+        }
     }
 
     public List<Sample> GetLoadedSamples()
@@ -274,6 +324,7 @@ public class Splicer : BinaryResource
         public float RND_Pitch;
         public float RND_Vol;
         public int SampleListIndex;
+        public List<SnrID> SampleRefIDs { get; set; }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

@@ -161,7 +161,7 @@ internal partial class ImportResourceCommand : ICommand
 					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
                     for (int i = 0; i < samples?.Count; i++)
                     {
-                        string sampleDirectory = Path.Combine(directoryPath, "Splicer", "Samples");
+                        string sampleDirectory = Path.Combine("data", "Splicer", "Samples");
 
                         Directory.CreateDirectory(sampleDirectory);
 
@@ -185,42 +185,63 @@ internal partial class ImportResourceCommand : ICommand
 
 							Directory.CreateDirectory(convertedSamplePathName);
 
-							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName);
+							convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName + ".wav");
 
-							ProcessStartInfo start = new ProcessStartInfo
+							if (!File.Exists(convertedSamplePathName) || Overwrite)
 							{
-								FileName = sxPath,
-								Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}.wav\"",
-								RedirectStandardOutput = true,
-								RedirectStandardError = true,
-								UseShellExecute = false,
-								CreateNoWindow = true
-							};
+                                ProcessStartInfo start = new ProcessStartInfo
+                                {
+                                    FileName = sxPath,
+                                    Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"",
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                };
 
-							using (Process process = new Process())
+                                using (Process process = new Process())
+                                {
+                                    process.StartInfo = start;
+                                    process.OutputDataReceived += (sender, e) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                    };
+
+                                    process.ErrorDataReceived += (sender, e) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
+                                    };
+
+                                    Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
+                                    process.Start();
+                                    process.BeginOutputReadLine();
+                                    process.BeginErrorReadLine();
+                                    process.WaitForExit();
+                                }
+                            }
+							else
 							{
-								process.StartInfo = start;
-								process.OutputDataReceived += (sender, e) =>
-								{
-									if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-								};
-
-								process.ErrorDataReceived += (sender, e) =>
-								{
-									if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-								};
-
-								Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-								process.Start();
-								process.BeginOutputReadLine();
-								process.BeginErrorReadLine();
-								process.WaitForExit();
-							}
-						}
+                                Console.WriteLine($"Converted sample {Path.GetFileName(convertedSamplePathName)} already exists, skipping...");
+                            }
+                        }
                     }
 
+                    var _srSerializer = new SerializerBuilder().Build();
+                    foreach (var kv in splicer.SampleRefs)
+                    {
+                        var path = Path.Combine("data", "Splicer", "SampleRefs");
+
+						Directory.CreateDirectory(path);
+
+						path = Path.Combine(path, kv.Key + ".yaml");
+
+						if (!File.Exists(path) || Overwrite)
+							File.WriteAllText(path, _srSerializer.Serialize(kv.Value));
+						else
+							Console.WriteLine($"SampleRef {kv.Key} already exists, skipping...");
+                    }
                 }
-                Console.WriteLine($"Imported {Path.GetFileName(ImportPath)} as {Path.GetFullPath(filePath)}.");
+                Console.WriteLine($"Imported {Path.GetFileName(sourceFile)} as {Path.GetFullPath(filePath)}.");
 			}));
 		}
 		await Task.WhenAll(tasks);
