@@ -8,6 +8,11 @@ namespace Volatility.Utilities;
 
 public static class PS3TextureUtilities
 {
+    public static uint CalculatePitchPS3(int width, int blockSize)
+    {
+        return (uint)(((width + 3) / 4) * blockSize);
+    }
+
     public static void PS3GTFToDDS(TexturePS3 ps3Header, string sourceBitmapPath, string destinationBitmapPath, bool verbose = false)
     {
         byte[] header = new byte[0xE];

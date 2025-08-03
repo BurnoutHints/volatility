@@ -4,6 +4,16 @@ namespace Volatility.Utilities;
 
 internal class X360TextureUtilities
 {
+    public static ushort CalculatePitchX360(ushort width, ushort height)
+    {
+        return (ushort)(DataUtilities.Clamp(width, 128, width) / 32);
+    }
+
+    public static uint CalculateMipAddressX360(uint width, uint height)
+    {
+        return (width * height) / 4096;
+    }
+
     public static void ConvertMipmapsToX360(TextureBase header, GPUTEXTUREFORMAT format, string inputPath, string outputPath)
     {
         using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read);
@@ -16,7 +26,7 @@ internal class X360TextureUtilities
 
         for (int i = 0; i < mipMapCount; i++)
         {
-            int mipSize = CalculateMipSize(width, height, DataUtilities.CalculatePitchX360((ushort)width, (ushort)height), format);
+            int mipSize = CalculateMipSize(width, height, CalculatePitchX360((ushort)width, (ushort)height), format);
             mipmaps[i] = reader.ReadBytes(mipSize);
 
             width = Math.Max(1, width / 2);

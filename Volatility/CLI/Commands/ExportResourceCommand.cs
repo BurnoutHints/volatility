@@ -81,12 +81,12 @@ internal partial class ExportResourceCommand : ICommand
 					return;
 				}
 
-                if (!DataUtilities.TryParseEnum(Format, out Platform platform))
+                if (!TypeUtilities.TryParseEnum(Format, out Platform platform))
                 {
                     throw new InvalidPlatformException("Error: Invalid file format specified!");
                 }
 
-                if (!DataUtilities.TryParseEnum(Path.GetExtension(filePath).TrimStart('.'), out ResourceType resourceType))
+                if (!TypeUtilities.TryParseEnum(Path.GetExtension(filePath).TrimStart('.'), out ResourceType resourceType))
                 {
                     Console.WriteLine("Error: Resource type is invalid!");
                     return;

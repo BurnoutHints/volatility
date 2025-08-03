@@ -4,6 +4,7 @@ using System.Text;
 using Volatility.Utilities;
 
 using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.X360TextureUtilities;
 
 namespace Volatility.Resources;
 

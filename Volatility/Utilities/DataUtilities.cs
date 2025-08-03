@@ -25,21 +25,6 @@ public static class DataUtilities
         return true;
     }
 
-    public static uint CalculatePitchPS3(int width, int blockSize)
-    {
-        return (uint)(((width + 3) / 4) * blockSize);
-    }
-
-    public static ushort CalculatePitchX360(ushort width, ushort height)
-    {
-        return (ushort)(Clamp(width, 128, width) / 32);
-    }
-
-    public static uint CalculateMipAddressX360(uint width, uint height)
-    {
-        return (width * height) / 4096;
-    }
-
     public static bool IsPowerOfTwo(int x)
     {
         return (x > 0) && ((x & (x - 1)) == 0);
@@ -84,11 +69,6 @@ public static class DataUtilities
         return bytes;
     }
 
-    public static bool IsComplexType(Type type)
-    {
-        return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
-    }
-
     public static int Clamp(int value, int min, int max)
     {
         if (value < min)
@@ -103,48 +83,6 @@ public static class DataUtilities
         {
             return value;
         }
-    }
-
-    public static bool TryParseEnum<TEnum>(string input, out TEnum result) where TEnum : struct, Enum
-    {
-        result = default;
-
-        // Hexadecimal input
-        if (input.StartsWith("0x"))
-        {
-            if (int.TryParse(input.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out int numericValue))
-            {
-                return EnumIsDefined(numericValue, out result);
-            }
-            return false;
-        }
-
-        // Nmeric input
-        if (int.TryParse(input, out int intValue))
-        {
-            return EnumIsDefined(intValue, out result);
-        }
-
-        // String input
-        if (Enum.TryParse(input, true, out TEnum parsedEnum) && Enum.IsDefined(typeof(TEnum), parsedEnum))
-        {
-            result = parsedEnum;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool EnumIsDefined<TEnum>(int value, out TEnum result) where TEnum : struct, Enum
-    {
-        if (Enum.IsDefined(typeof(TEnum), value))
-        {
-            result = (TEnum)Enum.ToObject(typeof(TEnum), value);
-            return true;
-        }
-
-        result = default;
-        return false;
     }
 }
 

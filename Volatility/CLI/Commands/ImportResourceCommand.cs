@@ -84,12 +84,12 @@ internal partial class ImportResourceCommand : ICommand
     			if (isX64)
     			    Format = Format[..^3];
 
-                if (!DataUtilities.TryParseEnum(Format, out Platform platform)) 
+                if (!TypeUtilities.TryParseEnum(Format, out Platform platform)) 
 				{
                     throw new InvalidPlatformException("Error: Invalid file format specified!");
                 }
 
-                if (!DataUtilities.TryParseEnum(ResType, out ResourceType resType)) 
+                if (!TypeUtilities.TryParseEnum(ResType, out ResourceType resType)) 
 				{
                     Console.WriteLine("Error: Invalid resource type specified!");
                     return;
@@ -161,16 +161,17 @@ internal partial class ImportResourceCommand : ICommand
                     Splicer? splicer = resource as Splicer;
 
 					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
+
+                    string sampleDirectory = Path.Combine
+					(
+						GetEnvironmentDirectory(EnvironmentDirectory.Splicer),
+						"Samples"
+					);
+
+                    Directory.CreateDirectory(sampleDirectory);
+
                     for (int i = 0; i < samples?.Count; i++)
                     {
-                        string sampleDirectory = Path.Combine
-                        (
-                            GetEnvironmentDirectory(EnvironmentDirectory.Splicer),
-                            "Samples"
-                        );
-
-                        Directory.CreateDirectory(sampleDirectory);
-
                         string sampleName = $"{samples[i].SampleID}";
 
 						string samplePathName = Path.Combine(sampleDirectory, sampleName);

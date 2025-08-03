@@ -2,7 +2,7 @@ using System.Reflection;
 
 using Volatility.Resources;
 
-using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.TypeUtilities;
 using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.CLI.Commands;
