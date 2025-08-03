@@ -37,7 +37,6 @@ public class TextureBPR : TextureBase
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }
     public override void PushInternalFlags() { }
-    public override void PullInternalFlags() => base.PullInternalFlags();
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
@@ -66,7 +65,7 @@ public class TextureBPR : TextureBase
 
         if (GetResourceArch() == Arch.x64)
         {
-            writer.Write(System.Text.Encoding.ASCII.GetBytes("Volatili"));
+            writer.Write("Volatili"u8.ToArray());
         }
     }
 

@@ -160,7 +160,7 @@ internal partial class ImportResourceCommand : ICommand
 
                     Splicer? splicer = resource as Splicer;
 
-					List<Splicer.Sample>? samples = splicer?.GetLoadedSamples();
+					List<Splicer.SpliceSample>? samples = splicer?.GetLoadedSamples();
 
                     string sampleDirectory = Path.Combine
 					(

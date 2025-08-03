@@ -10,9 +10,9 @@ namespace Volatility.Resources;
 public class BinaryResource : Resource
 {
     public override ResourceType GetResourceType() => ResourceType.BinaryFile;
-
-    public uint DataSize;
-    public uint DataOffset;
+    
+    public uint DataSize { get; set; }
+    public uint DataOffset { get; set; }
 
     public BinaryResource(uint dataOffset, uint dataSize)
     {

@@ -108,7 +108,7 @@ public abstract class Resource
 
     private static Unpacker GetUnpackerFromFileName(string filename)
     {
-        var name = Path.GetFileName(filename);
+        string name = Path.GetFileName(filename);
         return name switch
         {
             var n when n.EndsWith("_1.bin", StringComparison.OrdinalIgnoreCase) => Unpacker.Bnd2Manager,

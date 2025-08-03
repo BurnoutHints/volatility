@@ -16,8 +16,6 @@ public class EnvironmentTimeline : Resource
         writer.Write(Locations.Length);
         writer.Write(0x10);             // Locations Pointer
         writer.Write(0x0);              // Padding
-        
-        
     }
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
@@ -32,33 +30,33 @@ public class EnvironmentTimeline : Resource
             throw new InvalidDataException($"Version mismatch! Version should be 1. (Found version {version})");
         }
 
-        uint LocationCount = reader.ReadUInt32();
-        Locations = new LocationData[LocationCount];
+        uint locationCount = reader.ReadUInt32();
+        Locations = new LocationData[locationCount];
 
-        uint LocationsPtr = reader.ReadUInt32();
+        uint locationsPtr = reader.ReadUInt32();
 
-        for (int i = 0; i < LocationCount; i++) 
+        for (int i = 0; i < locationCount; i++) 
         {
-            reader.BaseStream.Seek(LocationsPtr + ((arch == Arch.x64 ? 0x18 : 0xC) * i), SeekOrigin.Begin);
-            uint KeyframeCount = (uint)(arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong KeyframeTimesPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong KeyframeRefsPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+            reader.BaseStream.Seek(locationsPtr + ((arch == Arch.x64 ? 0x18 : 0xC) * i), SeekOrigin.Begin);
+            uint keyframeCount = (uint)(arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+            ulong keyframeTimesPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+            ulong keyframeRefsPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
 
-            Locations[i].Keyframes = new KeyframeReference[KeyframeCount];
+            Locations[i].Keyframes = new KeyframeReference[keyframeCount];
 
             long maxLength = (long)new[]
             {
-                KeyframeTimesPtr + (KeyframeCount * sizeof(uint)),
-                KeyframeRefsPtr + (KeyframeCount * sizeof(uint)),
+                keyframeTimesPtr + (keyframeCount * sizeof(uint)),
+                keyframeRefsPtr + (keyframeCount * sizeof(uint)),
             }.Max();
 
-            for (int j = 0; j < KeyframeCount; j++)
+            for (int j = 0; j < keyframeCount; j++)
             {
-                reader.BaseStream.Seek((long)KeyframeTimesPtr + (0x4 * j), SeekOrigin.Begin);
+                reader.BaseStream.Seek((long)keyframeTimesPtr + (0x4 * j), SeekOrigin.Begin);
 
                 Locations[i].Keyframes[j].KeyframeTime = reader.ReadSingle();
 
-                reader.BaseStream.Seek((long)KeyframeRefsPtr + (0x4 * j), SeekOrigin.Begin);
+                reader.BaseStream.Seek((long)keyframeRefsPtr + (0x4 * j), SeekOrigin.Begin);
 
                 ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, maxLength, out Locations[i].Keyframes[j].ResourceReference);
             }

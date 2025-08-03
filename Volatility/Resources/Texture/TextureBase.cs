@@ -58,33 +58,27 @@ public abstract class TextureBase : Resource
     public abstract void PushInternalFlags();
     public virtual void PullInternalFlags()
     {
+        if (string.IsNullOrEmpty(ImportedFileName)
+            || new DirectoryInfo(ImportedFileName).Parent?.Parent is not { } gp)
+            return;
 
-        if (!string.IsNullOrEmpty(ImportedFileName))
-        {
-            var directoryInfo = new DirectoryInfo(ImportedFileName);
+        string folder = gp.Name;
 
-            // Two directories up
-            if (directoryInfo.Parent?.Parent != null)
-            {
-                string folder = directoryInfo.Parent?.Parent?.Name ?? string.Empty;
+        const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
 
-                const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+        TextureBaseUsageFlags add = TextureBaseUsageFlags.None;
 
-                TextureBaseUsageFlags add = TextureBaseUsageFlags.None;
+        if (folder.StartsWith("TRK_", OIC) || folder.Contains("BACKDROP", OIC) || folder.Contains("WORLDTEX", OIC))
+            add |= TextureBaseUsageFlags.WorldTexture;
 
-                if (folder.StartsWith("TRK_", OIC) || folder.Contains("BACKDROP", OIC) || folder.Contains("WORLDTEX", OIC))
-                    add |= TextureBaseUsageFlags.WorldTexture;
+        if (folder.EndsWith("_GR", OIC))
+            add |= TextureBaseUsageFlags.GRTexture;
 
-                if (folder.EndsWith("_GR", OIC))
-                    add |= TextureBaseUsageFlags.GRTexture;
+        if (folder.Contains("PROPS", OIC))
+            add |= TextureBaseUsageFlags.PropTexture;
 
-                if (folder.Contains("PROPS", OIC))
-                    add |= TextureBaseUsageFlags.PropTexture;
-
-                // We only set UsageFlags property once to avoid updating pushing three times
-                UsageFlags = (UsageFlags & ~TextureBaseUsageFlags.AnyTexture) | add;
-            }
-        }
+        // We only set UsageFlags property once to avoid updating pushing three times
+        UsageFlags = (UsageFlags & ~TextureBaseUsageFlags.AnyTexture) | add;
     }
 
     public override void PullAll()

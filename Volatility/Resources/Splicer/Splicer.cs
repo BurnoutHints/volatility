@@ -15,11 +15,11 @@ public class Splicer : BinaryResource
 {
     public override ResourceType GetResourceType() => ResourceType.Splicer;
     
-    public List<SPLICE_Data> Splices = new();
+    public List<SpliceData> Splices = [];
 
     // Only gets populated when parsing from a stream, or when
     // loading referenced sample IDs through LoadDependentSamples
-    private List<Sample> _samples = new();
+    private List<SpliceSample> _samples = [];
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
@@ -31,7 +31,7 @@ public class Splicer : BinaryResource
             throw new InvalidDataException("Version mismatch! Version should be 1.");
         }
         
-        int pSampleRefTOC = reader.ReadInt32();
+        int sizedata = reader.ReadInt32();
         
         int numSplices = reader.ReadInt32();
         if (numSplices <= 0)
@@ -39,10 +39,7 @@ public class Splicer : BinaryResource
             throw new InvalidDataException("No splices in Splicer file!");
         }
 
-        var spliceRefCounts = new List<int>(numSplices);
-
-        if (Splices == null)
-            Splices = new List<SPLICE_Data>(numSplices);
+        List<int> spliceRefCounts = new(numSplices);
 
         // Read Splice Data
         for (int i = 0; i < numSplices; i++)
@@ -57,7 +54,7 @@ public class Splicer : BinaryResource
             _ = reader.ReadInt32();    // pSampleRefList (null)
 
             spliceRefCounts.Add(numRefs);
-            Splices.Add(new SPLICE_Data
+            Splices.Add(new SpliceData
             {
                 NameHash = nameHash,
                 SpliceIndex = spliceIdx,
@@ -65,40 +62,35 @@ public class Splicer : BinaryResource
                 Volume = vol,
                 RND_Pitch = rpitch,
                 RND_Vol = rvol,
-                SampleRefs = new List<SPLICE_SampleRef>(numRefs)
+                SampleRefs = new List<SpliceSampleRef>(numRefs)
             });
         }
+        
+        long sampleRefsPtrOffset = reader.BaseStream.Position - DataOffset;
 
-        int numSampleRefs = spliceRefCounts.Sum();
-
-        long _sampleRefsPtrOffset = reader.BaseStream.Position - DataOffset;
-
-        reader.BaseStream.Seek(pSampleRefTOC + 0xC + DataOffset, SeekOrigin.Begin);
+        reader.BaseStream.Seek(sizedata + 0xC + DataOffset, SeekOrigin.Begin);
 
         int numSamples = reader.ReadInt32();
 
-        List<long> _samplePtrs = new List<long>(numSamples);
+        List<long> samplePtrs = new(numSamples);
         for (int i = 0; i < numSamples; i++)
         {
-            _samplePtrs.Add(reader.ReadInt32());
+            samplePtrs.Add(reader.ReadInt32());
         }
 
-        long _samplePtrOffset = reader.BaseStream.Position - DataOffset;
-
-        if (_samples == null)
-            _samples = new List<Sample>(numSamples);
+        long samplePtrOffset = reader.BaseStream.Position - DataOffset;
 
         for (int i = 0; i < numSamples; i++)
         {
-            reader.BaseStream.Seek(_samplePtrOffset + DataOffset + _samplePtrs[i], SeekOrigin.Begin);
+            reader.BaseStream.Seek(samplePtrOffset + DataOffset + samplePtrs[i], SeekOrigin.Begin);
 
-            int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : _samplePtrs[i + 1]) - _samplePtrs[i]);
+            int length = (int)((i == (numSamples - 1) ? reader.BaseStream.Length : samplePtrs[i + 1]) - samplePtrs[i]);
 
             byte[]? data = reader.ReadBytes(length);
 
             _samples.Add
             (
-                new Sample
+                new SpliceSample
                 {
                     SampleID = SnrID.HashFromBytes(data),
                     Data = data,
@@ -106,22 +98,20 @@ public class Splicer : BinaryResource
             );
 
             Console.WriteLine($"Adding sample {i} as {_samples[i].SampleID}");
-
-            data = null;
         }
 
-        reader.BaseStream.Seek(_sampleRefsPtrOffset + DataOffset, SeekOrigin.Begin);
+        reader.BaseStream.Seek(sampleRefsPtrOffset + DataOffset, SeekOrigin.Begin);
 
         // Read SampleRefs
         for (int i = 0; i < Splices.Count; i++)
         {
             int count = spliceRefCounts[i];
-            var list = Splices[i].SampleRefs;
+            List<SpliceSampleRef> list = Splices[i].SampleRefs;
 
             for (int j = 0; j < count; j++)
             {
                 ushort sampleIdx = reader.ReadUInt16();
-                var sr = new SPLICE_SampleRef
+                SpliceSampleRef sr = new()
                 {
                     Sample = _samples[sampleIdx].SampleID,
                     ESpliceType = reader.ReadSByte(),
@@ -162,11 +152,8 @@ public class Splicer : BinaryResource
         writer.Write(sizedata); // sizedata/pSampleRefTOC
 
         writer.Write(Splices.Count); // NumSplices
-
-        var spliceStartIndices = new List<int>(Splices.Count);
-        int runningIndex = 0;
-
-        foreach (SPLICE_Data splice in Splices)
+        
+        foreach (SpliceData splice in Splices)
         {
             writer.Write(splice.NameHash);
             writer.Write(splice.SpliceIndex);
@@ -179,10 +166,9 @@ public class Splicer : BinaryResource
             writer.Write(0); // pSampleRefList placeholder
         }
 
-        long sampleRefsStart = writer.BaseStream.Position;
-        foreach (var splice in Splices)
+        foreach (SpliceData splice in Splices)
         {
-            foreach (var sr in splice.SampleRefs)
+            foreach (SpliceSampleRef sr in splice.SampleRefs)
             {
                 int sampleIdx = _samples.FindIndex(x => x.SampleID == sr.Sample);
                 writer.Write((ushort)sampleIdx);
@@ -205,7 +191,6 @@ public class Splicer : BinaryResource
 
         writer.BaseStream.Position = DataOffset + 0xC + sizedata; // Header + sizedata
         int numSamples = _samples.Count;
-        int pSampleRefTOC = (int)(writer.BaseStream.Position - DataOffset);
 
         writer.Write(numSamples);
 
@@ -236,7 +221,7 @@ public class Splicer : BinaryResource
 
     public void LoadDependentSamples(bool recurse = false)
     {
-        var needed = Splices
+        List<SnrID> needed = Splices
             .SelectMany(s => s.SampleRefs.Select(sr => sr.Sample))
             .Distinct()
             .ToList();
@@ -247,24 +232,24 @@ public class Splicer : BinaryResource
             "Samples"
         );
 
-        var files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+        string[] files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
-        var map = new Dictionary<SnrID, byte[]>(needed.Count);
-        foreach (var f in files)
+        Dictionary<SnrID, byte[]> map = new(needed.Count);
+        foreach (string f in files)
         {
-            var data = File.ReadAllBytes(f);
-            var id = SnrID.HashFromBytes(data);
+            byte[] data = File.ReadAllBytes(f);
+            SnrID id = SnrID.HashFromBytes(data);
             if (!map.ContainsKey(id) && needed.Contains(id))
                 map[id] = data;
         }
 
-        foreach (var id in needed)
-            if (!map.ContainsKey(id))
-                throw new FileNotFoundException($"Missing sample for {id}");
-        _samples = needed.Select(id => new Sample { SampleID = id, Data = map[id] }).ToList();
+        foreach (SnrID id in needed.Where(id => !map.ContainsKey(id)))
+            throw new FileNotFoundException($"Missing sample for {id}");
+        
+        _samples = needed.Select(id => new SpliceSample { SampleID = id, Data = map[id] }).ToList();
     }
 
-    public List<Sample> GetLoadedSamples()
+    public List<SpliceSample> GetLoadedSamples()
     {
         return _samples;
     }
@@ -274,7 +259,7 @@ public class Splicer : BinaryResource
     public Splicer(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
     
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public class SPLICE_Data
+    public class SpliceData
     {
         public uint NameHash;
         public ushort SpliceIndex;
@@ -282,11 +267,11 @@ public class Splicer : BinaryResource
         public float Volume;
         public float RND_Pitch;
         public float RND_Vol;
-        public List<SPLICE_SampleRef> SampleRefs { get; set; }
+        public required List<SpliceSampleRef> SampleRefs { get; set; }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct SPLICE_SampleRef
+    public struct SpliceSampleRef
     {
         public SnrID Sample;
         public sbyte ESpliceType;
@@ -305,7 +290,7 @@ public class Splicer : BinaryResource
         public ushort Padding2;
     }
 
-    public struct Sample
+    public struct SpliceSample
     {
         public SnrID SampleID;
         public byte[] Data;

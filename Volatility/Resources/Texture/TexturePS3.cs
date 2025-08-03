@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-using static Volatility.Utilities.PS3TextureUtilities;
+﻿using static Volatility.Utilities.PS3TextureUtilities;
 
 namespace Volatility.Resources;
 
@@ -33,11 +31,6 @@ public class TexturePS3 : TextureBase
             CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3 => DIMENSION.DIMENSION_3D,
             _ => DIMENSION.DIMENSION_2D,
         };
-    }
-
-    public override void PullInternalFlags()
-    {
-        base.PullInternalFlags();
     }
 
     public override void PullInternalFormat() { }
@@ -102,7 +95,7 @@ public class TexturePS3 : TextureBase
         writer.Write(StoreFlags);
 
         // Padding that's usually just garbage data.
-        writer.Write(Encoding.UTF8.GetBytes("Volatility"));
+        writer.Write("Volatility"u8.ToArray());
         writer.Write(new byte[0x2]);
     }
 
@@ -113,7 +106,7 @@ public class TexturePS3 : TextureBase
         Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();
-        CubeMapEnable = reader.ReadByte() != 0 ? true : false;
+        CubeMapEnable = reader.ReadByte() != 0;
         Remap = reader.ReadUInt32(); // Does this need to be swapped?
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();

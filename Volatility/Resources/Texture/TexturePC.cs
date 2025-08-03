@@ -1,7 +1,5 @@
 ﻿using System.Text;
 
-using static Volatility.Utilities.DataUtilities;
-
 namespace Volatility.Resources;
 
 public class TexturePC : TextureBase
@@ -9,13 +7,13 @@ public class TexturePC : TextureBase
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.TUB;
 
-    private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
+    private D3DFORMAT _format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
     {
-        get => _Format;
+        get => _format;
         set
         {
-            _Format = value;
+            _format = value;
             PushInternalFormat();
         }
     }
@@ -83,11 +81,11 @@ public class TexturePC : TextureBase
     {
         byte[] outputFormat = Format switch
         {
-            D3DFORMAT.D3DFMT_DXT1 => Encoding.UTF8.GetBytes("DXT1"),
-            D3DFORMAT.D3DFMT_DXT3 => Encoding.UTF8.GetBytes("DXT3"),
-            D3DFORMAT.D3DFMT_DXT5 => Encoding.UTF8.GetBytes("DXT5"),
-            D3DFORMAT.D3DFMT_G8R8_G8B8 => Encoding.UTF8.GetBytes("GRGB"),
-            D3DFORMAT.D3DFMT_MULTI2_ARGB8 => Encoding.UTF8.GetBytes("MET1"),
+            D3DFORMAT.D3DFMT_DXT1 => "DXT1"u8.ToArray(),
+            D3DFORMAT.D3DFMT_DXT3 => "DXT3"u8.ToArray(),
+            D3DFORMAT.D3DFMT_DXT5 => "DXT5"u8.ToArray(),
+            D3DFORMAT.D3DFMT_G8R8_G8B8 => "GRGB"u8.ToArray(),
+            D3DFORMAT.D3DFMT_MULTI2_ARGB8 => "MET1"u8.ToArray(),
             _ => BitConverter.GetBytes((int)Format), // Use literal value
         };
         OutputFormat = outputFormat;
@@ -122,7 +120,7 @@ public class TexturePC : TextureBase
     {
         // TODO: More accurate/efficient flag calcuation!
 
-        var f = UsageFlags & ~TextureBaseUsageFlags.AnyTexture;
+        TextureBaseUsageFlags f = UsageFlags & ~TextureBaseUsageFlags.AnyTexture;
 
         // Assuming Unknown 2 is probably world, and Unknown 1 is GR?
         if (Unknown2 != 0) f |= TextureBaseUsageFlags.WorldTexture;

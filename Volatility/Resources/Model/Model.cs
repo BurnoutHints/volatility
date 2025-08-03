@@ -13,7 +13,7 @@ public class Model : Resource
     public byte Flags;
 
     [EditorCategory("Model Container"), EditorLabel("Models")]
-    public List<ModelData> ModelDatas = new List<ModelData>();
+    public List<ModelData> ModelDatas = [];
 
     public override ResourceType GetResourceType() => ResourceType.Model;
     public override Platform GetResourcePlatform() => Platform.Agnostic;
@@ -22,7 +22,7 @@ public class Model : Resource
     {
         base.WriteToStream(writer, endianness);
 
-        int models = ModelDatas.Count();
+        int models = ModelDatas.Count;
 
         uint renderablesPtr = 0x14; // Writing length of header
         uint statesPtr = (uint)(renderablesPtr + (0x4 * models));
@@ -32,10 +32,10 @@ public class Model : Resource
         writer.Write(statesPtr);
         writer.Write(lodDistancesPtr);
         writer.Write(-1); // Game explorer index, leaving our mark for now
-        writer.Write((byte)ModelDatas.Count()); // Dangerous. We need to limit number of models
+        writer.Write((byte)ModelDatas.Count); // Dangerous. We need to limit number of models
         writer.Write(Flags);
-        writer.Write((byte)ModelDatas.Count()); // Number of states. Same as number of renderables
-        writer.Write((byte)0x2);
+        writer.Write((byte)ModelDatas.Count); // Number of states. Same as number of renderables
+        writer.BaseStream.WriteByte(0x02);
 
         writer.BaseStream.Seek(renderablesPtr, SeekOrigin.Begin);
 
@@ -96,7 +96,7 @@ public class Model : Resource
 
         Flags = reader.ReadByte();
 
-        var maxLength = new[]
+        long maxLength = new[]
         {
             lodDistancesPtr + numRenderables * sizeof(uint),
             renderablesPtr + numRenderables * sizeof(uint),

@@ -49,27 +49,27 @@ public class InstanceList : Resource
         {
             reader.BaseStream.Seek(instanceListPtr + (instanceBlockSize * i), SeekOrigin.Begin);
 
-            ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, instanceListPtr + (instanceBlockSize * entries), out ResourceImport _model);
-            short _backdropZoneID = reader.ReadInt16();
+            ResourceImport.ReadExternalImport(fileOffset: reader.BaseStream.Position, reader, instanceListPtr + (instanceBlockSize * entries), out ResourceImport model);
+            short backdropZoneID = reader.ReadInt16();
 
             //ushort _padding1 = reader.ReadUInt16(); 
             //uint _padding2 = reader.ReadUInt32();
 
             reader.BaseStream.Seek(0x6, SeekOrigin.Current);
 
-            float _maxVisibleDistanceSquared = reader.ReadSingle();
+            float maxVisibleDistanceSquared = reader.ReadSingle();
 
-            Transform _transform = Matrix44AffineToTransform(ReadMatrix44Affine(reader));
+            Transform transform = Matrix44AffineToTransform(ReadMatrix44Affine(reader));
 
             reader.BaseStream.Seek(instanceListPtr + instanceBlockSize * entries + 0x10 * i, SeekOrigin.Begin);
 
             Instances.Add(new Instance
             {
-                ModelReference = _model,
-                BackdropZoneID = _backdropZoneID,
+                ModelReference = model,
+                BackdropZoneID = backdropZoneID,
                 // Padding1 = _padding1, Padding2 = _padding2,
-                MaxVisibleDistanceSquared = _maxVisibleDistanceSquared,
-                Transform = _transform,
+                MaxVisibleDistanceSquared = maxVisibleDistanceSquared,
+                Transform = transform,
                 ResourceId = new ResourceImport
                 {
                     ReferenceID = reader.ReadUInt32(),
