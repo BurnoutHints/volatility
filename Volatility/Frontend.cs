@@ -121,6 +121,9 @@ internal class Frontend
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
+#if DEBUG
+                throw;
+#endif
             }
         }
     }
