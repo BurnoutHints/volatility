@@ -1,7 +1,6 @@
 ﻿
 global using ResourceID = StrongID<ResourceTag>;
-global using SnrID = StrongID<SnrTag>;
-
+global using SnrID = StrongID<UniqueDataTag>;
 using System.Text;
 
 public interface IStrongID
@@ -32,9 +31,9 @@ public readonly struct ResourceTag : IIDTag
     public static ulong Hash(ReadOnlySpan<byte> data) => throw new NotSupportedException("Generating ResourceIDs from direct bytes is not supported. Please convert your input to a string and use the Hash(string text) overload.");
 }
 
-public readonly struct SnrTag : IIDTag
+public readonly struct UniqueDataTag : IIDTag
 {
-    public static ulong Hash(string text) => Crc64.Compute(text.ToLower(System.Globalization.CultureInfo.CurrentCulture));
+    public static ulong Hash(string text) => Crc64.Compute(text);
     public static ulong Hash(ReadOnlySpan<byte> data)
     {
         ReadOnlySpan<byte> prefix = "Volatility_"u8;
