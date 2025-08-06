@@ -84,5 +84,51 @@ public static class DataUtilities
             return value;
         }
     }
+
+    public static byte ToNext0x10(byte value) =>
+        (value & 0xF) == 0
+            ? value
+            : (byte)((value + 0xF) & ~0xF);
+
+    public static sbyte ToNext0x10(sbyte value)
+    {
+        int v = value;
+        return (v & 0xF) == 0
+            ? value
+            : (sbyte)((v + 0xF) & ~0xF);
+    }
+
+    public static short ToNext0x10(short value)
+    {
+        int v = value;
+        return (v & 0xF) == 0
+            ? value
+            : (short)((v + 0xF) & ~0xF);
+    }
+
+    public static ushort ToNext0x10(ushort value) =>
+        (value & 0xF) == 0
+            ? value
+            : (ushort)((value + 0xFu) & ~0xFu);
+
+    public static int ToNext0x10(int value) =>
+        (value & 0xF) == 0
+            ? value
+            : (value + 0xF) & ~0xF;
+
+    public static uint ToNext0x10(uint value) =>
+        (value & 0xFu) == 0
+            ? value
+            : (value + 0xFu) & ~0xFu;
+
+    public static long ToNext0x10(long value) =>
+        (value & 0xFL) == 0
+            ? value
+            : (value + 0xFL) & ~0xFL;
+
+    public static ulong ToNext0x10(ulong value) =>
+        (value & 0xFul) == 0
+            ? value
+            : (value + 0xFul) & ~0xFul;
 }
 
