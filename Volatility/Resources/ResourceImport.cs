@@ -127,7 +127,7 @@ public struct ResourceImport
             ?? throw new InvalidDataException("Expected a YAML sequence of mappings.");
 
         if (index < 0 || index >= list.Count)
-            throw new ArgumentOutOfRangeException(nameof(index), $"Valid range 0–{list.Count - 1}");
+            throw new ArgumentOutOfRangeException(nameof(index), $"Failed to resolve resource import {index}, valid range 0–{list.Count - 1}");
 
         var kv = list[index].Values.GetEnumerator();
         kv.MoveNext();
