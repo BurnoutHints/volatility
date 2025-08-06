@@ -37,4 +37,9 @@ public class ResourceBinaryReader : EndianAwareBinaryReader
     {
         return (ColorRGBA)ReadVector4();
     }
+
+    public ColorRGBA8 ReadColorRGBA8()
+    {
+        return (ColorRGBA8)ReadUInt32();
+    }
 }

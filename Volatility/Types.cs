@@ -9,6 +9,7 @@ global using Matrix44Affine = System.Numerics.Matrix4x4;
 // Volatilty Types
 global using ColorRGB = System.Numerics.Vector3;
 global using ColorRGBA = System.Numerics.Vector4;
+global using ColorRGBA8 = System.UInt32;
 global using Vector2Literal = System.Numerics.Vector2;
 
 
