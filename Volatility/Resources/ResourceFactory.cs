@@ -62,6 +62,18 @@ public static class ResourceFactory
         { (ResourceType.EnvironmentTimeLine, Platform.TUB), path => new EnvironmentTimeline(path, Endian.LE) },
         { (ResourceType.EnvironmentTimeLine, Platform.X360), path => new EnvironmentTimeline(path, Endian.BE) },
         { (ResourceType.EnvironmentTimeLine, Platform.PS3), path => new EnvironmentTimeline(path, Endian.BE) },
+
+        // SnapshotData resources
+        { (ResourceType.SnapshotData, Platform.BPR), path => new SnapshotData(path, Endian.LE) },
+        { (ResourceType.SnapshotData, Platform.TUB), path => new SnapshotData(path, Endian.LE) },
+        { (ResourceType.SnapshotData, Platform.X360), path => new SnapshotData(path, Endian.BE) },
+        { (ResourceType.SnapshotData, Platform.PS3), path => new SnapshotData(path, Endian.BE) },
+
+        // AptData resources
+        { (ResourceType.AptData, Platform.BPR), path => new AptData(path, Endian.LE) },
+        { (ResourceType.AptData, Platform.TUB), path => new AptData(path, Endian.LE) },
+        { (ResourceType.AptData, Platform.X360), path => new AptData(path, Endian.BE) },
+        { (ResourceType.AptData, Platform.PS3), path => new AptData(path, Endian.BE) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
