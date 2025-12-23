@@ -11,6 +11,7 @@ internal partial class ImportResourceOperation
     private readonly string toolsDirectory;
     private readonly string splicerDirectory;
     private readonly bool overwrite;
+    private static readonly object ConsolePromptLock = new();
 
     public ImportResourceOperation(string resourcesDirectory, string toolsDirectory, string splicerDirectory, bool overwrite)
     {
@@ -63,6 +64,28 @@ internal partial class ImportResourceOperation
                 );
 
                 File.Copy(texturePath, $"{outPath}.{resourceType}Bitmap", overwrite);
+            }
+        }
+
+        if (resourceType == ResourceType.Shader && resource is ShaderPC shaderPc)
+        {
+            if (!string.IsNullOrEmpty(shaderPc.ShaderSourceText))
+            {
+                string outPath = Path.Combine
+                (
+                    directoryPath ?? string.Empty,
+                    Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                );
+                string fxPath = $"{outPath}.fx";
+
+                if (!File.Exists(fxPath) || overwrite || PromptOverwrite(fxPath))
+                {
+                    await File.WriteAllTextAsync(fxPath, shaderPc.ShaderSourceText);
+                }
+                else
+                {
+                    Console.WriteLine($"Skipping extracted shader {Path.GetFileName(fxPath)}.");
+                }
             }
         }
 
@@ -154,6 +177,21 @@ internal partial class ImportResourceOperation
         }
 
         return new ImportResourceResult(resource, filePath);
+    }
+
+    private static bool PromptOverwrite(string filePath)
+    {
+        lock (ConsolePromptLock)
+        {
+            Console.Write($"{Path.GetFileName(filePath)} already exists. Overwrite? [y/N]: ");
+            string? input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+
+            input = input.Trim();
+            return input.Equals("y", StringComparison.OrdinalIgnoreCase)
+                || input.Equals("yes", StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [GeneratedRegex(@"(\?ID=\d+)|:")]

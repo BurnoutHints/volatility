@@ -74,6 +74,10 @@ public static class ResourceFactory
         { (ResourceType.AptData, Platform.TUB), path => new AptData(path, Endian.LE) },
         { (ResourceType.AptData, Platform.X360), path => new AptData(path, Endian.BE) },
         { (ResourceType.AptData, Platform.PS3), path => new AptData(path, Endian.BE) },
+
+        // Shader resources
+        { (ResourceType.Shader, Platform.Agnostic), path => new ShaderBase(path) },
+        { (ResourceType.Shader, Platform.TUB), path => new ShaderPC(path) },
     };
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
