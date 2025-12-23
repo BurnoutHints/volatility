@@ -1,5 +1,4 @@
 using Volatility.Resources;
-using Volatility.Utilities;
 
 namespace Volatility.Operations.Resources;
 

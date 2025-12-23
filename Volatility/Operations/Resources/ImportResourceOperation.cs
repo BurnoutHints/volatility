@@ -2,9 +2,6 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 using Volatility.Resources;
-using Volatility.Utilities;
-
-using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Operations.Resources;
 
