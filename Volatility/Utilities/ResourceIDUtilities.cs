@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.Globalization;
+
+using Newtonsoft.Json;
 
 using static Volatility.Utilities.DataUtilities;
 using static Volatility.Utilities.EnvironmentUtilities;
@@ -53,6 +55,36 @@ public static class ResourceIDUtilities
         }
 
         return true;
+    }
+
+    public static bool TryParseResourceID(string input, out ResourceID resourceID)
+    {
+        resourceID = ResourceID.Default;
+
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        string trimmed = input.Trim().Replace("_", "");
+        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[2..];
+
+        if (trimmed.Length == 0)
+            return false;
+
+        if (IsHexadecimal(trimmed)
+            && ulong.TryParse(trimmed, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong hexValue))
+        {
+            resourceID = hexValue;
+            return true;
+        }
+
+        if (ulong.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong decValue))
+        {
+            resourceID = decValue;
+            return true;
+        }
+
+        return false;
     }
 
     public static byte[] FlipResourceIDEndian(byte[] ResourceIDElements)
