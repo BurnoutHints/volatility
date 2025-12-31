@@ -71,21 +71,20 @@ internal partial class ImportResourceOperation
         {
             if (!string.IsNullOrEmpty(shaderPc.ShaderSourceText))
             {
-                string outPath = Path.Combine
-                (
-                    directoryPath ?? string.Empty,
-                    Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
-                );
-                string fxPath = $"{outPath}.fx";
+                string shaderFileName = $"{Path.GetFileName(filePath)}.hlsl";
+                string shaderPath = Path.Combine(directoryPath ?? string.Empty, shaderFileName);
 
-                if (!File.Exists(fxPath) || overwrite || PromptOverwrite(fxPath))
+                if (!File.Exists(shaderPath) || overwrite || PromptOverwrite(shaderPath))
                 {
-                    await File.WriteAllTextAsync(fxPath, shaderPc.ShaderSourceText);
+                    await File.WriteAllTextAsync(shaderPath, shaderPc.ShaderSourceText);
                 }
                 else
                 {
-                    Console.WriteLine($"Skipping extracted shader {Path.GetFileName(fxPath)}.");
+                    Console.WriteLine($"Skipping extracted shader {Path.GetFileName(shaderPath)}.");
                 }
+
+                shaderPc.ShaderSourcePath = shaderFileName;
+                shaderPc.ShaderSourceText = null;
             }
         }
 

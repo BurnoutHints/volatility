@@ -20,6 +20,7 @@ internal class LoadResourceOperation
             throw new SerializationException();
         }
 
+        result.ImportedFileName = sourceFile;
         return result;
     }
 }

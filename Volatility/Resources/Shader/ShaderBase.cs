@@ -6,8 +6,8 @@ public class ShaderBase : Resource
     public override Endian GetResourceEndian() => Endian.Agnostic;
     public override Platform GetResourcePlatform() => Platform.Agnostic;
 
-    [EditorCategory("Shader/Source"), EditorLabel("Source Text"), EditorTooltip("The HLSL source text for this shader.")]
-    public string? ShaderSourceText { get; set; }
+    [EditorCategory("Shader/Source"), EditorLabel("Source File"), EditorTooltip("Relative path to the HLSL source file.")]
+    public string? ShaderSourcePath { get; set; }
 
     [EditorCategory("Shader/Compile"), EditorLabel("Stages"), EditorTooltip("Entry points and profiles to compile from this source.")]
     public List<ShaderStageCompile> Stages { get; set; } = [];

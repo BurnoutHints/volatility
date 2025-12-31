@@ -36,6 +36,11 @@ internal sealed class CreateResourceOperation
             resource.ResourceID = ResourceID.HashFromString(resolvedAssetName);
         }
 
+        if (resource is ShaderBase shader && string.IsNullOrWhiteSpace(shader.ShaderSourcePath))
+        {
+            shader.ShaderSourcePath = $"{Path.GetFileName(resolvedPath)}.hlsl";
+        }
+
         return new CreateResourceResult(resource, resolvedPath);
     }
 
