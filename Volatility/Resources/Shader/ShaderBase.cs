@@ -59,6 +59,37 @@ public class ShaderBase : Resource
         ];
     }
 
+    public string? ResolveShaderSourcePath()
+    {
+        if (string.IsNullOrWhiteSpace(ShaderSourcePath))
+            return null;
+
+        if (Path.IsPathRooted(ShaderSourcePath))
+            return ShaderSourcePath;
+
+        if (!string.IsNullOrWhiteSpace(ImportedFileName))
+        {
+            string? baseDir = Path.GetDirectoryName(ImportedFileName);
+            if (!string.IsNullOrWhiteSpace(baseDir))
+                return Path.Combine(baseDir, ShaderSourcePath);
+        }
+
+        return Path.GetFullPath(ShaderSourcePath);
+    }
+
+    public bool TryReadShaderSourceText(out string shaderSourceText)
+    {
+        string? resolvedPath = ResolveShaderSourcePath();
+        if (string.IsNullOrWhiteSpace(resolvedPath) || !File.Exists(resolvedPath))
+        {
+            shaderSourceText = string.Empty;
+            return false;
+        }
+
+        shaderSourceText = File.ReadAllText(resolvedPath);
+        return true;
+    }
+
     public ShaderBase() : base() { }
 
     public ShaderBase(string path) : base(path) { }

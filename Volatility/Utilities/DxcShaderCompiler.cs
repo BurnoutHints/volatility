@@ -43,49 +43,32 @@ public static class DxcShaderCompiler
         }
 
         string dxcPath = ResolveDxcPath();
-        string sourcePath = ResolveSourcePath(shader, out bool deleteTempSource);
+        string sourcePath = ResolveSourcePath(shader);
 
-        try
+        ProcessStartInfo startInfo = BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath);
+        using Process process = new() { StartInfo = startInfo };
+
+        StringBuilder output = new();
+        process.OutputDataReceived += (_, e) =>
         {
-            ProcessStartInfo startInfo = BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath);
-            using Process process = new() { StartInfo = startInfo };
-
-            StringBuilder output = new();
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                    output.AppendLine(e.Data);
-            };
-            process.ErrorDataReceived += (_, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                    output.AppendLine(e.Data);
-            };
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-            {
-                string message = output.Length > 0 ? output.ToString() : "No compiler output.";
-                throw new InvalidOperationException($"dxc failed (exit {process.ExitCode}).\n{message}");
-            }
-        }
-        finally
+            if (!string.IsNullOrWhiteSpace(e.Data))
+                output.AppendLine(e.Data);
+        };
+        process.ErrorDataReceived += (_, e) =>
         {
-            if (deleteTempSource)
-            {
-                try
-                {
-                    File.Delete(sourcePath);
-                }
-                catch
-                {
-                    // Best-effort cleanup. ¯\_(ツ)_/¯
-                }
-            }
+            if (!string.IsNullOrWhiteSpace(e.Data))
+                output.AppendLine(e.Data);
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            string message = output.Length > 0 ? output.ToString() : "No compiler output.";
+            throw new InvalidOperationException($"dxc failed (exit {process.ExitCode}).\n{message}");
         }
     }
 
@@ -205,37 +188,16 @@ public static class DxcShaderCompiler
         return "ps_5_0";
     }
 
-    private static string ResolveSourcePath(ShaderBase shader, out bool deleteTempSource)
+    private static string ResolveSourcePath(ShaderBase shader)
     {
-        deleteTempSource = false;
+        string? resolvedPath = shader.ResolveShaderSourcePath();
+        if (string.IsNullOrWhiteSpace(resolvedPath))
+            throw new InvalidOperationException("ShaderSourcePath is empty.");
 
-        if (!string.IsNullOrWhiteSpace(shader.ShaderSourcePath))
-        {
-            string candidate = shader.ShaderSourcePath;
-            if (!Path.IsPathRooted(candidate))
-            {
-                string? baseDir = null;
-                if (!string.IsNullOrWhiteSpace(shader.ImportedFileName))
-                    baseDir = Path.GetDirectoryName(shader.ImportedFileName);
+        if (!File.Exists(resolvedPath))
+            throw new FileNotFoundException($"Shader source file not found: {resolvedPath}");
 
-                candidate = !string.IsNullOrWhiteSpace(baseDir)
-                    ? Path.Combine(baseDir, candidate)
-                    : Path.GetFullPath(candidate);
-            }
-
-            if (!File.Exists(candidate))
-                throw new FileNotFoundException($"Shader source file not found: {candidate}");
-
-            return candidate;
-        }
-
-        if (string.IsNullOrWhiteSpace(shader.ShaderSourceText))
-            throw new InvalidOperationException("ShaderSourcePath and ShaderSourceText are empty.");
-
-        string tempSourcePath = Path.Combine(Path.GetTempPath(), $"volatility_{Guid.NewGuid():N}.hlsl");
-        File.WriteAllText(tempSourcePath, shader.ShaderSourceText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        deleteTempSource = true;
-        return tempSourcePath;
+        return resolvedPath;
     }
 
     private static string ResolveDxcPath()

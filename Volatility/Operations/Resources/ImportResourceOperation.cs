@@ -67,27 +67,6 @@ internal partial class ImportResourceOperation
             }
         }
 
-        if (resourceType == ResourceType.Shader && resource is ShaderPC shaderPc)
-        {
-            if (!string.IsNullOrEmpty(shaderPc.ShaderSourceText))
-            {
-                string shaderFileName = $"{Path.GetFileName(filePath)}.hlsl";
-                string shaderPath = Path.Combine(directoryPath ?? string.Empty, shaderFileName);
-
-                if (!File.Exists(shaderPath) || overwrite || PromptOverwrite(shaderPath))
-                {
-                    await File.WriteAllTextAsync(shaderPath, shaderPc.ShaderSourceText);
-                }
-                else
-                {
-                    Console.WriteLine($"Skipping extracted shader {Path.GetFileName(shaderPath)}.");
-                }
-
-                shaderPc.ShaderSourcePath = shaderFileName;
-                shaderPc.ShaderSourceText = null;
-            }
-        }
-
         if (resourceType == ResourceType.Splicer)
         {
             string sxPath = Path.Combine

@@ -1,4 +1,7 @@
 using System.Text;
+using System.Text.RegularExpressions;
+
+using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Resources;
 
@@ -6,6 +9,10 @@ public class ShaderPC : ShaderBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.TUB;
+
+    public string Name;
+
+    private static readonly Regex DbToFileRegex = new(@"(\?ID=\d+)|:", RegexOptions.Compiled);
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness)
     {
@@ -19,15 +26,66 @@ public class ShaderPC : ShaderBase
         long baseOffset = reader.BaseStream.Position;
         long returnOffset = reader.BaseStream.Position;
 
+        reader.BaseStream.Seek(baseOffset + 0x8, SeekOrigin.Begin);
+        Name = reader.ReadString();
+
+        string shaderSourceText = string.Empty;
+
         long pointerOffset = baseOffset + 0x24;
         if (pointerOffset + sizeof(uint) <= reader.BaseStream.Length)
         {
             reader.BaseStream.Seek(pointerOffset, SeekOrigin.Begin);
             uint shaderSourcePtr = reader.ReadUInt32();
-            ShaderSourceText = ReadNullTerminatedString(reader, baseOffset, shaderSourcePtr);
+            shaderSourceText = ReadNullTerminatedString(reader, baseOffset, shaderSourcePtr);
         }
 
         reader.BaseStream.Seek(returnOffset, SeekOrigin.Begin);
+
+        if (!string.IsNullOrEmpty(shaderSourceText))
+        {
+            string resourcesDirectory = GetEnvironmentDirectory(EnvironmentDirectory.Resources);
+            string outputPath;
+
+            if (string.IsNullOrWhiteSpace(ShaderSourcePath))
+            {
+                string baseName = !string.IsNullOrWhiteSpace(AssetName)
+                    ? AssetName
+                    : !string.IsNullOrWhiteSpace(ImportedFileName)
+                        ? Path.GetFileNameWithoutExtension(ImportedFileName)
+                        : "shader";
+
+                string sanitizedName = DbToFileRegex.Replace(baseName, string.Empty);
+                if (string.IsNullOrWhiteSpace(sanitizedName))
+                    sanitizedName = "shader";
+
+                ShaderSourcePath = $"{sanitizedName}.{ResourceType.Shader}.hlsl";
+                outputPath = Path.Combine(resourcesDirectory, ShaderSourcePath);
+            }
+            else if (Path.IsPathRooted(ShaderSourcePath))
+            {
+                outputPath = ShaderSourcePath;
+            }
+            else
+            {
+                outputPath = Path.Combine(resourcesDirectory, ShaderSourcePath);
+            }
+
+            if (!File.Exists(outputPath))
+            {
+                try
+                {
+                    string? directory = Path.GetDirectoryName(outputPath);
+                    if (!string.IsNullOrWhiteSpace(directory))
+                        Directory.CreateDirectory(directory);
+
+                    File.WriteAllText(outputPath, shaderSourceText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                }
+                catch
+                {
+                    // Best-effort: keep parsed shader even if we cannot write the file.
+                }
+            }
+        }
     }
 
     private static string? ReadNullTerminatedString(ResourceBinaryReader reader, long baseOffset, uint pointer)
