@@ -53,6 +53,59 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore Volatility/Volatility.csproj
 
+      - name: Fetch latest DXC
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rid = '${{ matrix.rid }}'
+          $toolsDir = Join-Path $PWD 'tools'
+          $dxcDir = Join-Path $toolsDir 'dxc'
+          New-Item -ItemType Directory -Force -Path $dxcDir | Out-Null
+
+          $headers = @{ 'User-Agent' = 'volatility-ci' }
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/latest" -Headers $headers
+
+          if ($rid -like 'win-*') {
+            $asset = $release.assets | Where-Object { $_.name -like 'dxc_*.zip' } | Select-Object -First 1
+            if (-not $asset) { throw "DXC zip asset not found." }
+            $zip = Join-Path $env:TEMP $asset.name
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
+            $extract = Join-Path $env:TEMP "dxc_extract_$rid"
+            if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+            Expand-Archive -Path $zip -DestinationPath $extract
+
+            $arch = $rid -eq 'win-arm64' ? 'arm64' : 'x64'
+            $src = Join-Path $extract "bin\\$arch"
+            $dest = Join-Path $dxcDir $rid
+            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Copy-Item -Path (Join-Path $src '*') -Destination $dest -Recurse -Force
+            Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
+            Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
+          }
+          elseif ($rid -eq 'linux-x64') {
+            $asset = $release.assets | Where-Object { $_.name -like 'linux_dxc_*x86_64*.tar.gz' } | Select-Object -First 1
+            if (-not $asset) { throw "DXC linux asset not found." }
+            $tar = Join-Path $env:TEMP $asset.name
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tar
+            $extract = Join-Path $env:TEMP "dxc_extract_$rid"
+            if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+            New-Item -ItemType Directory -Force -Path $extract | Out-Null
+            tar -xzf $tar -C $extract
+
+            $dest = Join-Path $dxcDir $rid
+            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Copy-Item -Path (Join-Path $extract 'bin\\dxc') -Destination $dest -Force
+            Copy-Item -Path (Join-Path $extract 'lib\\libdxcompiler.so') -Destination $dest -Force
+            Copy-Item -Path (Join-Path $extract 'lib\\libdxil.so') -Destination $dest -Force
+            Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
+            Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
+          }
+          else {
+            Write-Host "No official DXC asset for RID $rid; skipping."
+          }
+
       - name: Publish for ${{ matrix.rid }}
         shell: pwsh
         run: dotnet publish --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:ApplicationIcon=volatility_icon.ico --output ${{ matrix.output }} Volatility/Volatility.csproj
