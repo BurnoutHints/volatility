@@ -58,7 +58,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $rid = '${{ matrix.rid }}'
-          $toolsDir = Join-Path $PWD 'tools'
+          $projectDir = Join-Path $PWD 'Volatility'
+          $toolsDir = Join-Path $projectDir 'tools'
           $dxcDir = Join-Path $toolsDir 'dxc'
           New-Item -ItemType Directory -Force -Path $dxcDir | Out-Null
 
