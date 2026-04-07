@@ -33,13 +33,13 @@ public class EnvironmentKeyframe : Resource
 
         reader.BaseStream.Seek(0x10, SeekOrigin.Begin);
 
-        BloomSettings = new BloomData(reader);
-        VignetteSettings = new VignetteData(reader);
-        TintSettings = new TintData(reader, GetResourceArch());
+        BloomSettings = new(reader);
+        VignetteSettings = new(reader);
+        TintSettings = new(reader, GetResourceArch());
         reader.BaseStream.Seek(0xC, SeekOrigin.Current);
-        ScatteringSettings = new ScatteringData(reader);
-        LightingSettings = new LightingData(reader);
-        CloudSettings = new CloudsData(reader);
+        ScatteringSettings = new(reader);
+        LightingSettings = new(reader);
+        CloudSettings = new(reader);
     }
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)

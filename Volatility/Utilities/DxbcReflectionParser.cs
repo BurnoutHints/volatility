@@ -3,9 +3,9 @@ using System.Text;
 
 namespace Volatility.Utilities;
 
-public static class DxbcReflectionParser
+public static class DXBCReflectionParser
 {
-    public static DxbcReflectionData Parse(byte[] csoBytes)
+    public static DXBCReflectionData Parse(byte[] csoBytes)
     {
         if (csoBytes == null || csoBytes.Length < 32)
             throw new InvalidOperationException("CSO data is empty or too small.");
@@ -13,20 +13,20 @@ public static class DxbcReflectionParser
         if (!TryGetChunk(csoBytes, "RDEF", out var chunkData))
             throw new InvalidOperationException("RDEF chunk not found in CSO.");
 
-        return ParseRdef(chunkData);
+        return ParseRDEF(chunkData);
     }
 
-    private static DxbcReflectionData ParseRdef(ReadOnlySpan<byte> data)
+    private static DXBCReflectionData ParseRDEF(ReadOnlySpan<byte> data)
     {
         if (data.Length < 16)
-            return new DxbcReflectionData();
+            return new();
 
         uint constantBufferCount = ReadUInt32(data, 0);
         uint boundResourceCount = ReadUInt32(data, 4);
         uint constantBufferOffset = ReadUInt32(data, 8);
         uint boundResourceOffset = ReadUInt32(data, 12);
 
-        var reflection = new DxbcReflectionData();
+        DXBCReflectionData reflection = new();
 
         ParseConstantBuffers(data, reflection, constantBufferCount, constantBufferOffset);
         ParseResourceBindings(data, reflection, boundResourceCount, boundResourceOffset);
@@ -34,7 +34,7 @@ public static class DxbcReflectionParser
         return reflection;
     }
 
-    private static void ParseConstantBuffers(ReadOnlySpan<byte> data, DxbcReflectionData reflection, uint count, uint offset)
+    private static void ParseConstantBuffers(ReadOnlySpan<byte> data, DXBCReflectionData reflection, uint count, uint offset)
     {
         const int cbufferStride = 24;
         const int variableStride = 40;
@@ -51,7 +51,7 @@ public static class DxbcReflectionParser
             uint size = ReadUInt32(data, descOffset + 12);
 
             string name = ReadString(data, (int)nameOffset);
-            var buffer = new DxbcConstantBuffer
+            DXBCConstantBuffer buffer = new()
             {
                 Name = name,
                 Size = size
@@ -69,9 +69,9 @@ public static class DxbcReflectionParser
                 uint typeOffset = ReadUInt32(data, varOffset + 16);
 
                 string varName = ReadString(data, (int)varNameOffset);
-                DxbcTypeDesc typeDesc = ReadTypeDesc(data, (int)typeOffset);
+                DXBCTypeDesc typeDesc = ReadTypeDesc(data, (int)typeOffset);
 
-                buffer.Variables.Add(new DxbcConstantVariable
+                buffer.Variables.Add(new()
                 {
                     Name = varName,
                     StartOffset = startOffset,
@@ -84,7 +84,7 @@ public static class DxbcReflectionParser
         }
     }
 
-    private static void ParseResourceBindings(ReadOnlySpan<byte> data, DxbcReflectionData reflection, uint count, uint offset)
+    private static void ParseResourceBindings(ReadOnlySpan<byte> data, DXBCReflectionData reflection, uint count, uint offset)
     {
         int stride = DetermineResourceStride(data, count, offset);
 
@@ -100,10 +100,10 @@ public static class DxbcReflectionParser
             uint bindCount = ReadUInt32(data, descOffset + 12);
 
             string name = ReadString(data, (int)nameOffset);
-            reflection.ResourceBindings.Add(new DxbcResourceBinding
+            reflection.ResourceBindings.Add(new DXBCResourceBinding
             {
                 Name = name,
-                ResourceType = (DxbcResourceType)type,
+                ResourceType = (DXBCResourceType)type,
                 BindPoint = bindPoint,
                 BindCount = bindCount
             });
@@ -142,17 +142,17 @@ public static class DxbcReflectionParser
         return valid;
     }
 
-    private static DxbcTypeDesc ReadTypeDesc(ReadOnlySpan<byte> data, int offset)
+    private static DXBCTypeDesc ReadTypeDesc(ReadOnlySpan<byte> data, int offset)
     {
         const int typeStride = 32;
         if (offset < 0 || offset + typeStride > data.Length)
-            return new DxbcTypeDesc();
+            return new();
 
         uint rows = ReadUInt32(data, offset + 8);
         uint columns = ReadUInt32(data, offset + 12);
         uint elements = ReadUInt32(data, offset + 16);
 
-        return new DxbcTypeDesc
+        return new()
         {
             Rows = rows,
             Columns = columns,
@@ -160,7 +160,7 @@ public static class DxbcReflectionParser
         };
     }
 
-    private static bool TryGetChunk(byte[] data, string fourCc, out ReadOnlySpan<byte> chunk)
+    private static bool TryGetChunk(byte[] data, string fourCC, out ReadOnlySpan<byte> chunk)
     {
         chunk = default;
         if (data.Length < 32)
@@ -182,7 +182,7 @@ public static class DxbcReflectionParser
             uint size = ReadUInt32(data, offset + 4);
             int dataOffset = offset + 8;
 
-            if (tag == fourCc && dataOffset + size <= data.Length)
+            if (tag == fourCC && dataOffset + size <= data.Length)
             {
                 chunk = new ReadOnlySpan<byte>(data, dataOffset, (int)size);
                 return true;
@@ -213,36 +213,36 @@ public static class DxbcReflectionParser
     }
 }
 
-public sealed class DxbcReflectionData
+public sealed class DXBCReflectionData
 {
-    public List<DxbcConstantBuffer> ConstantBuffers { get; } = [];
-    public List<DxbcResourceBinding> ResourceBindings { get; } = [];
+    public List<DXBCConstantBuffer> ConstantBuffers { get; } = [];
+    public List<DXBCResourceBinding> ResourceBindings { get; } = [];
 }
 
-public sealed class DxbcConstantBuffer
+public sealed class DXBCConstantBuffer
 {
     public string Name { get; set; } = string.Empty;
     public uint Size { get; set; }
-    public List<DxbcConstantVariable> Variables { get; } = [];
+    public List<DXBCConstantVariable> Variables { get; } = [];
 }
 
-public sealed class DxbcConstantVariable
+public sealed class DXBCConstantVariable
 {
     public string Name { get; set; } = string.Empty;
     public uint StartOffset { get; set; }
     public uint Size { get; set; }
-    public DxbcTypeDesc TypeDesc { get; set; } = new();
+    public DXBCTypeDesc TypeDesc { get; set; } = new();
 }
 
-public sealed class DxbcResourceBinding
+public sealed class DXBCResourceBinding
 {
     public string Name { get; set; } = string.Empty;
-    public DxbcResourceType ResourceType { get; set; }
+    public DXBCResourceType ResourceType { get; set; }
     public uint BindPoint { get; set; }
     public uint BindCount { get; set; }
 }
 
-public enum DxbcResourceType : uint
+public enum DXBCResourceType : uint
 {
     CBuffer = 0,
     TBuffer = 1,
@@ -260,7 +260,7 @@ public enum DxbcResourceType : uint
     UavRwFeedbackTexture = 13
 }
 
-public sealed class DxbcTypeDesc
+public sealed class DXBCTypeDesc
 {
     public uint Rows { get; set; } = 1;
     public uint Columns { get; set; } = 1;

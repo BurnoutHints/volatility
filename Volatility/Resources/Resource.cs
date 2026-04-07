@@ -169,6 +169,8 @@ public enum ResourceType
     SatNavTile = 0x28,
     SatNavTileDirectory = 0x29,
     Model = 0x2A,
+    Scene = 0x2A,
+    PropScene = 0x2A,
     ColourCube = 0x2B,
     HudMessage = 0x2C,
     HudMessageList = 0x2D,

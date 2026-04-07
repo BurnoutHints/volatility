@@ -8,9 +8,9 @@ using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Utilities;
 
-public static class DxcShaderCompiler
+public static class DXCShaderCompiler
 {
-    private const string DxcPathEnvVar = "VOLATILITY_DXC_PATH";
+    private const string DXCPathEnvVar = "VOLATILITY_DXC_PATH";
 
     public static void CompileStagesToCSO(ShaderBase shader, IReadOnlyList<ShaderStageCompile> stages, Func<ShaderStageCompile, string> outputPathFactory)
     {
@@ -42,7 +42,7 @@ public static class DxcShaderCompiler
             Directory.CreateDirectory(outputDir);
         }
 
-        string dxcPath = ResolveDxcPath();
+        string dxcPath = ResolveDXCPath();
         string sourcePath = ResolveSourcePath(shader);
 
         ProcessStartInfo startInfo = BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath);
@@ -81,7 +81,7 @@ public static class DxcShaderCompiler
         string targetProfile,
         string outputPath)
     {
-        var start = new ProcessStartInfo
+        ProcessStartInfo start = new()
         {
             FileName = dxcPath,
             UseShellExecute = false,
@@ -200,9 +200,9 @@ public static class DxcShaderCompiler
         return resolvedPath;
     }
 
-    private static string ResolveDxcPath()
+    private static string ResolveDXCPath()
     {
-        string? overridePath = Environment.GetEnvironmentVariable(DxcPathEnvVar);
+        string? overridePath = Environment.GetEnvironmentVariable(DXCPathEnvVar);
         if (!string.IsNullOrWhiteSpace(overridePath))
         {
             if (!File.Exists(overridePath))
@@ -231,7 +231,7 @@ public static class DxcShaderCompiler
         if (!string.IsNullOrEmpty(pathCandidate))
             return pathCandidate;
 
-        throw new FileNotFoundException($"dxc not found. Set {DxcPathEnvVar} or place it under {Path.Combine(toolsDir, "dxc")}.");
+        throw new FileNotFoundException($"dxc not found. Set {DXCPathEnvVar} or place it under {Path.Combine(toolsDir, "dxc")}.");
     }
 
     private static string? FindOnPath(string exeName)

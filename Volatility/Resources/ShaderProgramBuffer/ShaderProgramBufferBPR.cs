@@ -144,7 +144,7 @@ public class ShaderProgramBufferBPR : ShaderProgramBufferBase
         if (csoBytes == null)
             throw new ArgumentNullException(nameof(csoBytes));
 
-        var reflection = DxbcReflectionParser.Parse(csoBytes);
+        var reflection = DXBCReflectionParser.Parse(csoBytes);
 
         var buffer = new ShaderProgramBufferBPR
         {
@@ -156,8 +156,8 @@ public class ShaderProgramBufferBPR : ShaderProgramBufferBase
         {
             ShaderBindingType? bindingType = resource.ResourceType switch
             {
-                DxbcResourceType.Sampler => ShaderBindingType.Sampler,
-                DxbcResourceType.Texture => ShaderBindingType.Texture,
+                DXBCResourceType.Sampler => ShaderBindingType.Sampler,
+                DXBCResourceType.Texture => ShaderBindingType.Texture,
                 _ => null
             };
 
@@ -292,7 +292,7 @@ public class ShaderProgramBufferBPR : ShaderProgramBufferBase
         return count > byte.MaxValue ? byte.MaxValue : (byte)count;
     }
 
-    private static byte CalculateComponentCount(DxbcTypeDesc typeDesc)
+    private static byte CalculateComponentCount(DXBCTypeDesc typeDesc)
     {
         uint rows = typeDesc.Rows == 0 ? 1u : typeDesc.Rows;
         uint columns = typeDesc.Columns == 0 ? 1u : typeDesc.Columns;

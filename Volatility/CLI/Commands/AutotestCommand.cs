@@ -45,7 +45,7 @@ internal class AutotestCommand : ICommand
          */
             
         // TUB Texture data test case
-        TexturePC textureHeaderPC = new TexturePC
+        TexturePC textureHeaderPC = new()
         {
             AssetName = "autotest_header_PC",
             ResourceID = ResourceID.HashFromString("autotest_header_PC"),
@@ -59,7 +59,7 @@ internal class AutotestCommand : ICommand
         TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
 
         // BPR Texture data test case
-        TextureBPR textureHeaderBPR = new TextureBPR
+        TextureBPR textureHeaderBPR = new()
         {
             AssetName = "autotest_header_BPR",
             ResourceID = ResourceID.HashFromString("autotest_header_BPR"),
@@ -83,7 +83,7 @@ internal class AutotestCommand : ICommand
         TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
 
         // PS3 Texture data test case
-        TexturePS3 textureHeaderPS3 = new TexturePS3
+        TexturePS3 textureHeaderPS3 = new()
         {
             AssetName = "autotest_header_PS3",
             ResourceID = ResourceID.HashFromString("autotest_header_PS3"),
@@ -97,11 +97,11 @@ internal class AutotestCommand : ICommand
         TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
 
         // X360 Texture data test case
-        TextureX360 textureHeaderX360 = new TextureX360
+        TextureX360 textureHeaderX360 = new()
         {
             AssetName = "autotest_header_X360",
             ResourceID = ResourceID.HashFromString("autotest_header_X360"),
-            Format = new GPUTEXTURE_FETCH_CONSTANT
+            Format = new()
             {
                 Tiled = true,
                 SwizzleW = GPUSWIZZLE.GPUSWIZZLE_W,
@@ -131,7 +131,7 @@ internal class AutotestCommand : ICommand
 
     public void TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
     {
-        using (FileStream fs = new FileStream(name, FileMode.Create))
+        using (FileStream fs = new(name, FileMode.Create))
         {
             // We don't want the command runner to catch the error
             try

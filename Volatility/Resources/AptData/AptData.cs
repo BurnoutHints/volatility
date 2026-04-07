@@ -73,7 +73,7 @@ public class AptData : Resource
                     reader.BaseStream.Seek(vertsPtr + (0x4 * i), SeekOrigin.Begin);
                     reader.BaseStream.Seek(reader.ReadUInt32(), SeekOrigin.Begin);
 
-                    vertices.Add(new GuiVertex()
+                    vertices.Add(new()
                     {
                         Position = reader.ReadVector2Literal(),
                         Color = reader.ReadColorRGBA8(),
@@ -81,7 +81,7 @@ public class AptData : Resource
                     });
                 }
 
-                geometryMeshes.Add(new GuiGeometryMesh()
+                geometryMeshes.Add(new()
                 {
                     MeshType = meshType,
                     TextureMode = textureMode,
@@ -90,14 +90,14 @@ public class AptData : Resource
                 });
             }
 
-            guiGeometryFiles.Add(new GuiGeometryFile()
+            guiGeometryFiles.Add(new()
             {
                 ID = muID,
                 GeometryMeshes = geometryMeshes
             });
         }
 
-        GuiGeometry = new GuiGeometryObject()
+        GuiGeometry = new()
         {
             GeometryFiles = guiGeometryFiles
         };

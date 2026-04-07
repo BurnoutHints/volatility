@@ -39,13 +39,13 @@ internal class ExportResourceOperation
 
             if (platform == Platform.BPR)
             {
-                var bufferOperation = new CreateShaderProgramBufferOperation();
+                CreateShaderProgramBufferOperation bufferOperation = new();
                 foreach (var stage in stages)
                 {
                     string shaderProgramBufferPath = GetShaderProgramBufferPath(outputPath, stage, useStageSuffix);
                     string csoPath = GetShaderCSOPath(outputPath, stage, useStageSuffix);
 
-                    DxcShaderCompiler.CompileToCSO(shader, stage, csoPath);
+                    DXCShaderCompiler.CompileToCSO(shader, stage, csoPath);
                     ShaderProgramBufferBase buffer = bufferOperation.ExecuteFromFile(csoPath, stage.ResolveStage(), platform);
                     bufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
                     WritePaddedCSOFile(csoPath, GetSecondaryResourcePath(shaderProgramBufferPath));
@@ -53,7 +53,7 @@ internal class ExportResourceOperation
             }
             else
             {
-                DxcShaderCompiler.CompileStagesToCSO(shader, stages, stage =>
+                DXCShaderCompiler.CompileStagesToCSO(shader, stages, stage =>
                     GetShaderProgramBufferPath(outputPath, stage, useStageSuffix));
             }
         }
@@ -62,8 +62,8 @@ internal class ExportResourceOperation
         {
             if (shaderProgramBuffer.CompiledShaderBytecode.Length > 0)
             {
-                string secondaryCsoPath = GetSecondaryResourcePath(outputPath);
-                WritePaddedCSOBytes(shaderProgramBuffer.CompiledShaderBytecode, secondaryCsoPath);
+                string secondaryCSOPath = GetSecondaryResourcePath(outputPath);
+                WritePaddedCSOBytes(shaderProgramBuffer.CompiledShaderBytecode, secondaryCSOPath);
             }
         }
 

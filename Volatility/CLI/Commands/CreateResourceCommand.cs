@@ -70,8 +70,8 @@ internal class CreateResourceCommand : ICommand
         }
 
         string resourcesDirectory = GetEnvironmentDirectory(EnvironmentDirectory.Resources);
-        var createOperation = new CreateResourceOperation(resourcesDirectory);
-        var saveOperation = new SaveResourceOperation();
+        CreateResourceOperation createOperation = new(resourcesDirectory);
+        SaveResourceOperation saveOperation = new();
 
         CreateResourceResult result;
         try
