@@ -133,6 +133,15 @@ internal class PortTextureOperation
                         if (bprps3format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
                             Console.WriteLine($"WARNING: Destination texture format is {bprps3format}! (Source is {bpr.Format})");
                         break;
+                    case (TexturePC tub, TexturePS3 ps3):
+                        TUBtoPS3Mapping.TryGetValue(tub.Format, out CELL_GCM_COLOR_FORMAT tubps3Format);
+                        ps3.Format = tubps3Format;
+                        flipEndian = true;
+                        sourceFormatIndex = (int)tub.Format;
+                        destinationFormatIndex = (int)tubps3Format;
+                        if (tubps3Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
+                            Console.WriteLine($"WARNING: Destination texture format is {tubps3Format}! (Source is {tub.Format})");
+                        break;
                     case (TextureBPR bpr, TextureX360 x360):
                         BPRtoX360Mapping.TryGetValue(bpr.Format, out GPUTEXTUREFORMAT bprx360Format);
                         x360.Format.DataFormat = bprx360Format;
@@ -210,10 +219,35 @@ internal class PortTextureOperation
                     }
                     if (sourceTexture is TextureX360 sourceX)
                     {
+                        string conversionBitmapPath = sourceBitmapPath;
+                        string? temporaryBitmapPath = null;
+
                         if (sourceX.Format.Tiled && !string.IsNullOrEmpty(sourceBitmapPath))
                         {
                             if (verbose) Console.WriteLine($"Detiling X360 bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                            X360TextureUtilities.WriteUntiled360TextureFile(sourceX, sourceBitmapPath, destinationBitmapPath);
+                            temporaryBitmapPath = Path.GetTempFileName();
+                            X360TextureUtilities.WriteUntiled360TextureFile(sourceX, sourceBitmapPath, temporaryBitmapPath);
+                            conversionBitmapPath = temporaryBitmapPath;
+                        }
+
+                        try
+                        {
+                            if (!TryConvertTexture(sourceTexture, destinationTexture, conversionBitmapPath, destinationBitmapPath))
+                            {
+                                if (verbose) Console.WriteLine($"Copying associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                                File.Copy(conversionBitmapPath, destinationBitmapPath, true);
+                            }
+                            else
+                            {
+                                if (verbose) Console.WriteLine($"Converting associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                            }
+                        }
+                        finally
+                        {
+                            if (!string.IsNullOrEmpty(temporaryBitmapPath) && File.Exists(temporaryBitmapPath))
+                            {
+                                File.Delete(temporaryBitmapPath);
+                            }
                         }
                     }
                     else
@@ -319,10 +353,51 @@ internal class PortTextureOperation
         switch (srcTexture, destTexture)
         {
             case (TexturePS3 ps3, TextureBPR bpr):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8)
+                {
+                    bitmap = PS3TextureUtilities.DecodePS3A8R8G8B8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+
+                    if (bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
+                    {
+                        DDSTextureUtilities.A8R8G8B8toR8G8B8A8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+                        break;
+                    }
+
+                    if (bpr.Format == DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM)
+                    {
+                        DDSTextureUtilities.A8R8G8B8toB8G8R8A8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+                        break;
+                    }
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
+            case (TexturePS3 ps3, TexturePC tub):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8)
+                {
+                    bitmap = PS3TextureUtilities.DecodePS3A8R8G8B8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+
+                    if (tub.Format == D3DFORMAT.D3DFMT_A8R8G8B8)
+                    {
+                        break;
+                    }
+
+                    if (tub.Format == D3DFORMAT.D3DFMT_A8B8G8R8)
+                    {
+                        DDSTextureUtilities.A8R8G8B8toA8B8G8R8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+                        break;
+                    }
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
+            case (TexturePS3 ps3, TextureX360 x360):
                 if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8
-                && bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
-                    DDSTextureUtilities.A8R8G8B8toB8G8R8A8(bitmap, destTexture.Width, destTexture.Height, destTexture.MipmapLevels);
-                break;
+                && x360.Format.DataFormat == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8)
+                {
+                    bitmap = PS3TextureUtilities.DecodePS3A8R8G8B8(bitmap, ps3.Width, ps3.Height, ps3.MipmapLevels);
+                    break;
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
             case (TexturePC tub, TextureBPR bpr):
                 if (tub.Format == D3DFORMAT.D3DFMT_A8R8G8B8
                 && bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
@@ -331,6 +406,52 @@ internal class PortTextureOperation
                 && bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
                     DDSTextureUtilities.A8B8G8R8toB8G8R8A8(bitmap, destTexture.Width, destTexture.Height, destTexture.MipmapLevels);
                 break;
+            case (TextureBPR bpr, TexturePS3 ps3):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8)
+                {
+                    if (bpr.Format == DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM)
+                    {
+                        DDSTextureUtilities.R8G8B8A8toA8R8G8B8(bitmap, bpr.Width, bpr.Height, bpr.MipmapLevels);
+                        bitmap = PS3TextureUtilities.EncodePS3A8R8G8B8(bitmap, bpr.Width, bpr.Height, bpr.MipmapLevels);
+                        break;
+                    }
+
+                    if (bpr.Format == DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM)
+                    {
+                        DDSTextureUtilities.B8G8R8A8toA8R8G8B8(bitmap, bpr.Width, bpr.Height, bpr.MipmapLevels);
+                        bitmap = PS3TextureUtilities.EncodePS3A8R8G8B8(bitmap, bpr.Width, bpr.Height, bpr.MipmapLevels);
+                        break;
+                    }
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
+            case (TexturePC tub, TexturePS3 ps3):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8)
+                {
+                    if (tub.Format == D3DFORMAT.D3DFMT_A8R8G8B8)
+                    {
+                        bitmap = PS3TextureUtilities.EncodePS3A8R8G8B8(bitmap, tub.Width, tub.Height, tub.MipmapLevels);
+                        break;
+                    }
+
+                    if (tub.Format == D3DFORMAT.D3DFMT_A8B8G8R8)
+                    {
+                        DDSTextureUtilities.A8B8G8R8toA8R8G8B8(bitmap, tub.Width, tub.Height, tub.MipmapLevels);
+                        bitmap = PS3TextureUtilities.EncodePS3A8R8G8B8(bitmap, tub.Width, tub.Height, tub.MipmapLevels);
+                        break;
+                    }
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
+            case (TextureX360 x360, TexturePS3 ps3):
+                if (ps3.Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8
+                && x360.Format.DataFormat == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8)
+                {
+                    bitmap = PS3TextureUtilities.EncodePS3A8R8G8B8(bitmap, x360.Width, x360.Height, x360.MipmapLevels);
+                    break;
+                }
+                bitmap = Array.Empty<byte>();
+                return false;
             default:
                 bitmap = Array.Empty<byte>();
                 return false;
@@ -427,6 +548,18 @@ internal class PortTextureOperation
         { DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23 },
         { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45 },
         { DXGI_FORMAT.DXGI_FORMAT_A8_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8 },
+        { DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8 },
+        { DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8 },
+    };
+
+    private static readonly Dictionary<D3DFORMAT, CELL_GCM_COLOR_FORMAT> TUBtoPS3Mapping = new()
+    {
+        { D3DFORMAT.D3DFMT_DXT1, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 },
+        { D3DFORMAT.D3DFMT_DXT3, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23 },
+        { D3DFORMAT.D3DFMT_DXT5, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45 },
+        { D3DFORMAT.D3DFMT_A8, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_B8 },
+        { D3DFORMAT.D3DFMT_A8R8G8B8, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8 },
+        { D3DFORMAT.D3DFMT_A8B8G8R8, CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_A8R8G8B8 },
     };
 
     private static readonly Dictionary<DXGI_FORMAT, GPUTEXTUREFORMAT> BPRtoX360Mapping = new()
