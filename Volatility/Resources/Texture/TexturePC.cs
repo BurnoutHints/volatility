@@ -1,21 +1,19 @@
 ﻿using System.Text;
 
-using static Volatility.Utilities.DataUtilities;
-
 namespace Volatility.Resources;
 
-public class TextureHeaderPC : TextureHeaderBase
+public class TexturePC : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.LE;
     public override Platform GetResourcePlatform() => Platform.TUB;
 
-    private D3DFORMAT _Format = D3DFORMAT.D3DFMT_UNKNOWN;
+    private D3DFORMAT _format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
     {
-        get => _Format;
+        get => _format;
         set
         {
-            _Format = value;
+            _format = value;
             PushInternalFormat();
         }
     }
@@ -30,9 +28,9 @@ public class TextureHeaderPC : TextureHeaderBase
     public TEXTURETYPE TextureType;             // Dimension in BPR
     public byte Flags;                          // Flags
 
-    public TextureHeaderPC() : base() { }
+    public TexturePC() : base() { }
 
-    public TextureHeaderPC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
@@ -83,11 +81,11 @@ public class TextureHeaderPC : TextureHeaderBase
     {
         byte[] outputFormat = Format switch
         {
-            D3DFORMAT.D3DFMT_DXT1 => Encoding.UTF8.GetBytes("DXT1"),
-            D3DFORMAT.D3DFMT_DXT3 => Encoding.UTF8.GetBytes("DXT3"),
-            D3DFORMAT.D3DFMT_DXT5 => Encoding.UTF8.GetBytes("DXT5"),
-            D3DFORMAT.D3DFMT_G8R8_G8B8 => Encoding.UTF8.GetBytes("GRGB"),
-            D3DFORMAT.D3DFMT_MULTI2_ARGB8 => Encoding.UTF8.GetBytes("MET1"),
+            D3DFORMAT.D3DFMT_DXT1 => "DXT1"u8.ToArray(),
+            D3DFORMAT.D3DFMT_DXT3 => "DXT3"u8.ToArray(),
+            D3DFORMAT.D3DFMT_DXT5 => "DXT5"u8.ToArray(),
+            D3DFORMAT.D3DFMT_G8R8_G8B8 => "GRGB"u8.ToArray(),
+            D3DFORMAT.D3DFMT_MULTI2_ARGB8 => "MET1"u8.ToArray(),
             _ => BitConverter.GetBytes((int)Format), // Use literal value
         };
         OutputFormat = outputFormat;
@@ -110,20 +108,28 @@ public class TextureHeaderPC : TextureHeaderBase
 
     public override void PushInternalFlags()
     {
-        Unknown1 = TrimIntToByte(WorldTexture || GRTexture ? 1 : 0);
-        Unknown2 = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 1 : 0);
-        Flags = TrimIntToByte(WorldTexture || PropTexture || GRTexture ? 8 : 0);
+        bool grOrWorld = (UsageFlags & (TextureBaseUsageFlags.WorldTexture | TextureBaseUsageFlags.GRTexture)) != 0;
+        bool any = (UsageFlags & TextureBaseUsageFlags.AnyTexture) != 0;
+
+        Unknown1 = Convert.ToByte(grOrWorld);
+        Unknown2 = Convert.ToByte(any);
+        Flags = (byte)(any ? (Flags | 0x08) : (Flags & ~0x08));
     }
+
     public override void PullInternalFlags()
     {
         // TODO: More accurate/efficient flag calcuation!
 
+        TextureBaseUsageFlags f = UsageFlags & ~TextureBaseUsageFlags.AnyTexture;
+
         // Assuming Unknown 2 is probably world, and Unknown 1 is GR?
-        WorldTexture = Unknown2 != 0;
-        GRTexture = Unknown1 != 0;
+        if (Unknown2 != 0) f |= TextureBaseUsageFlags.WorldTexture;
+        if (Unknown1 != 0) f |= TextureBaseUsageFlags.GRTexture;
 
         // We're just a prop in this cruel game of life
-        PropTexture = Unknown1 == 0 && Unknown2 != 0 && Flags != 0;
+        if (Unknown1 == 0 && Unknown2 != 0 && Flags != 0) f |= TextureBaseUsageFlags.PropTexture;
+
+        UsageFlags = f;
 
         // Run after, if directory exists then we use that instead
         base.PullInternalFlags();

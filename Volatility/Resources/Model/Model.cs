@@ -13,7 +13,7 @@ public class Model : Resource
     public byte Flags;
 
     [EditorCategory("Model Container"), EditorLabel("Models")]
-    public List<ModelData> ModelDatas = new List<ModelData>();
+    public List<ModelData> ModelDatas = [];
 
     public override ResourceType GetResourceType() => ResourceType.Model;
     public override Platform GetResourcePlatform() => Platform.Agnostic;
@@ -22,7 +22,7 @@ public class Model : Resource
     {
         base.WriteToStream(writer, endianness);
 
-        int models = ModelDatas.Count();
+        int models = ModelDatas.Count;
 
         uint renderablesPtr = 0x14; // Writing length of header
         uint statesPtr = (uint)(renderablesPtr + (0x4 * models));
@@ -32,10 +32,10 @@ public class Model : Resource
         writer.Write(statesPtr);
         writer.Write(lodDistancesPtr);
         writer.Write(-1); // Game explorer index, leaving our mark for now
-        writer.Write((byte)ModelDatas.Count()); // Dangerous. We need to limit number of models
+        writer.Write((byte)ModelDatas.Count); // Dangerous. We need to limit number of models
         writer.Write(Flags);
-        writer.Write((byte)ModelDatas.Count()); // Number of states. Same as number of renderables
-        writer.Write((byte)0x2);
+        writer.Write((byte)ModelDatas.Count); // Number of states. Same as number of renderables
+        writer.BaseStream.WriteByte(0x02);
 
         writer.BaseStream.Seek(renderablesPtr, SeekOrigin.Begin);
 
@@ -60,8 +60,7 @@ public class Model : Resource
         // Resource ID References
         for (int i = 0; i < models; i++)
         {
-            writer.Write(ModelDatas[i].ResourceReference.Endian == Endian.BE ? new byte[4] : ModelDatas[i].ResourceReference.ID);
-            writer.Write(ModelDatas[i].ResourceReference.Endian == Endian.LE ? new byte[4] : ModelDatas[i].ResourceReference.ID);
+            writer.Write(ModelDatas[i].ResourceReference.ReferenceID);
             writer.Write(renderablesPtr + (i * 0x4));
             writer.Write((uint)0x0); // Unknown. Always 0 in BPR, not always 0 on X360
         }
@@ -97,9 +96,16 @@ public class Model : Resource
 
         Flags = reader.ReadByte();
 
+        long maxLength = new[]
+        {
+            lodDistancesPtr + numRenderables * sizeof(uint),
+            renderablesPtr + numRenderables * sizeof(uint),
+            renderableStatesPtr + numRenderables
+        }.Max();
+
         // This currently does a lot of seeking.
         // It may improve performance if we separate this.
-        for (uint i = 0; i < numRenderables; i++)
+        for (int i = 0; i < numRenderables; i++)
         {
             ModelData modelData = new ModelData();
             
@@ -120,8 +126,7 @@ public class Model : Resource
                 (reader.GetEndianness() == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
             );
 
-            modelData.ResourceReference.ID = reader.ReadBytes(4);
-            modelData.ResourceReference.Endian = reader.GetEndianness();
+            ResourceImport.ReadExternalImport(i, reader, maxLength, out modelData.ResourceReference);
 
             ModelDatas.Add(modelData);
         }
@@ -134,7 +139,7 @@ public class Model : Resource
     public struct ModelData
     {
         [EditorCategory("Model Data"), EditorLabel("Resource Reference")]
-        public ResourceID ResourceReference;
+        public ResourceImport ResourceReference;
 
         [EditorCategory("Model Data"), EditorLabel("Model State")]
         public State State;

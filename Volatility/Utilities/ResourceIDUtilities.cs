@@ -1,9 +1,9 @@
-﻿using System.IO.Hashing;
-using System.Text;
+﻿using System.Globalization;
 
 using Newtonsoft.Json;
 
 using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Utilities;
 
@@ -57,6 +57,36 @@ public static class ResourceIDUtilities
         return true;
     }
 
+    public static bool TryParseResourceID(string input, out ResourceID resourceID)
+    {
+        resourceID = ResourceID.Default;
+
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        string trimmed = input.Trim().Replace("_", "");
+        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[2..];
+
+        if (trimmed.Length == 0)
+            return false;
+
+        if (IsHexadecimal(trimmed)
+            && ulong.TryParse(trimmed, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong hexValue))
+        {
+            resourceID = hexValue;
+            return true;
+        }
+
+        if (ulong.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong decValue))
+        {
+            resourceID = decValue;
+            return true;
+        }
+
+        return false;
+    }
+
     public static byte[] FlipResourceIDEndian(byte[] ResourceIDElements)
     {
         if (ResourceIDElements.Length > 4) // Shouldn't usually happen
@@ -88,14 +118,12 @@ public static class ResourceIDUtilities
         return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(ResourceID)));
     }
 
-    public static string GetNameByResourceID(string id, string type)
+    public static string GetNameByResourceID(string id)
     {
         string path = Path.Combine
         (
-            Directory.GetCurrentDirectory(), 
-            "data", 
-            "ResourceDB", 
-            $"{type}.json"
+            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
+            "ResourceDB.json"
         );
 
         if (File.Exists(path))
@@ -108,15 +136,26 @@ public static class ResourceIDUtilities
         return "";
     }
 
-    public static string GetResourceIDFromName(string name, Endian endian = Endian.LE)
+    public static string GetNameByResourceID(ResourceID id)
     {
-        byte[] hash = Crc32.Hash(Encoding.UTF8.GetBytes(name.ToLower()));
+        string path = Path.Combine
+        (
+            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
+            "ResourceDB.json"
+        );
 
-        if (endian == Endian.BE) 
+        if (File.Exists(path))
         {
-            Array.Reverse(hash);
+            Dictionary<string, string>? data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            using var reader = File.OpenText(path);
+            using var json = new JsonTextReader(reader);
+            new JsonSerializer()
+                .Populate(json, data);
+
+            return data.TryGetValue(id.ToString(), out string? value) ? value : "";
         }
 
-        return BitConverter.ToString(hash).Replace("-", "_").ToUpper();
+        return "";
     }
 }

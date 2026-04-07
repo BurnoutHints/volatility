@@ -7,7 +7,7 @@ public enum Endian
 
 public static class EndianMapping
 {
-    private static readonly Dictionary<string, Endian> mapping = new Dictionary<string, Endian>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, Endian> mapping = new(StringComparer.OrdinalIgnoreCase)
     {
         { "PS3", Endian.BE },
         { "X360", Endian.BE },

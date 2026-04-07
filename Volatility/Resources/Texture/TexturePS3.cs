@@ -1,10 +1,8 @@
-﻿using System.Text;
-
-using static Volatility.Utilities.DataUtilities;
+﻿using static Volatility.Utilities.PS3TextureUtilities;
 
 namespace Volatility.Resources;
 
-public class TextureHeaderPS3 : TextureHeaderBase
+public class TexturePS3 : TextureBase
 {
     public override Endian GetResourceEndian() => Endian.BE; 
     public override Platform GetResourcePlatform() => Platform.PS3;
@@ -20,9 +18,9 @@ public class TextureHeaderPS3 : TextureHeaderBase
     public StoreType StoreType;
     public uint StoreFlags;            // Seems to be unused
 
-    public TextureHeaderPS3() : base() { }
+    public TexturePS3() : base() { }
 
-    public TextureHeaderPS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public TexturePS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
@@ -33,11 +31,6 @@ public class TextureHeaderPS3 : TextureHeaderBase
             CELL_GCM_TEXTURE_DIMENSION.CELL_GCM_TEXTURE_DIMENSION_3 => DIMENSION.DIMENSION_3D,
             _ => DIMENSION.DIMENSION_2D,
         };
-    }
-
-    public override void PullInternalFlags()
-    {
-        base.PullInternalFlags();
     }
 
     public override void PullInternalFormat() { }
@@ -72,7 +65,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT23:
             case CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT45:
-                CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
+                Pitch = CalculatePitchPS3(Width, Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_COMPRESSED_DXT1 ? 8 : 16);
                 break;
             default:
                 break;
@@ -102,7 +95,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
         writer.Write(StoreFlags);
 
         // Padding that's usually just garbage data.
-        writer.Write(Encoding.UTF8.GetBytes("Volatility"));
+        writer.Write("Volatility"u8.ToArray());
         writer.Write(new byte[0x2]);
     }
 
@@ -113,7 +106,7 @@ public class TextureHeaderPS3 : TextureHeaderBase
         Format = (CELL_GCM_COLOR_FORMAT)reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         CellDimension = (CELL_GCM_TEXTURE_DIMENSION)reader.ReadByte();
-        CubeMapEnable = reader.ReadByte() != 0 ? true : false;
+        CubeMapEnable = reader.ReadByte() != 0;
         Remap = reader.ReadUInt32(); // Does this need to be swapped?
         Width = reader.ReadUInt16();
         Height = reader.ReadUInt16();

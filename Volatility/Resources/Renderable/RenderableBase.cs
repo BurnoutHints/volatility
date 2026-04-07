@@ -35,10 +35,8 @@ public abstract class RenderableBase : Resource
         NumMeshes = reader.ReadUInt16();
         Meshes = reader.ReadUInt32();                       // Pointer to a pointer
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);    // mpObjectScopeTextureInfo
-        using (BitReader bitReader = new BitReader(reader.ReadBytes(4)))
-        {
-            Flags = bitReader.ReadBitsToBitArray(16);
-        }
+        using BitReader bitReader = new(reader.ReadBytes(4));
+        Flags = bitReader.ReadBitsToBitArray(16);
 
         // TODO: Parse RenderableMeshes
     }

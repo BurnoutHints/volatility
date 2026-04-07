@@ -25,21 +25,6 @@ public static class DataUtilities
         return true;
     }
 
-    public static int CalculatePitchPS3(int width, int blockSize)
-    {
-        return ((width + 3) / 4) * blockSize;
-    }
-
-    public static ushort CalculatePitchX360(ushort width, ushort height)
-    {
-        return (ushort)(Clamp(width, 128, width) / 32);
-    }
-
-    public static uint CalculateMipAddressX360(uint width, uint height)
-    {
-        return (width * height) / 4096;
-    }
-
     public static bool IsPowerOfTwo(int x)
     {
         return (x > 0) && ((x & (x - 1)) == 0);
@@ -84,11 +69,6 @@ public static class DataUtilities
         return bytes;
     }
 
-    public static bool IsComplexType(Type type)
-    {
-        return !type.IsPrimitive && !type.IsEnum && type != typeof(string) && !type.IsArray && type != typeof(BitArray);
-    }
-
     public static int Clamp(int value, int min, int max)
     {
         if (value < min)
@@ -105,46 +85,50 @@ public static class DataUtilities
         }
     }
 
-    public static bool TryParseEnum<TEnum>(string input, out TEnum result) where TEnum : struct, Enum
+    public static byte ToNext0x10(byte value) =>
+        (value & 0xF) == 0
+            ? value
+            : (byte)((value + 0xF) & ~0xF);
+
+    public static sbyte ToNext0x10(sbyte value)
     {
-        result = default;
-
-        // Hexadecimal input
-        if (input.StartsWith("0x"))
-        {
-            if (int.TryParse(input.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out int numericValue))
-            {
-                return EnumIsDefined(numericValue, out result);
-            }
-            return false;
-        }
-
-        // Nmeric input
-        if (int.TryParse(input, out int intValue))
-        {
-            return EnumIsDefined(intValue, out result);
-        }
-
-        // String input
-        if (Enum.TryParse(input, true, out TEnum parsedEnum) && Enum.IsDefined(typeof(TEnum), parsedEnum))
-        {
-            result = parsedEnum;
-            return true;
-        }
-
-        return false;
+        int v = value;
+        return (v & 0xF) == 0
+            ? value
+            : (sbyte)((v + 0xF) & ~0xF);
     }
 
-    private static bool EnumIsDefined<TEnum>(int value, out TEnum result) where TEnum : struct, Enum
+    public static short ToNext0x10(short value)
     {
-        if (Enum.IsDefined(typeof(TEnum), value))
-        {
-            result = (TEnum)Enum.ToObject(typeof(TEnum), value);
-            return true;
-        }
-
-        result = default;
-        return false;
+        int v = value;
+        return (v & 0xF) == 0
+            ? value
+            : (short)((v + 0xF) & ~0xF);
     }
+
+    public static ushort ToNext0x10(ushort value) =>
+        (value & 0xF) == 0
+            ? value
+            : (ushort)((value + 0xFu) & ~0xFu);
+
+    public static int ToNext0x10(int value) =>
+        (value & 0xF) == 0
+            ? value
+            : (value + 0xF) & ~0xF;
+
+    public static uint ToNext0x10(uint value) =>
+        (value & 0xFu) == 0
+            ? value
+            : (value + 0xFu) & ~0xFu;
+
+    public static long ToNext0x10(long value) =>
+        (value & 0xFL) == 0
+            ? value
+            : (value + 0xFL) & ~0xFL;
+
+    public static ulong ToNext0x10(ulong value) =>
+        (value & 0xFul) == 0
+            ? value
+            : (value + 0xFul) & ~0xFul;
 }
 

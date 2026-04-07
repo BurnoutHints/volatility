@@ -121,6 +121,9 @@ internal class Frontend
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
+#if DEBUG
+                throw;
+#endif
             }
         }
     }
@@ -167,6 +170,7 @@ internal class Frontend
     {
         { "exit", typeof(ExitCommand) },
         { "clear", typeof(ClearCommand) },
+        { "createresource", typeof(CreateResourceCommand) },
         { "importresource", typeof(ImportResourceCommand) },
         { "exportresource", typeof(ExportResourceCommand) },
         { "autotest", typeof(AutotestCommand) },

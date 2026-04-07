@@ -1,6 +1,6 @@
 using System.Reflection;
 
-using static Volatility.Utilities.ClassUtilities;
+using static Volatility.Utilities.TypeUtilities;
 
 namespace Volatility.CLI.Commands;
 
