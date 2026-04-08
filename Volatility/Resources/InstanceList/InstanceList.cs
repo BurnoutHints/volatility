@@ -11,7 +11,7 @@ namespace Volatility.Resources;
 
 public class InstanceList : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.InstanceList;
+    public override ResourceType ResourceType => ResourceType.InstanceList;
     
     [EditorLabel("Number of instances"), EditorCategory("Instance List"), EditorReadOnly, EditorTooltip("The amount of instances that have a model assigned, but NOT the size of the entire instance array.")]
     public uint NumInstances;
@@ -43,7 +43,7 @@ public class InstanceList : Resource
 
         reader.BaseStream.Seek(instanceListPtr, SeekOrigin.Begin);
 
-        long instanceBlockSize = GetResourceArch() == Arch.x64 ? 0x60 : 0x50;
+        long instanceBlockSize = ResourceArch == Arch.x64 ? 0x60 : 0x50;
 
         for (int i = 0; i < entries; i++) 
         {

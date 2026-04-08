@@ -4,13 +4,13 @@ namespace Volatility.Resources;
 
 public class SnapshotData : BinaryResource
 {
-    public override ResourceType GetResourceType() => ResourceType.SnapshotData;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.SnapshotData;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
     public List<SnapshotChannelData> Channels = [];
     public List<SnapshotStatusData> SnapshotStatuses = [];
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         DataSize = (uint)(0x10 + (Channels.Count * 0xC) + (SnapshotStatuses.Count * 0x8));
 

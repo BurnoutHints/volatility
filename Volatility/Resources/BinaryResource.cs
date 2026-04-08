@@ -9,7 +9,7 @@ namespace Volatility.Resources;
 
 public class BinaryResource : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.BinaryFile;
+    public override ResourceType ResourceType => ResourceType.BinaryFile;
     
     public uint DataSize { get; set; }
     public uint DataOffset { get; set; }
@@ -34,7 +34,7 @@ public class BinaryResource : Resource
         reader.BaseStream.Seek(DataOffset, SeekOrigin.Begin);
     }
     
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         writer.Write(DataSize);
         writer.Write(DataOffset);

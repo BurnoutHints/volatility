@@ -2,12 +2,12 @@
 
 public class RenderablePC : RenderableBase
 {
-    public override Endian GetResourceEndian() => Endian.LE;
-    public override Platform GetResourcePlatform() => Platform.TUB;
+    public override Endian ResourceEndian => Endian.LE;
+    public override Platform ResourcePlatform => Platform.TUB;
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
-        reader.SetEndianness(GetResourceEndian());
+        reader.SetEndianness(ResourceEndian);
 
         reader.BaseStream.Seek(0x20, SeekOrigin.Begin);
 

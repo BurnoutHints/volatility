@@ -16,11 +16,11 @@ internal class ExportResourceOperation
 
         using FileStream fs = new(outputPath, FileMode.Create);
 
-        Endian endian = resource.GetResourceEndian() != Endian.Agnostic
-            ? resource.GetResourceEndian()
+        Endian endian = resource.ResourceEndian != Endian.Agnostic
+            ? resource.ResourceEndian
             : EndianMapping.GetDefaultEndian(platform);
 
-        using EndianAwareBinaryWriter writer = new(fs, endian);
+        using ResourceBinaryWriter writer = new(fs, endian);
 
         switch (resource)
         {

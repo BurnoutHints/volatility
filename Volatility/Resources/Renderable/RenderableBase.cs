@@ -21,7 +21,7 @@ public abstract class RenderableBase : Resource
     public uint IndexBuffer;                    // Only on PC platforms
     public uint VertexBuffer;                   // Only on PC platforms
 
-    public override ResourceType GetResourceType() => ResourceType.Renderable;
+    public override ResourceType ResourceType => ResourceType.Renderable;
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {

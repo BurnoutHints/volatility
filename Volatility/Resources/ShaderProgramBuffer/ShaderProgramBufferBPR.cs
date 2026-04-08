@@ -8,8 +8,8 @@ namespace Volatility.Resources;
 
 public class ShaderProgramBufferBPR : ShaderProgramBufferBase
 {
-    public override Endian GetResourceEndian() => Endian.LE;
-    public override Platform GetResourcePlatform() => Platform.BPR;
+    public override Endian ResourceEndian => Endian.LE;
+    public override Platform ResourcePlatform => Platform.BPR;
 
     public ShaderType CompiledShaderType;
 
@@ -21,7 +21,7 @@ public class ShaderProgramBufferBPR : ShaderProgramBufferBase
 
     public List<RegisterComponent> Globals = [];
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 

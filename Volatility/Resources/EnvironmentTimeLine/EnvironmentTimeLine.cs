@@ -4,11 +4,11 @@ namespace Volatility.Resources;
 
 public class EnvironmentTimeline : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.EnvironmentTimeLine;
+    public override ResourceType ResourceType => ResourceType.EnvironmentTimeLine;
 
     public LocationData[] Locations;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
@@ -22,7 +22,7 @@ public class EnvironmentTimeline : Resource
     {
         base.ParseFromStream(reader, endianness);
 
-        Arch arch = GetResourceArch();
+        Arch arch = ResourceArch;
 
         int version = reader.ReadInt32();
         if (version != 1)
@@ -38,9 +38,10 @@ public class EnvironmentTimeline : Resource
         for (int i = 0; i < locationCount; i++) 
         {
             reader.BaseStream.Seek(locationsPtr + ((arch == Arch.x64 ? 0x18 : 0xC) * i), SeekOrigin.Begin);
+            // This is the same kind of 32/64 count value that StreamedDeformationSpec uses - may move that boilerplate and change this?
             uint keyframeCount = (uint)(arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong keyframeTimesPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
-            ulong keyframeRefsPtr = (arch == Arch.x64 ? reader.ReadUInt64() : reader.ReadUInt32());
+            ulong keyframeTimesPtr = reader.ReadPointer(ResourceArch);
+            ulong keyframeRefsPtr = reader.ReadPointer(ResourceArch);
 
             Locations[i].Keyframes = new KeyframeReference[keyframeCount];
 

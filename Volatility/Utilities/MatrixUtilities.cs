@@ -1,4 +1,6 @@
-﻿namespace Volatility.Utilities;
+﻿using System.Numerics;
+
+namespace Volatility.Utilities;
 
 public static class MatrixUtilities
 {
@@ -34,7 +36,7 @@ public static class MatrixUtilities
         return transform;
     }
 
-    public static Matrix44Affine ReadMatrix44Affine(BinaryReader reader)
+    public static Matrix44 ReadMatrix44(BinaryReader reader)
     {
         float m11 = reader.ReadSingle();
         float m12 = reader.ReadSingle();
@@ -53,12 +55,42 @@ public static class MatrixUtilities
         float m43 = reader.ReadSingle();
         float m44 = reader.ReadSingle();
 
-        return new Matrix44Affine(
+        return new Matrix44(
             m11, m12, m13, m14,
             m21, m22, m23, m24,
             m31, m32, m33, m34,
             m41, m42, m43, m44
         );
+    }
+
+    public static Matrix44Affine ReadMatrix44Affine(BinaryReader reader)
+    {
+        return ReadMatrix44(reader);
+    }
+
+    public static void WriteMatrix44(BinaryWriter writer, Matrix44 value)
+    {
+        writer.Write(value.M11);
+        writer.Write(value.M12);
+        writer.Write(value.M13);
+        writer.Write(value.M14);
+        writer.Write(value.M21);
+        writer.Write(value.M22);
+        writer.Write(value.M23);
+        writer.Write(value.M24);
+        writer.Write(value.M31);
+        writer.Write(value.M32);
+        writer.Write(value.M33);
+        writer.Write(value.M34);
+        writer.Write(value.M41);
+        writer.Write(value.M42);
+        writer.Write(value.M43);
+        writer.Write(value.M44);
+    }
+
+    public static void WriteMatrix44Affine(BinaryWriter writer, Matrix44Affine value)
+    {
+        WriteMatrix44(writer, value);
     }
 
     public static Quaternion RotationMatrixToQuaternion(

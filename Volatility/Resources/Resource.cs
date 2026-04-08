@@ -19,24 +19,24 @@ public abstract class Resource
     [EditorCategory("Import Data"), EditorLabel("Unpacker"), EditorTooltip("The tool used to extract this resource from a bundle.")]
     public Unpacker Unpacker = Unpacker.Raw;
 
-    public virtual ResourceType GetResourceType() => ResourceType.Invalid;
-    public virtual Endian GetResourceEndian() => Endian.Agnostic;   // Forced endianness for platform-specific resources (e.g. Textures)
-    public virtual Platform GetResourcePlatform() => Platform.Agnostic;
-    public virtual Arch GetResourceArch() => Arch;
+    public virtual ResourceType ResourceType => ResourceType.Invalid;
+    public virtual Endian ResourceEndian => Endian.Agnostic;   // Forced endianness for platform-specific resources (e.g. Textures)
+    public virtual Platform ResourcePlatform => Platform.Agnostic;
+    public virtual Arch ResourceArch => Arch;
     public virtual void SetResourceArch(Arch newArch) { Arch = newArch; }
 
-    public virtual void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic) 
+    public virtual void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic) 
     { 
-        if (GetResourceEndian() != Endian.Agnostic)
-            writer.SetEndianness(GetResourceEndian());
+        if (ResourceEndian != Endian.Agnostic)
+            writer.SetEndianness(ResourceEndian);
 
         else if (endianness != Endian.Agnostic)
             writer.SetEndianness(endianness);
     }
     public virtual void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic) 
     {
-        if (GetResourceEndian() != Endian.Agnostic)
-            reader.SetEndianness(GetResourceEndian());
+        if (ResourceEndian != Endian.Agnostic)
+            reader.SetEndianness(ResourceEndian);
 
         else if (endianness != Endian.Agnostic)
             reader.SetEndianness(endianness);
@@ -57,7 +57,7 @@ public abstract class Resource
 
         string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
 
-        Endian importEndianness = (GetResourceEndian() != Endian.Agnostic) ? GetResourceEndian() : endianness;
+        Endian importEndianness = (ResourceEndian != Endian.Agnostic) ? ResourceEndian : endianness;
 
         if (!string.IsNullOrEmpty(name))
         {

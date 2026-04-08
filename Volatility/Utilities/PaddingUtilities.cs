@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace Volatility.Utilities;
 
 public static class PaddingUtilities

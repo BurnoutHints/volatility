@@ -10,8 +10,8 @@ namespace Volatility.Resources;
 
 public class TextureX360 : TextureBase
 {
-    public override Endian GetResourceEndian() => Endian.BE;
-    public override Platform GetResourcePlatform() => Platform.X360;
+    public override Endian ResourceEndian => Endian.BE;
+    public override Platform ResourcePlatform => Platform.X360;
 
     // TODO: Replace this bit array with something better
     public BitArray D3DResourceFlags = new BitArray(28);
@@ -131,7 +131,7 @@ public class TextureX360 : TextureBase
         Format.MipAddress = CalculateMipAddressX360(Width, Height);
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 

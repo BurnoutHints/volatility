@@ -8,10 +8,10 @@ public class GuiPopup : Resource
 
     const int PopupStructSize = 0xC0;
 
-    public override ResourceType GetResourceType() => ResourceType.GuiPopup;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.GuiPopup;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
         ushort size = (ushort)(Popups.Count * PopupStructSize);
         base.WriteToStream(writer, endianness);
@@ -62,7 +62,7 @@ public class GuiPopup : Resource
         return p;
     }
 
-    static void WriteOne(EndianAwareBinaryWriter w, Popup p)
+    static void WriteOne(ResourceBinaryWriter w, Popup p)
     {
         w.Write(p.NameId);
         WriteFixedString(w, p.Name, 13);
@@ -92,7 +92,7 @@ public class GuiPopup : Resource
         return Encoding.ASCII.GetString(bytes);
     }
 
-    static void WriteFixedString(EndianAwareBinaryWriter w, string? s, int len)
+    static void WriteFixedString(ResourceBinaryWriter w, string? s, int len)
     {
         var bytes = Encoding.ASCII.GetBytes(s ?? string.Empty);
         if (bytes.Length > len) w.Write(bytes, 0, len);

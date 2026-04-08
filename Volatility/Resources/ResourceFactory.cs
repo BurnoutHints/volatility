@@ -69,6 +69,12 @@ public static class ResourceFactory
         { (ResourceType.SnapshotData, Platform.X360), path => new SnapshotData(path, Endian.BE) },
         { (ResourceType.SnapshotData, Platform.PS3), path => new SnapshotData(path, Endian.BE) },
 
+        // StreamedDeformationSpec resources
+        { (ResourceType.StreamedDeformationSpec, Platform.BPR), path => new StreamedDeformationSpec(path, Endian.LE) },
+        { (ResourceType.StreamedDeformationSpec, Platform.TUB), path => new StreamedDeformationSpec(path, Endian.LE) },
+        { (ResourceType.StreamedDeformationSpec, Platform.X360), path => new StreamedDeformationSpec(path, Endian.BE) },
+        { (ResourceType.StreamedDeformationSpec, Platform.PS3), path => new StreamedDeformationSpec(path, Endian.BE) },
+
         // AptData resources
         { (ResourceType.AptData, Platform.BPR), path => new AptData(path, Endian.LE) },
         { (ResourceType.AptData, Platform.TUB), path => new AptData(path, Endian.LE) },
