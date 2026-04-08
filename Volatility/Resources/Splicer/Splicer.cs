@@ -13,8 +13,8 @@ namespace Volatility.Resources;
 
 public class Splicer : BinaryResource
 {
-    public override ResourceType GetResourceType() => ResourceType.Splicer;
-    
+    public override ResourceType ResourceType => ResourceType.Splicer;
+
     public List<SpliceData> Splices = [];
 
     // Only gets populated when parsing from a stream, or when
@@ -134,7 +134,7 @@ public class Splicer : BinaryResource
         }
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         LoadDependentSamples();
 

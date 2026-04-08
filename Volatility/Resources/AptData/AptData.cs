@@ -4,14 +4,14 @@ namespace Volatility.Resources;
 
 public class AptData : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.AptData;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.AptData;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
     public string MovieName;
     public string BaseComponentName;
     public GuiGeometryObject GuiGeometry;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer);
     }

@@ -15,10 +15,10 @@ public class Model : Resource
     [EditorCategory("Model Container"), EditorLabel("Models")]
     public List<ModelData> ModelDatas = [];
 
-    public override ResourceType GetResourceType() => ResourceType.Model;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.Model;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
@@ -123,7 +123,7 @@ public class Model : Resource
                 idRelativePtr + 
                 renderablesPtr + 
                 (numRenderables * (0x4 + 0x1 + 0x4)) + 
-                (reader.GetEndianness() == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
+                (reader.Endianness == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
             );
 
             ResourceImport.ReadExternalImport(i, reader, maxLength, out modelData.ResourceReference);

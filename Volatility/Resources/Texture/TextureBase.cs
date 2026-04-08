@@ -10,7 +10,7 @@
 
 public abstract class TextureBase : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.Texture;
+    public override ResourceType ResourceType => ResourceType.Texture;
 
     [EditorCategory("Texture"), EditorLabel("Width"), EditorTooltip("The target width of the texture.")]
     public ushort Width { get; set; }

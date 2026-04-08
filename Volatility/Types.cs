@@ -4,6 +4,7 @@ global using Vector3 = System.Numerics.Vector3;         // VectorIntrinsic
 global using Vector3Plus = System.Numerics.Vector4;     // VectorIntrinsic
 global using Vector4 = System.Numerics.Vector4;
 global using Quaternion = System.Numerics.Quaternion;
+global using Matrix44 = System.Numerics.Matrix4x4;
 global using Matrix44Affine = System.Numerics.Matrix4x4;
 
 // Volatilty Types

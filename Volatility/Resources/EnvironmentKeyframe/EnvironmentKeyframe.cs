@@ -9,7 +9,7 @@ namespace Volatility.Resources;
 
 public class EnvironmentKeyframe : Resource 
 {
-    public override ResourceType GetResourceType() => ResourceType.EnvironmentKeyframe;
+    public override ResourceType ResourceType => ResourceType.EnvironmentKeyframe;
     
     public BloomData BloomSettings;
     public VignetteData VignetteSettings;
@@ -31,86 +31,27 @@ public class EnvironmentKeyframe : Resource
             throw new Exception("Version mismatch!");
         }
 
-        reader.BaseStream.Seek(0x10, SeekOrigin.Begin);
-
-        BloomSettings = new(reader);
-        VignetteSettings = new(reader);
-        TintSettings = new(reader, GetResourceArch());
-        reader.BaseStream.Seek(0xC, SeekOrigin.Current);
-        ScatteringSettings = new(reader);
-        LightingSettings = new(reader);
-        CloudSettings = new(reader);
+        reader.ParseSection(0x10, r => new BloomData(r), out BloomSettings);
+        reader.ParseSection(0x30, r => new VignetteData(r), out VignetteSettings);
+        reader.ParseSection(0x80, r => new TintData(r, ResourceArch), out TintSettings);
+        reader.ParseSection(0x90, r => new ScatteringData(r), out ScatteringSettings);
+        reader.ParseSection(0x140, r => new LightingData(r), out LightingSettings);
+        reader.ParseSection(0x1D0, r => new CloudsData(r), out CloudSettings);
     }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
         writer.Write((uint)0x8);
         writer.Write(new byte[0xC]);
 
-        writer.Write(BloomSettings.Luminance);
-        writer.Write(BloomSettings.Threshold);
-        writer.Write(new byte[0x8]);
-        writer.Write(BloomSettings.Scale);
-
-        writer.Write(VignetteSettings.Angle);
-        writer.Write(VignetteSettings.Sharpness);
-        writer.Write(new byte[0x8]);
-        writer.Write(VignetteSettings.Amount, intrinsic: true);
-        writer.Write(VignetteSettings.Center, intrinsic: true);
-        writer.Write(VignetteSettings.InnerColor);
-        writer.Write(VignetteSettings.OuterColor);
-
-        writer.Write((uint)0x0); // TODO: handle external ColourCube import
-        writer.Write(new byte[0xC]);
-
-        writer.Write(ScatteringSettings.SkyTopColor, intrinsic: true);
-        writer.Write(ScatteringSettings.SkyHorizonColor, intrinsic: true);
-        writer.Write(ScatteringSettings.SkySunColor, intrinsic: true);
-        writer.Write(ScatteringSettings.SkyHorizonPower);
-        writer.Write(ScatteringSettings.SkySunPower);
-        writer.Write(ScatteringSettings.SkyDarkening);
-        writer.Write(ScatteringSettings.SkyHorizonBleedScale);
-        writer.Write(ScatteringSettings.SkyHorizonBleedPower);
-        writer.Write(ScatteringSettings.SkySunBleedPower);
-        writer.Write(new byte[0x8]);
-        writer.Write(ScatteringSettings.ScatteringTopColor, intrinsic: true);
-        writer.Write(ScatteringSettings.ScatteringHorizonColor, intrinsic: true);
-        writer.Write(ScatteringSettings.ScatteringSunColor, intrinsic: true);
-        writer.Write(ScatteringSettings.ScatteringHorizonPower);
-        writer.Write(ScatteringSettings.ScatteringSunPower);
-        writer.Write(ScatteringSettings.ScatteringDarkening);
-        writer.Write(ScatteringSettings.ScatteringHorizonBleedScale);
-        writer.Write(ScatteringSettings.ScatteringHorizonBleedPower);
-        writer.Write(ScatteringSettings.ScatteringSunBleedPower);
-        writer.Write(ScatteringSettings.ScatteringDistance, intrinsic: false);
-        writer.Write(ScatteringSettings.ScatteringPower);
-        writer.Write(ScatteringSettings.ScatteringCap);
-        writer.Write(new byte[0x8]);
-
-        writer.Write(LightingSettings.KeyLightColor, intrinsic: true);
-        writer.Write(LightingSettings.SpecularColor, intrinsic: true);
-        writer.Write(LightingSettings.KeyFillColor, intrinsic: true);
-        writer.Write(LightingSettings.ShadowFillColor, intrinsic: true);
-        writer.Write(LightingSettings.RightFillColor, intrinsic: true);
-        writer.Write(LightingSettings.LeftFillColor, intrinsic: true);
-        writer.Write(LightingSettings.UpFillColor, intrinsic: true);
-        writer.Write(LightingSettings.DownFillColor, intrinsic: true);
-        writer.Write(LightingSettings.AmbientIrradianceScale);
-        writer.Write(new byte[0xC]);
-
-        writer.Write(CloudSettings.Layer1LiteColor, intrinsic: true);
-        writer.Write(CloudSettings.Layer2LiteColor, intrinsic: true);
-        writer.Write(CloudSettings.Layer1DarkColor, intrinsic: true);
-        writer.Write(CloudSettings.Layer2DarkColor, intrinsic: true);
-        writer.Write(CloudSettings.LayerDensity, intrinsic: false);
-        writer.Write(CloudSettings.LayerFeathering, intrinsic: false);
-        writer.Write(CloudSettings.LayerOpacity, intrinsic: false);
-        writer.Write(CloudSettings.LayerSpeed, intrinsic: false);
-        writer.Write(CloudSettings.LayerScale, intrinsic: false);
-        writer.Write(CloudSettings.DirectionAngle);
-        writer.Write(new byte[0x4]);
+        writer.WriteSection(writer.BaseStream.Position, BloomSettings, BloomData.Write);
+        writer.WriteSection(writer.BaseStream.Position, VignetteSettings, VignetteData.Write);
+        writer.WriteSection(writer.BaseStream.Position, TintSettings, TintData.Write);
+        writer.WriteSection(writer.BaseStream.Position, ScatteringSettings, ScatteringData.Write);
+        writer.WriteSection(writer.BaseStream.Position, LightingSettings, LightingData.Write);
+        writer.WriteSection(writer.BaseStream.Position, CloudSettings, CloudsData.Write);
     }
 }
 
@@ -131,6 +72,14 @@ public struct BloomData
         Threshold = reader.ReadSingle();
         reader.BaseStream.Seek(0x8, SeekOrigin.Current);
         Scale = reader.ReadVector4();
+    }
+
+    public static void Write(ResourceBinaryWriter writer, BloomData value)
+    {
+        writer.Write(value.Luminance);
+        writer.Write(value.Threshold);
+        writer.Write(new byte[0x8]);
+        writer.Write(value.Scale);
     }
 }
 
@@ -153,6 +102,17 @@ public struct VignetteData
         InnerColor = reader.ReadColorRGBA();
         OuterColor = reader.ReadColorRGBA();
     }
+
+    public static void Write(ResourceBinaryWriter writer, VignetteData value)
+    {
+        writer.Write(value.Angle);
+        writer.Write(value.Sharpness);
+        writer.Write(new byte[0x8]);
+        writer.Write(value.Amount, intrinsic: true);
+        writer.Write(value.Center, intrinsic: true);
+        writer.Write(value.InnerColor);
+        writer.Write(value.OuterColor);
+    }
 }
 
 public struct TintData 
@@ -164,6 +124,12 @@ public struct TintData
         
         if (ResourceImport.ReadExternalImport(0, reader, 0x240, out ResourceImport ExternalReference))
             ColorCubeReference = ExternalReference;
+    }
+
+    public static void Write(ResourceBinaryWriter writer, TintData value)
+    {
+        writer.Write((uint)0x0); // TODO: handle external ColourCube import
+        writer.Write(new byte[0xC]);
     }
 }
 
@@ -217,6 +183,33 @@ public struct ScatteringData
         ScatteringCap = reader.ReadSingle();
         reader.BaseStream.Seek(0x8, SeekOrigin.Current);
     }
+
+    public static void Write(ResourceBinaryWriter writer, ScatteringData value)
+    {
+        writer.Write(value.SkyTopColor, intrinsic: true);
+        writer.Write(value.SkyHorizonColor, intrinsic: true);
+        writer.Write(value.SkySunColor, intrinsic: true);
+        writer.Write(value.SkyHorizonPower);
+        writer.Write(value.SkySunPower);
+        writer.Write(value.SkyDarkening);
+        writer.Write(value.SkyHorizonBleedScale);
+        writer.Write(value.SkyHorizonBleedPower);
+        writer.Write(value.SkySunBleedPower);
+        writer.Write(new byte[0x8]);
+        writer.Write(value.ScatteringTopColor, intrinsic: true);
+        writer.Write(value.ScatteringHorizonColor, intrinsic: true);
+        writer.Write(value.ScatteringSunColor, intrinsic: true);
+        writer.Write(value.ScatteringHorizonPower);
+        writer.Write(value.ScatteringSunPower);
+        writer.Write(value.ScatteringDarkening);
+        writer.Write(value.ScatteringHorizonBleedScale);
+        writer.Write(value.ScatteringHorizonBleedPower);
+        writer.Write(value.ScatteringSunBleedPower);
+        writer.Write(value.ScatteringDistance, intrinsic: false);
+        writer.Write(value.ScatteringPower);
+        writer.Write(value.ScatteringCap);
+        writer.Write(new byte[0x8]);
+    }
 }
 
 public struct LightingData 
@@ -243,6 +236,19 @@ public struct LightingData
         DownFillColor = reader.ReadVector3();
         AmbientIrradianceScale = reader.ReadSingle();
         reader.BaseStream.Seek(0xC, SeekOrigin.Current);
+    }
+    public static void Write(ResourceBinaryWriter writer, LightingData value)
+    {
+        writer.Write(value.KeyLightColor, intrinsic: true);
+        writer.Write(value.SpecularColor, intrinsic: true);
+        writer.Write(value.KeyFillColor, intrinsic: true);
+        writer.Write(value.ShadowFillColor, intrinsic: true);
+        writer.Write(value.RightFillColor, intrinsic: true);
+        writer.Write(value.LeftFillColor, intrinsic: true);
+        writer.Write(value.UpFillColor, intrinsic: true);
+        writer.Write(value.DownFillColor, intrinsic: true);
+        writer.Write(value.AmbientIrradianceScale);
+        writer.Write(new byte[0xC]);
     }
 }
 
@@ -272,5 +278,19 @@ public struct CloudsData
         LayerScale = reader.ReadVector2Literal();
         DirectionAngle = reader.ReadSingle();
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);
+    }
+    public static void Write(ResourceBinaryWriter writer, CloudsData value)
+    {
+        writer.Write(value.Layer1LiteColor, intrinsic: true);
+        writer.Write(value.Layer2LiteColor, intrinsic: true);
+        writer.Write(value.Layer1DarkColor, intrinsic: true);
+        writer.Write(value.Layer2DarkColor, intrinsic: true);
+        writer.Write(value.LayerDensity, intrinsic: false);
+        writer.Write(value.LayerFeathering, intrinsic: false);
+        writer.Write(value.LayerOpacity, intrinsic: false);
+        writer.Write(value.LayerSpeed, intrinsic: false);
+        writer.Write(value.LayerScale, intrinsic: false);
+        writer.Write(value.DirectionAngle);
+        writer.Write(new byte[0x4]);
     }
 }

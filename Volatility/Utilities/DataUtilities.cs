@@ -10,11 +10,6 @@ public static class DataUtilities
         return BitConverter.GetBytes(input)[0];
     }
 
-    public static byte[] x64Switch(bool x64, ulong value)
-    {
-        return x64 ? BitConverter.GetBytes(value) : BitConverter.GetBytes((uint)value);
-    }
-
     public static bool IsHexadecimal(string input)
     {
         foreach (char c in input)

@@ -2,9 +2,9 @@
 
 public class ShaderBase : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.Shader;
-    public override Endian GetResourceEndian() => Endian.Agnostic;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.Shader;
+    public override Endian ResourceEndian => Endian.Agnostic;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
     [EditorCategory("Shader/Source"), EditorLabel("Source File"), EditorTooltip("Relative path to the HLSL source file.")]
     public string? ShaderSourcePath { get; set; }
@@ -29,7 +29,7 @@ public class ShaderBase : Resource
     [EditorCategory("Shader/Compile"), EditorLabel("Additional Arguments"), EditorTooltip("Extra dxc command-line arguments.")]
     public List<string> AdditionalArguments { get; set; } = [];
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
         base.WriteToStream(writer, endianness);
     }

@@ -4,8 +4,8 @@ namespace Volatility.Resources;
 
 public class TexturePS3 : TextureBase
 {
-    public override Endian GetResourceEndian() => Endian.BE; 
-    public override Platform GetResourcePlatform() => Platform.PS3;
+    public override Endian ResourceEndian => Endian.BE;
+    public override Platform ResourcePlatform => Platform.PS3;
 
     [EditorCategory("Texture/Playstation 3"), EditorLabel("Texture Format"), 
      EditorTooltip("The texture's color and compression format.")]
@@ -96,7 +96,7 @@ public class TexturePS3 : TextureBase
 
     public override void PushInternalFormat() { /* TODO But don't throw an error! */ }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 

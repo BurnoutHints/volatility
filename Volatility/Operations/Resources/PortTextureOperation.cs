@@ -208,12 +208,12 @@ internal class PortTextureOperation
 
                 try
                 {
-                    if (useGtf && sourceTexture.GetResourcePlatform() == Platform.PS3)
+                    if (useGtf && sourceTexture.ResourcePlatform == Platform.PS3)
                     {
                         PS3TextureUtilities.PS3GTFToDDS(sourcePath, sourceBitmapPath, destinationBitmapPath, verbose);
                     }
 
-                    if (destinationTexture is TextureX360 destX && sourceTexture.GetResourcePlatform() != Platform.X360)
+                    if (destinationTexture is TextureX360 destX && sourceTexture.ResourcePlatform != Platform.X360)
                     {
                         destX.Format.MaxMipLevel = destX.Format.MinMipLevel;
                     }
@@ -271,7 +271,7 @@ internal class PortTextureOperation
                     }
 
                     using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
-                    using (EndianAwareBinaryWriter writer = new(fs, destinationTexture.GetResourceEndian()))
+                    using (ResourceBinaryWriter writer = new(fs, destinationTexture.ResourceEndian))
                     {
                         try
                         {
@@ -300,7 +300,7 @@ internal class PortTextureOperation
 
     private string BPRx64Hack(TextureBase header, string format)
     {
-        if (header.GetResourcePlatform() == Platform.BPR && format.EndsWith("X64", StringComparison.Ordinal))
+        if (header.ResourcePlatform == Platform.BPR && format.EndsWith("X64", StringComparison.Ordinal))
         {
             header.SetResourceArch(Arch.x64);
             return "BPR";

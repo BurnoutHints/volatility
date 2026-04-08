@@ -4,8 +4,8 @@ namespace Volatility.Resources;
 
 public class TexturePC : TextureBase
 {
-    public override Endian GetResourceEndian() => Endian.LE;
-    public override Platform GetResourcePlatform() => Platform.TUB;
+    public override Endian ResourceEndian => Endian.LE;
+    public override Platform ResourcePlatform => Platform.TUB;
 
     private D3DFORMAT _format = D3DFORMAT.D3DFMT_UNKNOWN;
     public D3DFORMAT Format
@@ -32,14 +32,14 @@ public class TexturePC : TextureBase
 
     public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
         PushAll(); // Need to determine if should be moved
 
-        writer.Write(TextureDataPtr.ToInt32());
-        writer.Write(TextureInterfacePtr.ToInt32());
+        writer.WritePointer((ulong)TextureDataPtr, ResourceArch);
+        writer.WritePointer((ulong)TextureInterfacePtr, ResourceArch);
         writer.Write(Unknown0);     // Unknown
         writer.Write(MemoryClass);
         writer.Write(Unknown1);     // Unknown

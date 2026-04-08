@@ -7,14 +7,14 @@ namespace Volatility.Resources;
 
 public class ShaderPC : ShaderBase
 {
-    public override Endian GetResourceEndian() => Endian.LE;
-    public override Platform GetResourcePlatform() => Platform.TUB;
+    public override Endian ResourceEndian => Endian.LE;
+    public override Platform ResourcePlatform => Platform.TUB;
 
     public string Name;
 
     private static readonly Regex DbToFileRegex = new(@"(\?ID=\d+)|:", RegexOptions.Compiled);
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
         base.WriteToStream(writer, endianness);
     }

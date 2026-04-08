@@ -2,11 +2,11 @@
 
 public class ShaderProgramBufferBase : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.RwShaderProgramBuffer;
-    public override Endian GetResourceEndian() => Endian.Agnostic;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.RwShaderProgramBuffer;
+    public override Endian ResourceEndian => Endian.Agnostic;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
         base.WriteToStream(writer, endianness);
     }

@@ -4,8 +4,8 @@ namespace Volatility.Resources;
 
 public class TextureBPR : TextureBase
 {
-    public override Endian GetResourceEndian() => Endian.LE;
-    public override Platform GetResourcePlatform() => Platform.BPR;
+    public override Endian ResourceEndian => Endian.LE;
+    public override Platform ResourcePlatform => Platform.BPR;
 
     public D3D11_USAGE Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT;         // Usually default, implemented for parity sake
 
@@ -38,17 +38,17 @@ public class TextureBPR : TextureBase
     public override void PullInternalFormat() { }
     public override void PushInternalFlags() { }
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureInterfacePtr, 64 bit
+        writer.WritePointer(0, ResourceArch);  // TextureInterfacePtr, 64 bit
         writer.Write((uint)Usage);
         writer.Write((uint)Dimension);
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // PixelDataPtr, 64 bit
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface0Ptr, 64 bit
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // ShaderResourceViewInterface1Ptr, 64 bit
-        writer.Write((uint)0);                  // Unknown0
+        writer.WritePointer(0, ResourceArch);  // PixelDataPtr, 64 bit
+        writer.WritePointer(0, ResourceArch);  // ShaderResourceViewInterface0Ptr, 64 bit
+        writer.WritePointer(0, ResourceArch);  // ShaderResourceViewInterface1Ptr, 64 bit
+        writer.Write((uint)0);                 // Unknown0
         writer.Write((uint)Format);
         writer.Write((uint)Flags);
         writer.Write(Width);
@@ -57,13 +57,13 @@ public class TextureBPR : TextureBase
         writer.Write(ArraySize);
         writer.Write(MostDetailedMip);
         writer.Write(MipmapLevels);
-        writer.Write((ushort)0);                // Unknown1
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // Unknown2, 64 bit
+        writer.Write((ushort)0);                    // Unknown1
+        writer.WritePointer(0, ResourceArch);  // Unknown2, 64 bit
         writer.Write((int)PlacedTileMode);
         writer.Write(PlacedDataSize);
-        writer.Write(x64Switch(GetResourceArch() == Arch.x64, 0));  // TextureData, 64 bit
+        writer.WritePointer(0, ResourceArch);  // TextureData, 64 bit
 
-        if (GetResourceArch() == Arch.x64)
+        if (ResourceArch == Arch.x64)
         {
             writer.Write("Volatili"u8.ToArray());
         }
@@ -75,10 +75,10 @@ public class TextureBPR : TextureBase
 
         SetResourceArch(reader.BaseStream.Length > 0x40 ? Arch.x64 : Arch.x32);
 
-        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
+        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
         Usage = (D3D11_USAGE)reader.ReadInt32();
         Dimension = (DIMENSION)reader.ReadInt32();
-        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
+        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
         reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
         Format = (DXGI_FORMAT)reader.ReadInt32();
         Flags = (BPRTextureFlags)reader.ReadUInt32();
@@ -89,10 +89,10 @@ public class TextureBPR : TextureBase
         MostDetailedMip = reader.ReadByte();
         MipmapLevels = reader.ReadByte();
         reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
-        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
+        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
         PlacedTileMode = (XG_TILE_MODE)reader.ReadInt32();
         PlacedDataSize = (uint)reader.ReadInt32();
-        reader.BaseStream.Seek(GetResourceArch() == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
+        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
     }
 
     public override void PushInternalDimension()

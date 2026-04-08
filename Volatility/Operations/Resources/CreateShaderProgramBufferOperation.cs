@@ -42,7 +42,7 @@ internal sealed class CreateShaderProgramBufferOperation
 
         ValidatePlatform(platform);
 
-        Platform bufferPlatform = buffer.GetResourcePlatform();
+        Platform bufferPlatform = buffer.ResourcePlatform;
         if (bufferPlatform != Platform.Agnostic && bufferPlatform != platform)
             throw new InvalidOperationException($"ShaderProgramBuffer platform mismatch: buffer={bufferPlatform}, requested={platform}.");
 
@@ -53,11 +53,11 @@ internal sealed class CreateShaderProgramBufferOperation
         }
 
         using FileStream fs = new(outputPath, FileMode.Create);
-        Endian endian = buffer.GetResourceEndian();
+        Endian endian = buffer.ResourceEndian;
         if (endian == Endian.Agnostic)
             endian = EndianMapping.GetDefaultEndian(platform);
 
-        using EndianAwareBinaryWriter writer = new(fs, endian);
+        using ResourceBinaryWriter writer = new(fs, endian);
         buffer.WriteToStream(writer, endian);
     }
 
