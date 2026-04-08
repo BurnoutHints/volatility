@@ -5,10 +5,10 @@ namespace Volatility.Resources;
 
 public class ParticleDescription : Resource
 {
-    public override ResourceType GetResourceType() => ResourceType.ParticleDescription;
-    public override Platform GetResourcePlatform() => Platform.Agnostic;
+    public override ResourceType ResourceType => ResourceType.ParticleDescription;
+    public override Platform ResourcePlatform => Platform.Agnostic;
 
-    public override void WriteToStream(EndianAwareBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer);
     }
