@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 using Volatility.Resources;
@@ -105,33 +104,10 @@ internal partial class ImportResourceOperation
 
                         if (!File.Exists(convertedSamplePathName) || overwrite)
                         {
-                            ProcessStartInfo start = new ProcessStartInfo
-                            {
-                                FileName = sxPath,
-                                Arguments = $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            };
-
-                            using Process process = new Process();
-                            process.StartInfo = start;
-                            process.OutputDataReceived += (sender, e) =>
-                            {
-                                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-                            };
-
-                            process.ErrorDataReceived += (sender, e) =>
-                            {
-                                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-                            };
-
                             Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-                            process.Start();
-                            process.BeginOutputReadLine();
-                            process.BeginErrorReadLine();
-                            process.WaitForExit();
+                            ProcessUtilities.RunAndRelayOutput(
+                                sxPath,
+                                $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"");
                         }
                         else
                         {

@@ -1,5 +1,6 @@
 ﻿namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.BPR)]
 public class RenderableBPR : RenderableBase
 {
     public override Endian ResourceEndian => Endian.LE;

@@ -80,6 +80,20 @@ public class ResourceBinaryWriter : EndianAwareBinaryWriter
         }
     }
 
+    public void WriteSection<T>(long offset, T[] data, Action<ResourceBinaryWriter, T> writeItem)
+    {
+        if (offset == 0 || data.Length == 0)
+        {
+            return;
+        }
+
+        BaseStream.Position = offset;
+        for (int i = 0; i < data.Length; i++)
+        {
+            writeItem(this, data[i]);
+        }
+    }
+
     public void WriteSection<T>(long offset, List<T> data, Action<ResourceBinaryWriter, T, int> writeItem)
     {
         if (offset == 0 || data.Count == 0)
@@ -89,6 +103,20 @@ public class ResourceBinaryWriter : EndianAwareBinaryWriter
 
         BaseStream.Position = offset;
         for (int i = 0; i < data.Count; i++)
+        {
+            writeItem(this, data[i], i);
+        }
+    }
+
+    public void WriteSection<T>(long offset, T[] data, Action<ResourceBinaryWriter, T, int> writeItem)
+    {
+        if (offset == 0 || data.Length == 0)
+        {
+            return;
+        }
+
+        BaseStream.Position = offset;
+        for (int i = 0; i < data.Length; i++)
         {
             writeItem(this, data[i], i);
         }
@@ -130,6 +158,20 @@ public class ResourceBinaryWriter : EndianAwareBinaryWriter
         }
     }
 
+    public void WriteSection<T>(ulong offset, T[] data, Action<ResourceBinaryWriter, T> writeItem)
+    {
+        if (offset == 0 || data.Length == 0)
+        {
+            return;
+        }
+
+        BaseStream.Position = (long)offset;
+        for (int i = 0; i < data.Length; i++)
+        {
+            writeItem(this, data[i]);
+        }
+    }
+
     public void WriteSection<T>(ulong offset, List<T> data, Action<ResourceBinaryWriter, T, int> writeItem)
     {
         if (offset == 0 || data.Count == 0)
@@ -139,6 +181,20 @@ public class ResourceBinaryWriter : EndianAwareBinaryWriter
 
         BaseStream.Position = (long)offset;
         for (int i = 0; i < data.Count; i++)
+        {
+            writeItem(this, data[i], i);
+        }
+    }
+
+    public void WriteSection<T>(ulong offset, T[] data, Action<ResourceBinaryWriter, T, int> writeItem)
+    {
+        if (offset == 0 || data.Length == 0)
+        {
+            return;
+        }
+
+        BaseStream.Position = (long)offset;
+        for (int i = 0; i < data.Length; i++)
         {
             writeItem(this, data[i], i);
         }

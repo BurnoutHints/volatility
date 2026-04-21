@@ -9,11 +9,10 @@ namespace Volatility.Resources;
 // Learn More:
 // https://burnout.wiki/wiki/AttribSysVault
 
+[ResourceDefinition(ResourceType.AttribSysVault)]
+[ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class AttribSysVault : Resource
 {
-    public override ResourceType ResourceType => ResourceType.AttribSysVault;
-    public override Platform ResourcePlatform => Platform.Agnostic;
-
     public ulong VltDataOffset { get; set; }
     public uint VltSizeInBytes { get; set; }
     public ulong BinDataOffset { get; set; }
@@ -76,8 +75,7 @@ public class AttribSysVault : Resource
         PtrN = [];
         Data = string.Empty;
 
-        Arch arch = ResourceArch;
-        if (arch == Arch.x64)
+        if (ResourceArch == Arch.x64)
         {
             VltDataOffset = reader.ReadUInt64();
             VltSizeInBytes = reader.ReadUInt32();
@@ -123,7 +121,8 @@ public class AttribSysVault : Resource
 
     public AttribSysVault() : base() { }
 
-    public AttribSysVault(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public AttribSysVault(string path, Endian endianness = Endian.Agnostic)
+        : base(path, endianness) { }
 
     private void ParseVlt(EndianAwareBinaryReader reader, List<PendingAttribute> pendingAttributes)
     {

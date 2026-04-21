@@ -1,11 +1,9 @@
 ﻿namespace Volatility.Resources;
 
+[ResourceDefinition(ResourceType.Shader)]
+[ResourceRegistration(RegistrationPlatforms.Agnostic)]
 public class ShaderBase : Resource
 {
-    public override ResourceType ResourceType => ResourceType.Shader;
-    public override Endian ResourceEndian => Endian.Agnostic;
-    public override Platform ResourcePlatform => Platform.Agnostic;
-
     [EditorCategory("Shader/Source"), EditorLabel("Source File"), EditorTooltip("Relative path to the HLSL source file.")]
     public string? ShaderSourcePath { get; set; }
 

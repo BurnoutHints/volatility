@@ -36,6 +36,33 @@ public static class MatrixUtilities
         return transform;
     }
 
+    public static Matrix44Affine TransformToMatrix44Affine(Transform transform)
+    {
+        Quaternion rotation = Quaternion.Normalize(
+            transform.Rotation == default ? Quaternion.Identity : transform.Rotation);
+
+        Matrix44Affine matrix = Matrix4x4.CreateFromQuaternion(rotation);
+
+        matrix.M11 *= transform.Scale.X;
+        matrix.M12 *= transform.Scale.X;
+        matrix.M13 *= transform.Scale.X;
+
+        matrix.M21 *= transform.Scale.Y;
+        matrix.M22 *= transform.Scale.Y;
+        matrix.M23 *= transform.Scale.Y;
+
+        matrix.M31 *= transform.Scale.Z;
+        matrix.M32 *= transform.Scale.Z;
+        matrix.M33 *= transform.Scale.Z;
+
+        matrix.M41 = transform.Location.X;
+        matrix.M42 = transform.Location.Y;
+        matrix.M43 = transform.Location.Z;
+        matrix.M44 = 1.0f;
+
+        return matrix;
+    }
+
     public static Matrix44 ReadMatrix44(BinaryReader reader)
     {
         float m11 = reader.ReadSingle();

@@ -76,6 +76,13 @@ public class ResourceBinaryReader : EndianAwareBinaryReader
         BaseStream.Seek(originalPosition, SeekOrigin.Begin);
     }
 
+    public List<T> ParseSection<T>(ulong offset, int count, Func<ResourceBinaryReader, T> parser)
+    {
+        List<T> destination = new(Math.Max(count, 0));
+        ParseSection(offset, count, parser, destination);
+        return destination;
+    }
+
     public void ParseSection<T>(long offset, int count, Func<ResourceBinaryReader, T> parser, List<T> destination)
     {
         if (count <= 0 || offset == 0)
@@ -92,6 +99,13 @@ public class ResourceBinaryReader : EndianAwareBinaryReader
         }
 
         BaseStream.Seek(originalPosition, SeekOrigin.Begin);
+    }
+
+    public List<T> ParseSection<T>(long offset, int count, Func<ResourceBinaryReader, T> parser)
+    {
+        List<T> destination = new(Math.Max(count, 0));
+        ParseSection(offset, count, parser, destination);
+        return destination;
     }
 
     public void ParseSection<T>(ulong offset, Func<ResourceBinaryReader, T> parser, out T destination)

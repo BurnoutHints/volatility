@@ -8,6 +8,7 @@ using static Volatility.Utilities.X360TextureUtilities;
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.X360, PullAll = true)]
 public class TextureX360 : TextureBase
 {
     public override Endian ResourceEndian => Endian.BE;
@@ -155,8 +156,7 @@ public class TextureX360 : TextureBase
         writer.Write(Format.PackToBytes());
 
         // Padding that's usually just garbage data.
-        writer.Write(Encoding.UTF8.GetBytes("Volatility"));
-        writer.Write(new byte[0x2]);
+        writer.WriteFixedBytes(Encoding.ASCII.GetBytes("Volatility"), 12);
     }
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)

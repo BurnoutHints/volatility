@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-
 using Volatility.Resources;
 
 using static Volatility.Utilities.EnvironmentUtilities;
@@ -46,30 +44,7 @@ public static class DXCShaderCompiler
         string sourcePath = ResolveSourcePath(shader);
 
         ProcessStartInfo startInfo = BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath);
-        using Process process = new() { StartInfo = startInfo };
-
-        StringBuilder output = new();
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (!string.IsNullOrWhiteSpace(e.Data))
-                output.AppendLine(e.Data);
-        };
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (!string.IsNullOrWhiteSpace(e.Data))
-                output.AppendLine(e.Data);
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
-        {
-            string message = output.Length > 0 ? output.ToString() : "No compiler output.";
-            throw new InvalidOperationException($"dxc failed (exit {process.ExitCode}).\n{message}");
-        }
+        ProcessUtilities.RunAndCapture(startInfo);
     }
 
     private static ProcessStartInfo BuildStartInfo(

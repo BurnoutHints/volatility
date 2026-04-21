@@ -7,10 +7,10 @@ namespace Volatility.Resources;
 // Learn More:
 // https://burnout.wiki/wiki/Environment_Keyframe
 
+[ResourceDefinition(ResourceType.EnvironmentKeyframe)]
+[ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class EnvironmentKeyframe : Resource 
 {
-    public override ResourceType ResourceType => ResourceType.EnvironmentKeyframe;
-    
     public BloomData BloomSettings;
     public VignetteData VignetteSettings;
     public TintData TintSettings;

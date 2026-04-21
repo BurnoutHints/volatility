@@ -2,11 +2,10 @@
 
 namespace Volatility.Resources;
 
+[ResourceDefinition(ResourceType.AptData)]
+[ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class AptData : Resource
 {
-    public override ResourceType ResourceType => ResourceType.AptData;
-    public override Platform ResourcePlatform => Platform.Agnostic;
-
     public string MovieName;
     public string BaseComponentName;
     public GuiGeometryObject GuiGeometry;

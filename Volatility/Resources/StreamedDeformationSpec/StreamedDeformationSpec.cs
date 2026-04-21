@@ -312,13 +312,13 @@ public struct GlassPaneSpec
     }
 }
 
+[ResourceDefinition(ResourceType.StreamedDeformationSpec)]
+[ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class StreamedDeformationSpec : Resource
 {
     public const int HeaderSize32 = 0x6B0;
     public const int HeaderSize64 = 0x6F0;
     private const int SectionAlignment = 0x10;
-
-    public override ResourceType ResourceType => ResourceType.StreamedDeformationSpec;
 
     public int VersionNumber { get; set; }
     public ulong TagPointDataOffset { get; set; }
@@ -392,7 +392,7 @@ public class StreamedDeformationSpec : Resource
         CameraTagsInfo = new (reader, arch);
         LightTagsInfo = new(reader, arch);
 
-        reader.BaseStream.Seek(arch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);
+        reader.BaseStream.Seek(ResourceUtilities.GetPointerSize(ResourceArch), SeekOrigin.Current);
 
         HandlingBodyDimensions = reader.ReadVector3();
 

@@ -1,7 +1,8 @@
-﻿using static Volatility.Utilities.DataUtilities;
+﻿using Volatility.Utilities;
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.BPR, PullAll = true)]
 public class TextureBPR : TextureBase
 {
     public override Endian ResourceEndian => Endian.LE;
@@ -75,11 +76,13 @@ public class TextureBPR : TextureBase
 
         SetResourceArch(reader.BaseStream.Length > 0x40 ? Arch.x64 : Arch.x32);
 
-        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Begin);    // Skip TextureInterfacePtr
+        int pointerSize = ResourceUtilities.GetPointerSize(ResourceArch);
+
+        reader.BaseStream.Seek(pointerSize, SeekOrigin.Begin);       // Skip TextureInterfacePtr
         Usage = (D3D11_USAGE)reader.ReadInt32();
         Dimension = (DIMENSION)reader.ReadInt32();
-        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x18 : 0xC, SeekOrigin.Current); // Skip pointers
-        reader.BaseStream.Seek(0x4, SeekOrigin.Current);                    // Skip Unknown0
+        reader.BaseStream.Seek(pointerSize * 3, SeekOrigin.Current); // Skip pointers
+        reader.BaseStream.Seek(0x4, SeekOrigin.Current);             // Skip Unknown0
         Format = (DXGI_FORMAT)reader.ReadInt32();
         Flags = (BPRTextureFlags)reader.ReadUInt32();
         Width = reader.ReadUInt16();
@@ -88,11 +91,11 @@ public class TextureBPR : TextureBase
         ArraySize = reader.ReadUInt16();
         MostDetailedMip = reader.ReadByte();
         MipmapLevels = reader.ReadByte();
-        reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);         // Skip Unknown1
-        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // Unknown 2, 64 bit
+        reader.BaseStream.Seek(sizeof(ushort), SeekOrigin.Current);  // Skip Unknown1
+        reader.BaseStream.Seek(pointerSize, SeekOrigin.Current);     // Unknown 2, 64 bit
         PlacedTileMode = (XG_TILE_MODE)reader.ReadInt32();
         PlacedDataSize = (uint)reader.ReadInt32();
-        reader.BaseStream.Seek(ResourceArch == Arch.x64 ? 0x8 : 0x4, SeekOrigin.Current);  // TextureData, 64 bit
+        reader.BaseStream.Seek(pointerSize, SeekOrigin.Current);     // TextureData, 64 bit
     }
 
     public override void PushInternalDimension()

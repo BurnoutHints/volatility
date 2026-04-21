@@ -5,6 +5,7 @@ using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.TUB)]
 public class ShaderPC : ShaderBase
 {
     public override Endian ResourceEndian => Endian.LE;

@@ -165,38 +165,12 @@ public static class PS3TextureUtilities
             throw new FileNotFoundException("Unable to find external tool gtf2dds.exe!");
         }
 
-        ProcessStartInfo start = new ProcessStartInfo
-        {
-            FileName = gtf2ddsPath,
-            Arguments = $"-o \"{destinationBitmapPath}.dds\" \"{destinationBitmapPath}.gtf\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
         if (verbose) Console.WriteLine($"Running: {gtf2ddsPath} -o \"{destinationBitmapPath}.dds\" \"{destinationBitmapPath}.gtf\"");
+        if (verbose) Console.WriteLine("Converting PS3 GTF texture to DDS...");
 
-        using (Process process = new Process())
-        {
-            if (verbose) Console.WriteLine("Converting PS3 GTF texture to DDS...");
-
-            process.StartInfo = start;
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-            };
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data);
-            };
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-        }
+        ProcessUtilities.RunAndRelayOutput(
+            gtf2ddsPath,
+            $"-o \"{destinationBitmapPath}.dds\" \"{destinationBitmapPath}.gtf\"");
 
         fileBytes = File.ReadAllBytes($"{destinationBitmapPath}.dds");
 

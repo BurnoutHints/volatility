@@ -6,6 +6,7 @@ using Volatility.Utilities;
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.BPR)]
 public class ShaderProgramBufferBPR : ShaderProgramBufferBase
 {
     public override Endian ResourceEndian => Endian.LE;

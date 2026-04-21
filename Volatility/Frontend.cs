@@ -38,8 +38,7 @@ internal class Frontend
     {
         if (args.Length > 0)
         {
-            string fullCommand = string.Join(" ", args);
-            RunCommand(fullCommand);
+            RunCommandTokenized(args);
         }
         else 
         {
@@ -125,6 +124,31 @@ internal class Frontend
                 throw;
 #endif
             }
+        }
+    }
+
+    static void RunCommandTokenized(string[] input)
+    {
+        if (input.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var command = ParseCommandTokenized(input);
+            command.Execute().GetAwaiter().GetResult();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+#if DEBUG
+            throw;
+#endif
         }
     }
 

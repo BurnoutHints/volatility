@@ -10,11 +10,13 @@ internal class ExportResourceCommand : ICommand
 {
         public static string CommandToken => "ExportResource";
         public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
-        public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path>";
+        public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path> [--imports=<raw,bnd2manager,dgi,yap,volatility>] [--importsfile]";
 
         public string? Format { get; set; }
         public string? ResourcePath { get; set; }
         public string? OutputPath { get; set; }
+        public string? Imports { get; set; }
+        public bool ImportsFile { get; set; }
         public bool Overwrite { get; set; }
         public bool Recursive { get; set; }
 
@@ -55,6 +57,18 @@ internal class ExportResourceCommand : ICommand
                 if (!TypeUtilities.TryParseEnum(Format, out Platform platform))
                 {
                     throw new InvalidPlatformException("Error: Invalid file format specified!");
+                }
+
+                Unpacker? importUnpackerOverride = null;
+                if (!string.IsNullOrEmpty(Imports) && !string.Equals(Imports, "DEFAULT", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!TypeUtilities.TryParseEnum(Imports, out Unpacker parsedUnpacker))
+                    {
+                        Console.WriteLine("Error: Invalid imports export mode specified!");
+                        return;
+                    }
+
+                    importUnpackerOverride = parsedUnpacker;
                 }
 
                 var loadOperation = new LoadResourceOperation();
@@ -104,7 +118,7 @@ internal class ExportResourceCommand : ICommand
                     return;
                 }
 
-                                await exportOperation.ExecuteAsync(resource, OutputPath, platform);
+                                await exportOperation.ExecuteAsync(resource, OutputPath, platform, importUnpackerOverride, ImportsFile);
 
                 Console.WriteLine($"Exported {Path.GetFileName(ResourcePath)} as {Path.GetFullPath(OutputPath)}.");
                         }));
@@ -117,6 +131,8 @@ internal class ExportResourceCommand : ICommand
                 Format = (args.TryGetValue("format", out object? format) ? format as string : "")?.ToUpper();
                 ResourcePath = args.TryGetValue("respath", out object? respath) ? respath as string : "";
                 OutputPath = args.TryGetValue("outpath", out object? outpath) ? outpath as string : "";
+                Imports = args.TryGetValue("imports", out object? imports) ? imports as string : "";
+                ImportsFile = args.TryGetValue("importsfile", out var importsfile) && (bool)importsfile;
                 Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
                 Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
         }

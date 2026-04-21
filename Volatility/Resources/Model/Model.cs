@@ -1,140 +1,172 @@
-﻿namespace Volatility.Resources;
+using Volatility.Utilities;
+
+namespace Volatility.Resources;
 
 // The Model resource type links top-level resources (like InstanceList)
 // to Renderable resources that contain the 3D geometry, while including
 // Level of Detail (LOD) information.
-
+//
 // Learn More:
 // https://burnout.wiki/wiki/Model
 
+[ResourceDefinition(ResourceType.Model)]
+[ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class Model : Resource
 {
+    private const int StateSize = sizeof(byte);
+    private const int LodDistanceSize = sizeof(float);
+
+    [EditorHidden]
+    public uint HeaderMetadata;
+
     [EditorCategory("Model Container"), EditorLabel("Flags")]
     public byte Flags;
 
     [EditorCategory("Model Container"), EditorLabel("Models")]
     public List<ModelData> ModelDatas = [];
 
-    public override ResourceType ResourceType => ResourceType.Model;
-    public override Platform ResourcePlatform => Platform.Agnostic;
-
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);
 
-        int models = ModelDatas.Count;
+        Arch arch = ResourceArch;
+        int modelCount = ModelDatas.Count;
+        if (modelCount > byte.MaxValue)
+        {
+            throw new InvalidDataException("Model resources cannot store more than 255 renderables.");
+        }
 
-        uint renderablesPtr = 0x14; // Writing length of header
-        uint statesPtr = (uint)(renderablesPtr + (0x4 * models));
-        uint lodDistancesPtr = (uint)(statesPtr + (0x1 * models));
+        int renderablePointerSize = ResourceUtilities.GetPointerSize(arch);
+        long currentOffset = GetHeaderSize(arch);
+        long renderablesOffset = ResourceUtilities.GetSectionOffset(
+            ref currentOffset,
+            modelCount * renderablePointerSize,
+            1);
+        long statesOffset = ResourceUtilities.GetSectionOffset(
+            ref currentOffset,
+            modelCount * StateSize,
+            1);
+        long lodDistancesOffset = ResourceUtilities.GetSectionOffset(
+            ref currentOffset,
+            modelCount * LodDistanceSize,
+            sizeof(uint));
 
-        writer.Write(renderablesPtr);
-        writer.Write(statesPtr);
-        writer.Write(lodDistancesPtr);
-        writer.Write(-1); // Game explorer index, leaving our mark for now
-        writer.Write((byte)ModelDatas.Count); // Dangerous. We need to limit number of models
+        writer.WritePointer((ulong)renderablesOffset, arch);
+        writer.WritePointer((ulong)statesOffset, arch);
+        writer.WritePointer((ulong)lodDistancesOffset, arch);
+        writer.Write(HeaderMetadata);
+        writer.Write((byte)modelCount);
         writer.Write(Flags);
-        writer.Write((byte)ModelDatas.Count); // Number of states. Same as number of renderables
-        writer.BaseStream.WriteByte(0x02);
+        writer.Write((byte)modelCount);
+        writer.Write((byte)0x02);
 
-        writer.BaseStream.Seek(renderablesPtr, SeekOrigin.Begin);
-
-        // Renderable Ptrs
-        for (int i = 0; i < models; i++)
-        {
-            writer.Write((uint)(i * 0x4));
-        }
-
-        // States (Writing as uint?? A single renderable has a 0x4-long state apparently.)
-        for (int i = 0; i < models; i++)
-        {
-            writer.Write((uint)ModelDatas[i].State);
-        }
-
-        // LOD Distances
-        for (int i = 0; i < models; i++)
-        {
-            writer.Write(ModelDatas[i].LODDistance);
-        }
-
-        // Resource ID References
-        for (int i = 0; i < models; i++)
-        {
-            writer.Write(ModelDatas[i].ResourceReference.ReferenceID);
-            writer.Write(renderablesPtr + (i * 0x4));
-            writer.Write((uint)0x0); // Unknown. Always 0 in BPR, not always 0 on X360
-        }
+        writer.WriteSection<ModelData>(renderablesOffset, ModelDatas, (w, _, index) => w.WritePointer((ulong)(index * ResourceImport.ImportEntrySize), arch));
+        writer.WriteSection(statesOffset, ModelDatas, (w, modelData) => w.Write((byte)modelData.State));
+        writer.WriteSection(lodDistancesOffset, ModelDatas, (w, modelData) => w.Write(modelData.LODDistance));
     }
+
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
         base.ParseFromStream(reader, endianness);
 
-        // Get the version check out of the way before we begin.
-        reader.BaseStream.Seek(0x13, SeekOrigin.Begin);
-        if (reader.ReadByte() != 0x2)
-        {
-            throw new Exception("Version mismatch!");
-        }
+        Arch arch = ResourceArch;
 
-        reader.BaseStream.Seek(0x0, SeekOrigin.Begin);
+        ulong renderablesPtr = reader.ReadPointer(arch);
+        ulong renderableStatesPtr = reader.ReadPointer(arch);
+        ulong lodDistancesPtr = reader.ReadPointer(arch);
 
-        // Absolute pointers (not relative to any specific point in the file)
-        uint renderablesPtr = reader.ReadUInt32();
-        uint renderableStatesPtr = reader.ReadUInt32();
-        uint lodDistancesPtr = reader.ReadUInt32();
-
-        // Null for imported resources.
-        // TODO: Reconstruct game explorer or get from ResourceDB
-        int gameExplorerIndex = reader.ReadInt32();
+        HeaderMetadata = reader.ReadUInt32();
 
         byte numRenderables = reader.ReadByte();
+        Flags = reader.ReadByte();
+        byte numStates = reader.ReadByte();
+        byte version = reader.ReadByte();
+
+        if (version != 0x2)
+        {
+            throw new InvalidDataException($"Version mismatch! Version should be 2. (Found version {version})");
+        }
 
         if (numRenderables == 0)
         {
             Console.WriteLine("WARNING: Found no renderables in this model!");
         }
 
-        Flags = reader.ReadByte();
-
-        long maxLength = new[]
+        if (numStates != numRenderables)
         {
-            lodDistancesPtr + numRenderables * sizeof(uint),
-            renderablesPtr + numRenderables * sizeof(uint),
-            renderableStatesPtr + numRenderables
-        }.Max();
+            throw new InvalidDataException(
+                $"Unsupported model header: numStates ({numStates}) does not match numRenderables ({numRenderables}).");
+        }
 
-        // This currently does a lot of seeking.
-        // It may improve performance if we separate this.
-        for (int i = 0; i < numRenderables; i++)
+        int renderablePointerSize = ResourceUtilities.GetPointerSize(arch);
+        long importsOffset = Math.Max(
+            (long)lodDistancesPtr + (numStates * LodDistanceSize),
+            Math.Max(
+                (long)renderablesPtr + (numRenderables * renderablePointerSize),
+                (long)renderableStatesPtr + (numStates * StateSize)));
+
+        ModelDatas.Clear();
+        for (int i = 0; i < numStates; i++)
         {
-            ModelData modelData = new ModelData();
-            
-            reader.BaseStream.Seek(renderablesPtr + (i * 0x4), SeekOrigin.Begin);
-
-            uint idRelativePtr = reader.ReadUInt32();
-
-            reader.BaseStream.Seek(renderableStatesPtr + i, SeekOrigin.Begin);
-            modelData.State = (State)reader.ReadByte();
-
-            reader.BaseStream.Seek(lodDistancesPtr + (i * 0x4), SeekOrigin.Begin);
-            modelData.LODDistance = reader.ReadSingle();
-
-            reader.BaseStream.Seek(
-                idRelativePtr + 
-                renderablesPtr + 
-                (numRenderables * (0x4 + 0x1 + 0x4)) + 
-                (reader.Endianness == Endian.BE ? 0x4 : 0x0), SeekOrigin.Begin
-            );
-
-            ResourceImport.ReadExternalImport(i, reader, maxLength, out modelData.ResourceReference);
-
-            ModelDatas.Add(modelData);
+            ModelDatas.Add(ReadModelData(
+                reader,
+                arch,
+                i,
+                renderablesPtr,
+                renderableStatesPtr,
+                lodDistancesPtr,
+                importsOffset));
         }
     }
 
     public Model() : base() { }
 
-    public Model(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    public Model(string path, Endian endianness = Endian.Agnostic)
+        : base(path, endianness) { }
+
+    private static ModelData ReadModelData(
+        ResourceBinaryReader reader,
+        Arch arch,
+        int index,
+        ulong renderablesPtr,
+        ulong renderableStatesPtr,
+        ulong lodDistancesPtr,
+        long importsOffset)
+    {
+        ModelData modelData = new();
+        int renderablePointerSize = ResourceUtilities.GetPointerSize(arch);
+
+        reader.ParseSection(renderablesPtr + ((ulong)index * (ulong)renderablePointerSize), r => r.ReadPointer(arch), out _);
+        reader.ParseSection(renderableStatesPtr + (ulong)index, r => (State)r.ReadByte(), out modelData.State);
+        reader.ParseSection(lodDistancesPtr + ((ulong)index * LodDistanceSize), r => r.ReadSingle(), out modelData.LODDistance);
+
+        ResourceImport.ReadExternalImport(index, reader, importsOffset, out modelData.ResourceReference);
+        return modelData;
+    }
+
+    public override IEnumerable<KeyValuePair<long, ResourceImport>> GetExternalImports()
+    {
+        int renderablePointerSize = ResourceUtilities.GetPointerSize(ResourceArch);
+        long renderablesOffset = GetHeaderSize(ResourceArch);
+
+        for (int i = 0; i < ModelDatas.Count; i++)
+        {
+            ResourceImport resourceReference = ModelDatas[i].ResourceReference;
+            if (!resourceReference.ExternalImport)
+            {
+                continue;
+            }
+
+            yield return new KeyValuePair<long, ResourceImport>(
+                renderablesOffset + (i * renderablePointerSize),
+                resourceReference);
+        }
+    }
+
+    private static int GetHeaderSize(Arch arch)
+    {
+        return (ResourceUtilities.GetPointerSize(arch) * 3) + sizeof(uint) + 0x4;
+    }
 
     public struct ModelData
     {

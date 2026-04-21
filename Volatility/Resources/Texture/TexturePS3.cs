@@ -2,6 +2,7 @@
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.PS3, PullAll = true)]
 public class TexturePS3 : TextureBase
 {
     public override Endian ResourceEndian => Endian.BE;

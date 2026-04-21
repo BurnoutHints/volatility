@@ -1,5 +1,6 @@
 ﻿namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.TUB)]
 public class RenderablePC : RenderableBase
 {
     public override Endian ResourceEndian => Endian.LE;

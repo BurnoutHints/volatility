@@ -15,6 +15,7 @@ internal class SaveResourceOperation
             .DisableAliases()
             .WithTypeInspector(inner => new IncludeFieldsTypeInspector(inner))
             .WithTypeConverter(new ResourceYamlTypeConverter())
+            .WithTypeConverter(new BitArrayYamlTypeConverter())
             .WithTypeConverter(new StrongIDYamlTypeConverter())
             .WithTypeConverter(new StringEnumYamlTypeConverter())
             .Build();

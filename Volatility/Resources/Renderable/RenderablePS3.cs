@@ -1,5 +1,6 @@
 ﻿namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.PS3)]
 public class RenderablePS3 : RenderableBase
 {
     public override Endian ResourceEndian => Endian.BE;

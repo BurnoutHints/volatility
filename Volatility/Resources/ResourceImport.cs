@@ -8,6 +8,8 @@ namespace Volatility.Resources;
 
 public struct ResourceImport
 {
+    public const int ImportEntrySize = 0x10;
+
     // The idea here is that if the name is populated but
     // the ID is empty, the name will be calculated into an ID
     // on export. If both a name and ID exist, use the ID, as
@@ -40,14 +42,33 @@ public struct ResourceImport
         ExternalImport = externalImport;
     }
 
+    public static string GetImportsPath(string resourcePath, Unpacker unpacker)
+    {
+        string suffix = unpacker switch
+        {
+            Unpacker.YAP => "_imports.yaml",
+            _ => "_imports.dat",
+        };
+
+        return Path.Combine(
+            Path.GetDirectoryName(resourcePath) ?? string.Empty,
+            Path.GetFileNameWithoutExtension(resourcePath) + suffix);
+    }
+
+    public static void DeleteImportsSidecarFiles(string resourcePath)
+    {
+        DeleteFileIfExists(GetImportsPath(resourcePath, Unpacker.YAP));
+        DeleteFileIfExists(GetImportsPath(resourcePath, Unpacker.Raw));
+    }
+
     public static bool ReadExternalImport(int index, EndianAwareBinaryReader reader, long importBlockOffset, out ResourceImport resourceImport)
     {
         long originalPosition = reader.BaseStream.Position;
 
         // In-resource imports block
-        if (reader.BaseStream.Length >= importBlockOffset + (0x10 * index) + 0x10)
+        if (reader.BaseStream.Length >= importBlockOffset + ((long)ImportEntrySize * index) + ImportEntrySize)
         {
-            reader.BaseStream.Seek(importBlockOffset + (0x10 * index), SeekOrigin.Begin);
+            reader.BaseStream.Seek(importBlockOffset + ((long)ImportEntrySize * index), SeekOrigin.Begin);
 
             resourceImport = new ResourceImport(reader.ReadUInt64(), externalImport: true);
             
@@ -58,16 +79,21 @@ public struct ResourceImport
 
         reader.BaseStream.Seek(originalPosition, SeekOrigin.Begin);
 
-        // YAP imports yaml
         if (reader.BaseStream is FileStream fs)
         {
-            string baseName = Path.GetFileNameWithoutExtension(fs.Name);
-            string directory = Path.GetDirectoryName(fs.Name);
-            string yamlPath = Path.Combine(directory, baseName + "_imports.yaml");
+            if (TryReadBinaryImportAt(GetImportsPath(fs.Name, Unpacker.Raw), reader.Endianness, index, out ResourceID binaryImport))
+            {
+                resourceImport = new ResourceImport(binaryImport, externalImport: true);
+                return true;
+            }
 
-            resourceImport = new ResourceImport(GetYAMLImportValueAt(yamlPath, index), externalImport: true);
+            string yamlPath = GetImportsPath(fs.Name, Unpacker.YAP);
+            if (File.Exists(yamlPath))
+            {
+                resourceImport = new ResourceImport(GetYAMLImportValueAt(yamlPath, index), externalImport: true);
 
-            return true;
+                return true;
+            }
         }
 
         resourceImport = default;
@@ -81,7 +107,7 @@ public struct ResourceImport
         reader.BaseStream.Seek(importBlockOffset, SeekOrigin.Begin);
         
         // In-resource imports block
-        while (reader.BaseStream.Position + 0x10 <= reader.BaseStream.Length)
+        while (reader.BaseStream.Position + ImportEntrySize <= reader.BaseStream.Length)
         {
             ulong resourceValue = reader.ReadUInt64();
             long entryKey = reader.ReadUInt32();
@@ -95,13 +121,15 @@ public struct ResourceImport
 
         reader.BaseStream.Seek(originalPosition, SeekOrigin.Begin);
         
-        // YAP imports yaml
         if (reader.BaseStream is FileStream fs)
         {
-            string baseName = Path.GetFileNameWithoutExtension(fs.Name);
-            string directory = Path.GetDirectoryName(fs.Name);
-            string yamlPath = Path.Combine(directory, baseName + "_imports.yaml");
+            if (TryReadBinaryImportByKey(GetImportsPath(fs.Name, Unpacker.Raw), reader.Endianness, fileOffset, out ResourceID binaryImport))
+            {
+                resourceImport = new ResourceImport(binaryImport, externalImport: true);
+                return true;
+            }
 
+            string yamlPath = GetImportsPath(fs.Name, Unpacker.YAP);
             if (File.Exists(yamlPath))
             {
                 ulong? yamlValue = GetYAMLImportValueByKey(yamlPath, fileOffset);
@@ -115,6 +143,73 @@ public struct ResourceImport
 
         resourceImport = default;
         return false;
+    }
+
+    private static bool TryReadBinaryImportAt(
+        string binaryPath,
+        Endian endianness,
+        int index,
+        out ResourceID referenceId)
+    {
+        referenceId = ResourceID.Default;
+
+        if (index < 0 || !File.Exists(binaryPath))
+        {
+            return false;
+        }
+
+        long entryOffset = (long)ImportEntrySize * index;
+        using EndianAwareBinaryReader importReader = new(new FileStream(binaryPath, FileMode.Open, FileAccess.Read, FileShare.Read), endianness);
+
+        if (importReader.BaseStream.Length < entryOffset + ImportEntrySize)
+        {
+            return false;
+        }
+
+        importReader.BaseStream.Seek(entryOffset, SeekOrigin.Begin);
+        referenceId = importReader.ReadUInt64();
+        return true;
+    }
+
+    private static bool TryReadBinaryImportByKey(
+        string binaryPath,
+        Endian endianness,
+        long fileOffset,
+        out ResourceID referenceId)
+    {
+        referenceId = ResourceID.Default;
+
+        if (fileOffset < 0 || fileOffset > uint.MaxValue || !File.Exists(binaryPath))
+        {
+            return false;
+        }
+
+        using EndianAwareBinaryReader importReader = new(new FileStream(binaryPath, FileMode.Open, FileAccess.Read, FileShare.Read), endianness);
+
+        while (importReader.BaseStream.Position + ImportEntrySize <= importReader.BaseStream.Length)
+        {
+            ulong resourceValue = importReader.ReadUInt64();
+            uint entryKey = importReader.ReadUInt32();
+            importReader.BaseStream.Seek(sizeof(uint), SeekOrigin.Current);
+
+            if (entryKey != (uint)fileOffset)
+            {
+                continue;
+            }
+
+            referenceId = resourceValue;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void DeleteFileIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
     }
 
     public static ResourceID GetYAMLImportValueAt(string yamlPath, int index)

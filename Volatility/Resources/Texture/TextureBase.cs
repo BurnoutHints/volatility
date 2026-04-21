@@ -6,12 +6,11 @@
 // systematically throughout the game.
 
 // Learn More:
-// https://burnout.wiki/wiki/Texture
+// https://burnout.wiki/wiki/Texture/Burnout_Paradise
 
+[ResourceDefinition(ResourceType.Texture)]
 public abstract class TextureBase : Resource
 {
-    public override ResourceType ResourceType => ResourceType.Texture;
-
     [EditorCategory("Texture"), EditorLabel("Width"), EditorTooltip("The target width of the texture.")]
     public ushort Width { get; set; }
 
@@ -94,9 +93,9 @@ public abstract class TextureBase : Resource
         PushInternalFlags();
     }
 
-    public TextureBase() : base() => Depth = 1;
+    protected TextureBase() : base() => Depth = 1;
 
-    public TextureBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
+    protected TextureBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 // BPR formatted but converted for each platform
 public enum DIMENSION : int

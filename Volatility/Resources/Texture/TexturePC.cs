@@ -2,6 +2,7 @@
 
 namespace Volatility.Resources;
 
+[ResourceRegistration(RegistrationPlatforms.TUB, PullAll = true)]
 public class TexturePC : TextureBase
 {
     public override Endian ResourceEndian => Endian.LE;

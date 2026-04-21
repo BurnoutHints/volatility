@@ -1,11 +1,15 @@
 using Volatility.Resources;
 using Volatility.Utilities;
-
 namespace Volatility.Operations.Resources;
 
 internal class ExportResourceOperation
 {
-    public Task ExecuteAsync(Resource resource, string outputPath, Platform platform)
+    public Task ExecuteAsync(
+        Resource resource,
+        string outputPath,
+        Platform platform,
+        Unpacker? importUnpackerOverride = null,
+        bool writeImportsToSeparateFile = false)
     {
         string? directoryPath = Path.GetDirectoryName(outputPath);
 
@@ -31,6 +35,14 @@ internal class ExportResourceOperation
                 resource.WriteToStream(writer);
                 break;
         }
+
+        WriteExternalImports(
+            resource,
+            outputPath,
+            writer,
+            endian,
+            ResolveExternalImportsUnpackerFormat(resource, importUnpackerOverride),
+            writeImportsToSeparateFile);
 
         if (resource is ShaderBase shader)
         {
@@ -68,6 +80,94 @@ internal class ExportResourceOperation
         }
 
         return Task.CompletedTask;
+    }
+
+    private static Unpacker ResolveExternalImportsUnpackerFormat(
+        Resource resource,
+        Unpacker? importUnpackerOverride)
+    {
+        return importUnpackerOverride ?? resource.Unpacker;
+    }
+
+    private static void WriteExternalImports(
+        Resource resource,
+        string outputPath,
+        ResourceBinaryWriter writer,
+        Endian endian,
+        Unpacker importUnpacker,
+        bool forceExternalImportsFile)
+    {
+        List<KeyValuePair<long, ResourceImport>> imports = resource.GetExternalImports().ToList();
+
+        string yamlImportsPath = ResourceImport.GetImportsPath(outputPath, Unpacker.YAP);
+        string datImportsPath = ResourceImport.GetImportsPath(outputPath, Unpacker.Raw);
+
+        if (imports.Count == 0)
+        {
+            ResourceImport.DeleteImportsSidecarFiles(outputPath);
+            return;
+        }
+
+        if (importUnpacker == Unpacker.YAP)
+        {
+            ResourceImport.DeleteImportsSidecarFiles(outputPath);
+            WriteExternalImportsYaml(imports, yamlImportsPath);
+            return;
+        }
+
+        if (forceExternalImportsFile)
+        {
+            ResourceImport.DeleteImportsSidecarFiles(outputPath);
+            WriteExternalImportsDat(datImportsPath, endian, imports);
+            return;
+        }
+
+        writer.BaseStream.Seek(0, SeekOrigin.End);
+        WriteBinaryImports(writer, imports);
+        ResourceImport.DeleteImportsSidecarFiles(outputPath);
+    }
+
+    private static void WriteExternalImportsYaml(
+        List<KeyValuePair<long, ResourceImport>> imports,
+        string importsPath)
+    {
+        List<string> lines = new(imports.Count);
+        foreach (KeyValuePair<long, ResourceImport> entry in imports)
+        {
+            ulong resourceId = ResourceUtilities.ResolveResourceID(entry.Value);
+            lines.Add($"- \"0x{entry.Key:x8}\": \"{resourceId:X8}\"");
+        }
+
+        File.WriteAllLines(importsPath, lines);
+    }
+
+    private static void WriteExternalImportsDat(
+        string importsPath,
+        Endian endianness,
+        List<KeyValuePair<long, ResourceImport>> imports)
+    {
+        using FileStream fs = new(importsPath, FileMode.Create, FileAccess.Write);
+        using EndianAwareBinaryWriter writer = new(fs, endianness);
+        WriteBinaryImports(writer, imports);
+    }
+
+    private static void WriteBinaryImports(
+        EndianAwareBinaryWriter writer,
+        List<KeyValuePair<long, ResourceImport>> imports)
+    {
+        foreach (KeyValuePair<long, ResourceImport> entry in imports)
+        {
+            if (entry.Key < 0 || entry.Key > uint.MaxValue)
+            {
+                throw new InvalidDataException(
+                    $"Import offset 0x{entry.Key:X} cannot be stored in a binary imports block.");
+            }
+
+            // Probably overkill but I just want to make sure we always use the correct writer overloads
+            writer.Write((ulong)ResourceUtilities.ResolveResourceID(entry.Value));
+            writer.Write((uint)entry.Key);
+            writer.Write(0x00000000);
+        }
     }
 
     private static string GetShaderProgramBufferPath(
