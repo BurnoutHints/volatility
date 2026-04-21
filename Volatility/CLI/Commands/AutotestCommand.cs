@@ -1,5 +1,7 @@
 using System.Reflection;
+using System.Text;
 
+using Volatility.Operations.Autotest;
 using Volatility.Resources;
 
 using static Volatility.Utilities.TypeUtilities;
@@ -11,14 +13,48 @@ internal class AutotestCommand : ICommand
 {
     public static string CommandToken => "autotest";
     public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
-        " When provided a path & format, will import, export, then reimport specified file to ensure IO parity.";
-    public static string CommandParameters => "[--format=<tub,bpr,x360,ps3>] [--path=<file path>]";
+        " When provided a path & format, will import, export, then reimport specified file to ensure IO parity." +
+        " When provided one or more game paths, will probe all bundle-like root files through libbndl by default, or use YAP-style bundle probing when --bundletool=YAP is specified, then run automated resource operations on supported resource types and verify exact binary parity for roundtrip exports.";
+    public static string CommandParameters => "[--format=<tub,bpr,x360,ps3>] [--path=<file path>] [--game=<dir>] [--games=<dir1|dir2>] [--bundletool=<file|YAP>] [--workdir=<dir>] [--bundlelimit=<n,0=all>] [--resourcelimit=<n>] [--keepartifacts] [--recap=<file|directory>]";
 
     public string? Format { get; set; }
     public string? Path { get; set; }
+    public string? GamePath { get; set; }
+    public string? GamePaths { get; set; }
+    public string? BundleToolPath { get; set; }
+    public string? WorkingDirectory { get; set; }
+    public string? RecapPath { get; set; }
+    public int BundleLimit { get; set; }
+    public int ResourceLimit { get; set; } = 2;
+    public bool KeepArtifacts { get; set; }
 
     public async Task Execute()
     {
+        IReadOnlyList<string> gamePaths = ParseGamePaths();
+        if (gamePaths.Count > 0)
+        {
+            GameAutotestOperation operation = new();
+            GameAutotestSummary summary = await operation.ExecuteAsync(new GameAutotestOptions
+            {
+                GamePaths = gamePaths,
+                BundleToolPath = BundleToolPath,
+                WorkingDirectory = WorkingDirectory,
+                BundleLimitPerGame = BundleLimit,
+                ResourcesPerType = ResourceLimit,
+                KeepArtifacts = KeepArtifacts
+            });
+
+            Console.WriteLine(
+                $"AUTOTEST - Completed. Passed={summary.Passed}, Failed={summary.Failed}, Skipped={summary.Skipped}");
+
+            if (!string.IsNullOrWhiteSpace(RecapPath))
+            {
+                string recapFilePath = WriteDetailedRecap(gamePaths, summary, RecapPath);
+                Console.WriteLine($"AUTOTEST - Detailed recap written to: {recapFilePath}");
+            }
+            return;
+        }
+
         if (!string.IsNullOrEmpty(Path))
         {
             TextureBase? header = Format switch
@@ -127,6 +163,24 @@ internal class AutotestCommand : ICommand
     {
         Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
         Path = args.TryGetValue("path", out object? path) ? path as string : "";
+        GamePath = args.TryGetValue("game", out object? game) ? game as string : "";
+        GamePaths = args.TryGetValue("games", out object? games) ? games as string : "";
+        BundleToolPath = args.TryGetValue("bundletool", out object? bundleTool) ? bundleTool as string : "";
+        WorkingDirectory = args.TryGetValue("workdir", out object? workdir) ? workdir as string : "";
+        RecapPath = args.TryGetValue("recap", out object? recap) ? recap as string : "";
+        KeepArtifacts = args.TryGetValue("keepartifacts", out var keepArtifacts) && (bool)keepArtifacts;
+
+        if (args.TryGetValue("bundlelimit", out object? bundleLimitValue) &&
+            int.TryParse(bundleLimitValue?.ToString(), out int bundleLimit))
+        {
+            BundleLimit = Math.Max(0, bundleLimit);
+        }
+
+        if (args.TryGetValue("resourcelimit", out object? resourceLimitValue) &&
+            int.TryParse(resourceLimitValue?.ToString(), out int resourceLimit))
+        {
+            ResourceLimit = Math.Max(1, resourceLimit);
+        }
     }
 
     public void TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
@@ -232,6 +286,166 @@ internal class AutotestCommand : ICommand
 
         Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
         Console.ResetColor();
+    }
+
+    private IReadOnlyList<string> ParseGamePaths()
+    {
+        List<string> paths = [];
+
+        if (!string.IsNullOrWhiteSpace(GamePath))
+        {
+            paths.Add(GamePath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(GamePaths))
+        {
+            paths.AddRange(
+                GamePaths
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+
+        return paths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string WriteDetailedRecap(IReadOnlyList<string> gamePaths, GameAutotestSummary summary, string outputPath)
+    {
+        string recapPath = ResolveRecapPath(outputPath);
+        StringBuilder builder = new();
+        int binaryParityPassed = summary.Cases.Count(result =>
+            string.Equals(result.Outcome, "PASS", StringComparison.Ordinal) &&
+            string.Equals(result.Operation, "binaryparity", StringComparison.OrdinalIgnoreCase));
+        int semiPassed = Math.Max(0, summary.Passed - binaryParityPassed);
+        DateTime generatedAt = DateTime.Now;
+
+        builder.AppendLine("# Volatility Autotest Recap");
+        builder.AppendLine();
+        builder.AppendLine($"Generated ({GetLocalTimeZoneLabel(generatedAt)}): {generatedAt:yyyy-MM-dd HH:mm:ss}");
+        builder.AppendLine($"Games: `{string.Join("` | `", gamePaths)}`");
+        builder.AppendLine($"* Failed: {summary.Failed}");
+        builder.AppendLine($"* Passed with binary parity: {binaryParityPassed}");
+        builder.AppendLine($"* Semi-passed (without binary parity): {semiPassed}");
+        builder.AppendLine($"* Skipped: {summary.Skipped}");
+        builder.AppendLine();
+
+        builder.AppendLine("## Test Operation Summary");
+        builder.AppendLine();
+        
+        List<IGrouping<string, GameAutotestCaseResult>> byOperation = summary.Cases
+            .GroupBy(result => result.Operation, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (byOperation.Count == 0)
+        {
+            builder.AppendLine("No test operations were recorded.");
+        }
+        else
+        {
+            builder.AppendLine("| Operation | Passed | Failed | Skipped |");
+            builder.AppendLine("| --- | ---: | ---: | ---: |");
+
+            foreach (IGrouping<string, GameAutotestCaseResult> group in byOperation)
+            {
+                int passed = group.Count(result => string.Equals(result.Outcome, "PASS", StringComparison.Ordinal));
+                int failed = group.Count(result => string.Equals(result.Outcome, "FAIL", StringComparison.Ordinal));
+                int skipped = group.Count(result => !string.Equals(result.Outcome, "PASS", StringComparison.Ordinal) && !string.Equals(result.Outcome, "FAIL", StringComparison.Ordinal));
+
+                builder.AppendLine($"| {group.Key} | {passed} | {failed} | {skipped} |");
+            }
+        }
+
+        builder.AppendLine();
+
+        List<IGrouping<ResourceType, GameAutotestCaseResult>> byResourceType = summary.Cases
+            .Where(result => result.TestedResourceType.HasValue)
+            .GroupBy(result => result.TestedResourceType!.Value)
+            .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        builder.AppendLine("## Resource Type Outcomes");
+        builder.AppendLine();
+
+        if (byResourceType.Count == 0)
+        {
+            builder.AppendLine("No resource-type specific cases were recorded.");
+        }
+        else
+        {
+            builder.AppendLine("| Resource Type | Passed | Failed | Skipped | Overall |");
+            builder.AppendLine("| --- | ---: | ---: | ---: | --- |");
+
+            foreach (IGrouping<ResourceType, GameAutotestCaseResult> group in byResourceType)
+            {
+                int passed = group.Count(result => string.Equals(result.Outcome, "PASS", StringComparison.Ordinal));
+                int failed = group.Count(result => string.Equals(result.Outcome, "FAIL", StringComparison.Ordinal));
+                int skipped = group.Count(result => !string.Equals(result.Outcome, "PASS", StringComparison.Ordinal) && !string.Equals(result.Outcome, "FAIL", StringComparison.Ordinal));
+                string overall = failed > 0 ? "FAIL" : passed > 0 ? "PASS" : "SKIP";
+
+                builder.AppendLine($"| {group.Key} | {passed} | {failed} | {skipped} | {overall} |");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Case Details");
+        builder.AppendLine();
+        builder.AppendLine("| Game | Resource Type | Operation | Name | Outcome | Details |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- |");
+
+        foreach (GameAutotestCaseResult result in summary.Cases)
+        {
+            string resourceType = result.TestedResourceType?.ToString() ?? "-";
+            builder.AppendLine($"| {EscapeMarkdownCell(result.Game)} | {EscapeMarkdownCell(resourceType)} | {EscapeMarkdownCell(result.Operation)} | {EscapeMarkdownCell(result.Name)} | {EscapeMarkdownCell(result.Outcome)} | {EscapeMarkdownCell(result.Details ?? string.Empty)} |");
+        }
+
+        File.WriteAllText(recapPath, builder.ToString());
+        return recapPath;
+    }
+
+    private static string ResolveRecapPath(string outputPath)
+    {
+        string fullPath = System.IO.Path.GetFullPath(outputPath);
+        bool looksLikeDirectory =
+            outputPath.EndsWith(System.IO.Path.DirectorySeparatorChar) ||
+            outputPath.EndsWith(System.IO.Path.AltDirectorySeparatorChar) ||
+            string.IsNullOrWhiteSpace(System.IO.Path.GetExtension(fullPath));
+
+        if (Directory.Exists(fullPath) || looksLikeDirectory)
+        {
+            Directory.CreateDirectory(fullPath);
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            return System.IO.Path.Combine(fullPath, $"autotest_recap_{timestamp}.md");
+        }
+
+        string? directory = System.IO.Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        return fullPath;
+    }
+
+    private static string GetLocalTimeZoneLabel(DateTime localTime)
+    {
+        TimeZoneInfo localTimeZone = TimeZoneInfo.Local;
+        TimeSpan offset = localTimeZone.GetUtcOffset(localTime);
+        string sign = offset < TimeSpan.Zero ? "-" : "+";
+        TimeSpan absoluteOffset = offset.Duration();
+
+        return $"UTC{sign}{absoluteOffset:hh\\:mm}";
+    }
+
+    private static string EscapeMarkdownCell(string value)
+    {
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("|", "\\|", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", "<br>", StringComparison.Ordinal)
+            .Trim();
     }
 
     public AutotestCommand() { }
