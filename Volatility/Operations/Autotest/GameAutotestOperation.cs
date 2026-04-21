@@ -94,16 +94,16 @@ internal sealed class GameAutotestOperation
         }
 
         string repoRoot = WorkspaceUtilities.FindRepositoryRoot();
-        bool useYapBundleTool = IsYapBundleTool(options.BundleToolPath);
-        string bundleToolPath = ResolveBundleTool(repoRoot, options.BundleToolPath);
-        string sessionRoot = ResolveSessionRoot(repoRoot, options.WorkingDirectory);
+        bool useYapBundleTool = IsYapTool(options.BundleToolPath);
+        string bundleToolPath = GetBundleTool(repoRoot, options.BundleToolPath);
+        string sessionRoot = GetSessionRoot(repoRoot, options.WorkingDirectory);
 
         Directory.CreateDirectory(sessionRoot);
 
         GameAutotestSummary summary = new();
         foreach (string gamePath in options.GamePaths)
         {
-            GameInstall game = DetectGameInstall(gamePath);
+            GameInstall game = DetectGame(gamePath);
             await RunGameAsync(game, bundleToolPath, useYapBundleTool, sessionRoot, options, summary);
         }
 
@@ -118,7 +118,7 @@ internal sealed class GameAutotestOperation
         GameAutotestOptions options,
         GameAutotestSummary summary)
     {
-        string gameWorkRoot = Path.Combine(sessionRoot, $"{SanitizePathSegment(game.Name)}_{game.Platform}");
+        string gameWorkRoot = Path.Combine(sessionRoot, $"{SanitizePath(game.Name)}_{game.Platform}");
         Directory.CreateDirectory(gameWorkRoot);
 
         Console.WriteLine($"AUTOTEST - Game: {game.Name} ({game.Platform})");
@@ -127,10 +127,10 @@ internal sealed class GameAutotestOperation
         int failuresBefore = summary.Failed;
 
         List<ResourceTestCandidate> candidates = [];
-        candidates.AddRange(GetDirectCandidates(game));
+        candidates.AddRange(GetDirect(game));
 
-        List<ProbedBundle> probedBundles = ProbeBundleCandidates(game, bundleToolPath, useYapBundleTool, gameWorkRoot, options, summary);
-        candidates.AddRange(ExtractSupportedBundleCandidates(game, bundleToolPath, useYapBundleTool, gameWorkRoot, options, probedBundles, summary));
+        List<ProbedBundle> probedBundles = ProbeBundles(game, bundleToolPath, useYapBundleTool, gameWorkRoot, options, summary);
+        candidates.AddRange(GetBundleTests(game, bundleToolPath, useYapBundleTool, gameWorkRoot, options, probedBundles, summary));
 
         if (candidates.Count == 0)
         {
@@ -230,7 +230,7 @@ internal sealed class GameAutotestOperation
             exportPath = Path.Combine(exportsRoot, Path.GetFileName(candidate.SourcePath));
             await exportOperation.ExecuteAsync(loaded, exportPath, game.Platform);
 
-            BinaryComparisonResult binaryComparison = CompareFilesExactly(candidate.SourcePath, exportPath);
+            BinaryComparisonResult binaryComparison = CompareFiles(candidate.SourcePath, exportPath);
             AddCase(summary, new GameAutotestCaseResult(
                 game.Name,
                 caseName,
@@ -243,8 +243,8 @@ internal sealed class GameAutotestOperation
             ImportResourceResult secondImport = await importPass2.ExecuteAsync(candidate.ResourceType, game.Platform, exportPath, isX64: false);
             await saveOperation.ExecuteAsync(secondImport.Resource, secondImport.ResourcePath);
 
-            string firstYaml = NormalizeYamlForComparison(await File.ReadAllTextAsync(firstImport.ResourcePath));
-            string secondYaml = NormalizeYamlForComparison(await File.ReadAllTextAsync(secondImport.ResourcePath));
+            string firstYaml = NormalizeYaml(await File.ReadAllTextAsync(firstImport.ResourcePath));
+            string secondYaml = NormalizeYaml(await File.ReadAllTextAsync(secondImport.ResourcePath));
 
             if (string.Equals(firstYaml, secondYaml, StringComparison.Ordinal))
             {
@@ -320,11 +320,11 @@ internal sealed class GameAutotestOperation
         }
         catch (Exception ex)
         {
-            string outcome = IsSkippableTextureOperation(ex) ? "SKIP" : "FAIL";
+            string outcome = IsSkippableTextureOp(ex) ? "SKIP" : "FAIL";
             AddCase(summary, new GameAutotestCaseResult(game.Name, ddsCaseName, "texturetodds", outcome, ex.Message, ResourceType.Texture));
         }
 
-        Platform destinationPlatform = GetTexturePortDestination(game.Platform);
+        Platform destinationPlatform = GetPortTarget(game.Platform);
         if (destinationPlatform == Platform.Agnostic)
         {
             AddCase(summary, new GameAutotestCaseResult(game.Name, $"{candidate.DisplayName}:port", "porttexture", "SKIP", "No supported destination platform.", ResourceType.Texture));
@@ -356,13 +356,13 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static IEnumerable<ResourceTestCandidate> GetDirectCandidates(GameInstall game)
+    private static IEnumerable<ResourceTestCandidate> GetDirect(GameInstall game)
     {
         _ = game;
         yield break;
     }
 
-    private static List<ProbedBundle> ProbeBundleCandidates(
+    private static List<ProbedBundle> ProbeBundles(
         GameInstall game,
         string bundleToolPath,
         bool useYapBundleTool,
@@ -370,19 +370,24 @@ internal sealed class GameAutotestOperation
         GameAutotestOptions options,
         GameAutotestSummary summary)
     {
+        if (useYapBundleTool)
+        {
+            return ProbeYapBundles(game, bundleToolPath, gameWorkRoot, options, summary);
+        }
+
         string probeRoot = Path.Combine(gameWorkRoot, "bundle_probes");
         Directory.CreateDirectory(probeRoot);
 
         HashSet<ResourceType> reportedUnsupportedTypes = [];
         List<ProbedBundle> probes = [];
 
-        foreach (string bundlePath in ApplyBundleLimit(GetBundleCandidates(game.RootPath), options.BundleLimitPerGame))
+        foreach (string bundlePath in LimitBundles(FindBundles(game.RootPath), options.BundleLimitPerGame))
         {
             string bundleName = Path.GetFileName(bundlePath);
-            string outputDirectory = Path.Combine(probeRoot, SanitizePathSegment(bundleName));
+            string outputDirectory = Path.Combine(probeRoot, SanitizePath(bundleName));
             string manifestPath = Path.Combine(outputDirectory, "manifest.tsv");
 
-            RecreateDirectory(outputDirectory);
+            ResetDirectory(outputDirectory);
 
             try
             {
@@ -403,29 +408,29 @@ internal sealed class GameAutotestOperation
             }
             catch (Exception ex)
             {
-                string outcome = useYapBundleTool && IsSkippableBundleExtractionFailure(ex) ? "SKIP" : "FAIL";
+                string outcome = useYapBundleTool && IsSkippableBundleError(ex) ? "SKIP" : "FAIL";
                 AddCase(summary, new GameAutotestCaseResult(game.Name, bundleName, "bundleprobe", outcome, ex.Message));
                 continue;
             }
 
             List<BundleManifestEntry> entries = useYapBundleTool
-                ? ParseBundleMetadata(bundlePath, outputDirectory)
+                ? ParseMeta(bundlePath, outputDirectory)
                 : ParseManifest(bundlePath, outputDirectory, manifestPath).ToList();
-            int supportedCount = entries.Count(entry => IsSupportedResourceType(entry.ResourceType));
+            int supportedCount = entries.Count(entry => IsSupportedType(entry.ResourceType));
 
             Console.WriteLine(
-                $"AUTOTEST - Probed {bundleName}: Resources={entries.Count}, Supported={supportedCount}, Types={FormatTypeSummary(entries.Select(entry => entry.ResourceType))}");
+                $"AUTOTEST - Probed {bundleName}: Resources={entries.Count}, Supported={supportedCount}, Types={GetTypeSummary(entries.Select(entry => entry.ResourceType))}");
 
             foreach (ResourceType unsupportedType in entries
                          .Select(entry => entry.ResourceType)
-                         .Where(type => !IsSupportedResourceType(type))
+                         .Where(type => !IsSupportedType(type))
                          .Distinct())
             {
                 if (reportedUnsupportedTypes.Add(unsupportedType))
                 {
                     AddCase(summary, new GameAutotestCaseResult(
                         game.Name,
-                        GetResourceTypeLabel(unsupportedType),
+                        GetTypeLabel(unsupportedType),
                         "unsupported",
                         "SKIP",
                         $"Discovered in {bundleName}. No Volatility autotest handler exists for this resource type.",
@@ -439,7 +444,76 @@ internal sealed class GameAutotestOperation
         return probes;
     }
 
-    private static List<ResourceTestCandidate> ExtractSupportedBundleCandidates(
+    private static List<ProbedBundle> ProbeYapBundles(
+        GameInstall game,
+        string bundleToolPath,
+        string gameWorkRoot,
+        GameAutotestOptions options,
+        GameAutotestSummary summary)
+    {
+        string probeRoot = Path.Combine(gameWorkRoot, "bundle_probes");
+        string inputRoot = Path.Combine(gameWorkRoot, "bundle_probe_input");
+
+        List<string> bundlePaths = LimitBundles(FindBundles(game.RootPath), options.BundleLimitPerGame).ToList();
+        if (bundlePaths.Count == 0)
+        {
+            return [];
+        }
+
+        ResetDirectory(inputRoot);
+        ResetDirectory(probeRoot);
+
+        foreach (string bundlePath in bundlePaths)
+        {
+            string stagedPath = Path.Combine(inputRoot, Path.GetFileName(bundlePath));
+            File.Copy(bundlePath, stagedPath, overwrite: true);
+        }
+
+        try
+        {
+            ProcessUtilities.RunAndCapture(
+                bundleToolPath,
+                $"-d e \"{inputRoot}\" \"{probeRoot}\"",
+                Path.GetDirectoryName(bundleToolPath));
+        }
+        catch (Exception ex)
+        {
+            string outcome = IsSkippableBundleError(ex) ? "SKIP" : "FAIL";
+            AddCase(summary, new GameAutotestCaseResult(game.Name, "YAP directory probe", "bundleprobe", outcome, ex.Message));
+            return [];
+        }
+
+        HashSet<ResourceType> reportedUnsupportedTypes = [];
+        List<ProbedBundle> probes = ParseYapMeta(bundlePaths, probeRoot);
+        foreach (ProbedBundle probe in probes)
+        {
+            int supportedCount = probe.Entries.Count(entry => IsSupportedType(entry.ResourceType));
+
+            Console.WriteLine(
+                $"AUTOTEST - Probed {Path.GetFileName(probe.BundlePath)}: Resources={probe.Entries.Count}, Supported={supportedCount}, Types={GetTypeSummary(probe.Entries.Select(entry => entry.ResourceType))}");
+
+            foreach (ResourceType unsupportedType in probe.Entries
+                         .Select(entry => entry.ResourceType)
+                         .Where(type => !IsSupportedType(type))
+                         .Distinct())
+            {
+                if (reportedUnsupportedTypes.Add(unsupportedType))
+                {
+                    AddCase(summary, new GameAutotestCaseResult(
+                        game.Name,
+                        GetTypeLabel(unsupportedType),
+                        "unsupported",
+                        "SKIP",
+                        $"Discovered in {Path.GetFileName(probe.BundlePath)}. No Volatility autotest handler exists for this resource type.",
+                        TestedResourceType: unsupportedType));
+                }
+            }
+        }
+
+        return probes;
+    }
+
+    private static List<ResourceTestCandidate> GetBundleTests(
         GameInstall game,
         string bundleToolPath,
         bool useYapBundleTool,
@@ -461,7 +535,7 @@ internal sealed class GameAutotestOperation
 
             foreach (BundleManifestEntry entry in probedBundle.Entries.DistinctBy(entry => entry.ResourceIdHex, StringComparer.OrdinalIgnoreCase))
             {
-                if (!IsSupportedResourceType(entry.ResourceType) || blockedTypes.Contains(entry.ResourceType))
+                if (!IsSupportedType(entry.ResourceType) || blockedTypes.Contains(entry.ResourceType))
                 {
                     continue;
                 }
@@ -492,10 +566,10 @@ internal sealed class GameAutotestOperation
             }
             else
             {
-                string outputDirectory = Path.Combine(extractedRoot, SanitizePathSegment(bundleName));
+                string outputDirectory = Path.Combine(extractedRoot, SanitizePath(bundleName));
                 string manifestPath = Path.Combine(outputDirectory, "manifest.tsv");
 
-                RecreateDirectory(outputDirectory);
+                ResetDirectory(outputDirectory);
 
                 try
                 {
@@ -506,7 +580,7 @@ internal sealed class GameAutotestOperation
                 }
                 catch (Exception ex)
                 {
-                    string outcome = IsSkippableBundleExtractionFailure(ex) ? "SKIP" : "FAIL";
+                    string outcome = IsSkippableBundleError(ex) ? "SKIP" : "FAIL";
 
                     if (outcome == "SKIP")
                     {
@@ -561,7 +635,7 @@ internal sealed class GameAutotestOperation
         {
             AddCase(summary, new GameAutotestCaseResult(
                 game.Name,
-                GetResourceTypeLabel(blockedType),
+                GetTypeLabel(blockedType),
                 "candidate",
                 "SKIP",
                 "No fully extractable bundle candidate was available for this supported resource type.",
@@ -571,11 +645,11 @@ internal sealed class GameAutotestOperation
         return candidates;
     }
 
-    private static IEnumerable<string> GetBundleCandidates(string rootPath)
+    private static IEnumerable<string> FindBundles(string rootPath)
     {
         List<string> candidates = Directory
             .EnumerateFiles(rootPath, "*", SearchOption.TopDirectoryOnly)
-            .Where(IsBundleLikeFile)
+            .Where(IsBundleFile)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -595,12 +669,12 @@ internal sealed class GameAutotestOperation
         return ordered;
     }
 
-    private static IEnumerable<string> ApplyBundleLimit(IEnumerable<string> candidates, int bundleLimitPerGame)
+    private static IEnumerable<string> LimitBundles(IEnumerable<string> candidates, int bundleLimitPerGame)
     {
         return bundleLimitPerGame > 0 ? candidates.Take(bundleLimitPerGame) : candidates;
     }
 
-    private static bool IsBundleLikeFile(string path)
+    private static bool IsBundleFile(string path)
     {
         try
         {
@@ -627,7 +701,7 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static void RecreateDirectory(string path)
+    private static void ResetDirectory(string path)
     {
         if (Directory.Exists(path))
         {
@@ -684,15 +758,20 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static List<BundleManifestEntry> ParseBundleMetadata(string bundlePath, string outputDirectory)
+    private static List<BundleManifestEntry> ParseMeta(string bundlePath, string outputDirectory)
     {
-        string metaPath = FindMetaYamlPath(outputDirectory);
+        string metaPath = FindMetaYaml(outputDirectory);
+        return ParseMeta(bundlePath, outputDirectory, metaPath);
+    }
+
+    private static List<BundleManifestEntry> ParseMeta(string bundlePath, string outputDirectory, string metaPath)
+    {
         IDeserializer deserializer = new DeserializerBuilder().Build();
 
         using StringReader reader = new(File.ReadAllText(metaPath));
         Dictionary<object, object>? document = deserializer.Deserialize<Dictionary<object, object>>(reader);
         if (document == null ||
-            !TryGetYamlMapValue(document, "resources", out Dictionary<object, object>? resources))
+            !TryGetMap(document, "resources", out Dictionary<object, object>? resources))
         {
             throw new InvalidDataException($"Bundle metadata file '{metaPath}' does not contain a valid resources mapping.");
         }
@@ -708,8 +787,8 @@ internal sealed class GameAutotestOperation
             string? resourceIdHex = Convert.ToString(rawResourceId, CultureInfo.InvariantCulture)?.Trim();
             if (string.IsNullOrWhiteSpace(resourceIdHex) ||
                 rawResourceData is not Dictionary<object, object> resourceData ||
-                !TryGetYamlScalarValue(resourceData, "type", out object? rawTypeValue) ||
-                !TryParseYamlUInt(rawTypeValue, out uint typeValue) ||
+                !TryGetScalar(resourceData, "type", out object? rawTypeValue) ||
+                !TryParseUInt(rawTypeValue, out uint typeValue) ||
                 !Enum.IsDefined(typeof(ResourceType), (int)typeValue))
             {
                 continue;
@@ -720,24 +799,35 @@ internal sealed class GameAutotestOperation
                 resourceIdHex,
                 resourceIdHex,
                 (ResourceType)typeValue,
-                ResolvePrimaryPath(outputDirectory, extractedFiles, resourceIdHex)));
+                FindPrimaryPath(outputDirectory, extractedFiles, resourceIdHex)));
         }
 
         return entries;
     }
 
-    private static string FindMetaYamlPath(string outputDirectory)
+    private static List<ProbedBundle> ParseYapMeta(IReadOnlyList<string> bundlePaths, string probeRoot)
     {
-        string directMetaPath = Path.Combine(outputDirectory, ".meta.yaml");
-        if (File.Exists(directMetaPath))
+        List<string> metaPaths = FindMetaYamls(probeRoot).ToList();
+        if (metaPaths.Count == 0)
         {
-            return directMetaPath;
+            throw new FileNotFoundException($"No .meta.yaml file was found under {probeRoot}");
         }
 
-        string? discoveredMetaPath = Directory
-            .EnumerateFiles(outputDirectory, ".meta.yaml", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(outputDirectory, "*.meta.yaml", SearchOption.AllDirectories))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        List<ProbedBundle> probes = [];
+        foreach (string metaPath in metaPaths)
+        {
+            string outputDirectory = Path.GetDirectoryName(metaPath) ?? probeRoot;
+            string bundleLabel = GetYapBundleName(bundlePaths, probeRoot, metaPath);
+            List<BundleManifestEntry> entries = ParseMeta(bundleLabel, outputDirectory, metaPath);
+            probes.Add(new ProbedBundle(bundleLabel, entries));
+        }
+
+        return probes;
+    }
+
+    private static string FindMetaYaml(string outputDirectory)
+    {
+        string? discoveredMetaPath = FindMetaYamls(outputDirectory)
             .OrderBy(path => path.Length)
             .FirstOrDefault();
 
@@ -749,7 +839,48 @@ internal sealed class GameAutotestOperation
         return discoveredMetaPath;
     }
 
-    private static bool TryGetYamlMapValue(
+    private static IEnumerable<string> FindMetaYamls(string rootDirectory)
+    {
+        string directMetaPath = Path.Combine(rootDirectory, ".meta.yaml");
+        if (File.Exists(directMetaPath))
+        {
+            yield return directMetaPath;
+        }
+
+        foreach (string metaPath in Directory
+                     .EnumerateFiles(rootDirectory, ".meta.yaml", SearchOption.AllDirectories)
+                     .Concat(Directory.EnumerateFiles(rootDirectory, "*.meta.yaml", SearchOption.AllDirectories))
+                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                     .Where(path => !string.Equals(path, directMetaPath, StringComparison.OrdinalIgnoreCase)))
+        {
+            yield return metaPath;
+        }
+    }
+
+    private static string GetYapBundleName(IReadOnlyList<string> bundlePaths, string probeRoot, string metaPath)
+    {
+        if (bundlePaths.Count == 1)
+        {
+            return bundlePaths[0];
+        }
+
+        string relativeDirectory = Path.GetRelativePath(probeRoot, Path.GetDirectoryName(metaPath) ?? probeRoot);
+        if (string.IsNullOrWhiteSpace(relativeDirectory) || string.Equals(relativeDirectory, ".", StringComparison.Ordinal))
+        {
+            return Path.GetFileName(metaPath);
+        }
+
+        string directoryName = relativeDirectory
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault() ?? relativeDirectory;
+        string? matchingBundlePath = bundlePaths.FirstOrDefault(path =>
+            string.Equals(Path.GetFileName(path), directoryName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Path.GetFileNameWithoutExtension(path), directoryName, StringComparison.OrdinalIgnoreCase));
+
+        return matchingBundlePath ?? directoryName;
+    }
+
+    private static bool TryGetMap(
         Dictionary<object, object> mapping,
         string key,
         out Dictionary<object, object>? value)
@@ -770,7 +901,7 @@ internal sealed class GameAutotestOperation
         return false;
     }
 
-    private static bool TryGetYamlScalarValue(
+    private static bool TryGetScalar(
         Dictionary<object, object> mapping,
         string key,
         out object? value)
@@ -791,7 +922,7 @@ internal sealed class GameAutotestOperation
         return false;
     }
 
-    private static bool TryParseYamlUInt(object? value, out uint parsed)
+    private static bool TryParseUInt(object? value, out uint parsed)
     {
         switch (value)
         {
@@ -840,23 +971,23 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static string? ResolvePrimaryPath(
+    private static string? FindPrimaryPath(
         string outputDirectory,
         IReadOnlyList<string> extractedFiles,
         string resourceIdHex)
     {
-        string normalizedId = NormalizeResourceId(resourceIdHex);
+        string normalizedId = NormalizeId(resourceIdHex);
         string prefixedId = $"0x{normalizedId}";
 
         return extractedFiles
-            .Where(path => PathMatchesResourceId(outputDirectory, path, normalizedId, prefixedId))
-            .OrderBy(path => GetPrimaryPathMatchRank(path, normalizedId, prefixedId))
+            .Where(path => PathMatchesId(outputDirectory, path, normalizedId, prefixedId))
+            .OrderBy(path => GetPathRank(path, normalizedId, prefixedId))
             .ThenBy(path => Path.GetFileName(path).Length)
             .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault();
     }
 
-    private static string NormalizeResourceId(string resourceIdHex)
+    private static string NormalizeId(string resourceIdHex)
     {
         return resourceIdHex
             .Trim()
@@ -864,7 +995,7 @@ internal sealed class GameAutotestOperation
             .Replace("0x", string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool PathMatchesResourceId(
+    private static bool PathMatchesId(
         string outputDirectory,
         string path,
         string normalizedId,
@@ -876,11 +1007,11 @@ internal sealed class GameAutotestOperation
         return segments.Any(segment =>
         {
             string lowerSegment = segment.ToLowerInvariant();
-            return MatchesResourcePrefix(lowerSegment, prefixedId) || MatchesResourcePrefix(lowerSegment, normalizedId);
+            return MatchesIdPrefix(lowerSegment, prefixedId) || MatchesIdPrefix(lowerSegment, normalizedId);
         });
     }
 
-    private static bool MatchesResourcePrefix(string candidate, string resourceIdPrefix)
+    private static bool MatchesIdPrefix(string candidate, string resourceIdPrefix)
     {
         if (!candidate.StartsWith(resourceIdPrefix, StringComparison.OrdinalIgnoreCase))
         {
@@ -896,7 +1027,7 @@ internal sealed class GameAutotestOperation
         return separator == '.' || separator == '_' || separator == '-';
     }
 
-    private static int GetPrimaryPathMatchRank(string path, string normalizedId, string prefixedId)
+    private static int GetPathRank(string path, string normalizedId, string prefixedId)
     {
         string fileName = Path.GetFileName(path).ToLowerInvariant();
         string fileStem = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
@@ -906,10 +1037,10 @@ internal sealed class GameAutotestOperation
             return 0;
         }
 
-        if (MatchesResourcePrefix(fileName, prefixedId) ||
-            MatchesResourcePrefix(fileName, normalizedId) ||
-            MatchesResourcePrefix(fileStem, prefixedId) ||
-            MatchesResourcePrefix(fileStem, normalizedId))
+        if (MatchesIdPrefix(fileName, prefixedId) ||
+            MatchesIdPrefix(fileName, normalizedId) ||
+            MatchesIdPrefix(fileStem, prefixedId) ||
+            MatchesIdPrefix(fileStem, normalizedId))
         {
             return 1;
         }
@@ -917,14 +1048,14 @@ internal sealed class GameAutotestOperation
         return 2;
     }
 
-    private static bool IsYapBundleTool(string? bundleToolPath)
+    private static bool IsYapTool(string? bundleToolPath)
     {
         return string.Equals(bundleToolPath, "YAP", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string ResolveBundleTool(string repoRoot, string? bundleToolPath)
+    private static string GetBundleTool(string repoRoot, string? bundleToolPath)
     {
-        if (IsYapBundleTool(bundleToolPath))
+        if (IsYapTool(bundleToolPath))
         {
             return "YAP";
         }
@@ -957,7 +1088,7 @@ internal sealed class GameAutotestOperation
         return defaultTool;
     }
 
-    private static string ResolveSessionRoot(string repoRoot, string? workingDirectory)
+    private static string GetSessionRoot(string repoRoot, string? workingDirectory)
     {
         if (!string.IsNullOrWhiteSpace(workingDirectory))
         {
@@ -968,7 +1099,7 @@ internal sealed class GameAutotestOperation
         return Path.Combine(repoRoot, ".tmp", "game-autotest", stamp);
     }
 
-    private static GameInstall DetectGameInstall(string gamePath)
+    private static GameInstall DetectGame(string gamePath)
     {
         string fullPath = Path.GetFullPath(gamePath);
         if (!Directory.Exists(fullPath))
@@ -990,16 +1121,16 @@ internal sealed class GameAutotestOperation
         throw new InvalidOperationException($"Unable to infer platform for game directory: {fullPath}");
     }
 
-    private static bool IsSupportedResourceType(ResourceType resourceType)
+    private static bool IsSupportedType(ResourceType resourceType)
     {
         return RoundTripTypes.Contains(resourceType) || ImportOnlyTypes.Contains(resourceType);
     }
 
-    private static string FormatTypeSummary(IEnumerable<ResourceType> resourceTypes)
+    private static string GetTypeSummary(IEnumerable<ResourceType> resourceTypes)
     {
         List<string> labels = resourceTypes
             .Distinct()
-            .Select(GetResourceTypeLabel)
+            .Select(GetTypeLabel)
             .OrderBy(label => label, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -1017,14 +1148,14 @@ internal sealed class GameAutotestOperation
         return $"{string.Join(", ", labels.Take(maxDisplayedTypes))}, +{labels.Count - maxDisplayedTypes} more";
     }
 
-    private static string GetResourceTypeLabel(ResourceType resourceType)
+    private static string GetTypeLabel(ResourceType resourceType)
     {
         return Enum.IsDefined(typeof(ResourceType), resourceType)
             ? resourceType.ToString()
             : $"0x{(uint)resourceType:X8}";
     }
 
-    private static Platform GetTexturePortDestination(Platform sourcePlatform)
+    private static Platform GetPortTarget(Platform sourcePlatform)
     {
         return sourcePlatform switch
         {
@@ -1036,7 +1167,7 @@ internal sealed class GameAutotestOperation
         };
     }
 
-    private static string NormalizeYamlForComparison(string yaml)
+    private static string NormalizeYaml(string yaml)
     {
         IEnumerable<string> lines = yaml
             .Replace("\r\n", "\n", StringComparison.Ordinal)
@@ -1046,7 +1177,7 @@ internal sealed class GameAutotestOperation
         return string.Join('\n', lines).Trim();
     }
 
-    private static BinaryComparisonResult CompareFilesExactly(string originalPath, string exportedPath)
+    private static BinaryComparisonResult CompareFiles(string originalPath, string exportedPath)
     {
         FileInfo originalInfo = new(originalPath);
         FileInfo exportedInfo = new(exportedPath);
@@ -1102,18 +1233,18 @@ internal sealed class GameAutotestOperation
             Details: "Binary files are identical.");
     }
 
-    private static bool IsSkippableTextureOperation(Exception ex)
+    private static bool IsSkippableTextureOp(Exception ex)
     {
         return ex.Message.Contains("DDS export is not supported", StringComparison.OrdinalIgnoreCase) ||
                ex.Message.Contains("Failed to find associated bitmap data", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsSkippableBundleExtractionFailure(Exception ex)
+    private static bool IsSkippableBundleError(Exception ex)
     {
         return ex.Message.Contains("Assertion failed: m_flags & Compressed", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string SanitizePathSegment(string value)
+    private static string SanitizePath(string value)
     {
         foreach (char invalidChar in Path.GetInvalidFileNameChars())
         {
