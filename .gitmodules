@@ -1,0 +1,4 @@
+[submodule "tools/libbndl-extractor"]
+	path = tools/libbndl-extractor
+	url = https://github.com/Adriwin06/libbndl-extractor.git
+	branch = main
