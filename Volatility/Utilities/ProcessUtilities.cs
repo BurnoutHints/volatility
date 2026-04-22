@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using Volatility.Abstractions.Messaging;
+using Volatility.Messaging;
 
 namespace Volatility.Utilities;
 
@@ -42,8 +44,8 @@ internal static class ProcessUtilities
     }
 
     public static void RunAndRelayOutput(
-        ProcessStartInfo startInfo, 
-        Action<string>? stdoutHandler = null, 
+        ProcessStartInfo startInfo,
+        Action<string>? stdoutHandler = null,
         Action<string>? stderrHandler = null)
     {
         using Process process = new() { StartInfo = startInfo };
@@ -57,7 +59,7 @@ internal static class ProcessUtilities
             }
 
             output.AppendLine(e.Data);
-            (stdoutHandler ?? Console.WriteLine)(e.Data);
+            RelayOutput(e.Data, stdoutHandler);
         };
 
         process.ErrorDataReceived += (_, e) =>
@@ -68,7 +70,7 @@ internal static class ProcessUtilities
             }
 
             output.AppendLine(e.Data);
-            (stderrHandler ?? Console.WriteLine)(e.Data);
+            RelayOutput(e.Data, stderrHandler);
         };
 
         process.Start();
@@ -95,6 +97,17 @@ internal static class ProcessUtilities
             UseShellExecute = false,
             CreateNoWindow = true
         };
+    }
+
+    private static void RelayOutput(string data, Action<string>? handler)
+    {
+        if (handler != null)
+        {
+            handler(data);
+            return;
+        }
+
+        VolatilityMessageHost.Sink.Verbose(data, MessageCategory.Process, nameof(ProcessUtilities));
     }
 
     private static string GetProcessDisplayName(ProcessStartInfo startInfo)

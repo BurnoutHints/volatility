@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Volatility.Abstractions.Messaging;
+using Volatility.Messaging;
 
 namespace Volatility.Resources;
 
@@ -39,14 +41,27 @@ public static class ResourceFactory
 
     public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
     {
-        Console.WriteLine($"Constructing {platform} {resourceType} resource property data...");
+        return CreateResource(resourceType, platform, filePath, VolatilityMessageHost.Sink, x64);
+    }
+
+    public static Resource CreateResource(
+        ResourceType resourceType,
+        Platform platform,
+        string filePath,
+        IMessageSink sink,
+        bool x64 = false)
+    {
+        sink.Info($"Constructing {platform} {resourceType} resource property data...", MessageCategory.Resource, nameof(ResourceFactory));
 
         var key = (resourceType, platform);
         if (resourceCreators.TryGetValue(key, out var creator))
         {
             Resource output = creator(filePath);
             if (x64)
+            {
                 output.SetResourceArch(Arch.x64);
+            }
+
             return output;
         }
 

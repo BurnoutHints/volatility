@@ -1,5 +1,8 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Volatility.Abstractions.Messaging;
+using Volatility.CLI;
 using Volatility.CLI.Commands;
+using Volatility.Messaging;
 
 namespace Volatility;
 
@@ -36,14 +39,22 @@ internal class Frontend
 
     static void Main(string[] args)
     {
+        using IDisposable consoleSubscription = ConfigureMessaging();
+
         if (args.Length > 0)
         {
             RunCommandTokenized(args);
         }
-        else 
+        else
         {
             CommandLine();
         }
+    }
+
+    static IDisposable ConfigureMessaging()
+    {
+        VolatilityMessageHost.Reset();
+        return VolatilityMessageHost.Bus.Subscribe(new ConsoleMessageSink());
     }
 
     static void CommandLine()
@@ -60,12 +71,15 @@ internal class Frontend
             }
         }
 
-        Console.WriteLine($"Volatility {assembly.GetName().Version} - Build Date: {buildTimestamp}\n");
+        VolatilityMessageHost.Sink.Info(
+            $"Volatility {assembly.GetName().Version} - Build Date: {buildTimestamp}\n",
+            MessageCategory.Cli,
+            nameof(Frontend));
 
         while (true)
         {
             Console.Write("volatility> ");
-            var input = Console.ReadLine();
+            string? input = Console.ReadLine();
 
             RunCommand(input);
         }
@@ -92,6 +106,7 @@ internal class Frontend
                     parts.Add(currentToken);
                     currentToken = "";
                 }
+
                 continue;
             }
 
@@ -99,12 +114,14 @@ internal class Frontend
         }
 
         if (!string.IsNullOrEmpty(currentToken))
+        {
             parts.Add(currentToken);
+        }
 
         return ParseCommandTokenized(parts.ToArray());
     }
 
-    static void RunCommand(string input)
+    static void RunCommand(string? input)
     {
         if (!string.IsNullOrEmpty(input))
         {
@@ -119,7 +136,7 @@ internal class Frontend
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.Cli, nameof(Frontend));
 #if DEBUG
                 throw;
 #endif
@@ -145,7 +162,7 @@ internal class Frontend
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.Cli, nameof(Frontend));
 #if DEBUG
             throw;
 #endif
@@ -174,17 +191,21 @@ internal class Frontend
                     args[input[i].Substring(2)] = true;
                 }
             }
+
             if (commandName == "help")
             {
                 args["commandName"] = input[i];
             }
         }
 
-        if (Commands.TryGetValue(commandName, out Type commandType))
+        if (Commands.TryGetValue(commandName, out Type? commandType) && commandType != null)
         {
             ICommand? command = Activator.CreateInstance(commandType) as ICommand;
-            command?.SetArgs(args);
-            return command;
+            if (command != null)
+            {
+                command.SetArgs(args);
+                return command;
+            }
         }
 
         throw new InvalidOperationException("Unknown command.");
