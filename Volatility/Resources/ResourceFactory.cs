@@ -1,15 +1,48 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Volatility.Abstractions.Messaging;
-using Volatility.Messaging;
+using Volatility.Abstractions.Services;
 
 namespace Volatility.Resources;
 
 public static class ResourceFactory
 {
-    private static readonly Dictionary<(ResourceType, Platform), Func<string, Resource>> resourceCreators = CreateResourceCreators();
+    private static readonly Dictionary<(ResourceType, Platform), ResourceRegistrationInfo> resourceCreators = CreateResourceCreators();
 
-    private static Dictionary<(ResourceType, Platform), Func<string, Resource>> CreateResourceCreators()
+    public static Resource CreateResource(ResourceType resourceType, Platform platform, bool x64 = false)
+    {
+        ResourceRegistrationInfo registration = ResolveRegistration(resourceType, platform);
+        Resource resource = registration.Activator();
+        ApplyArchOption(resource, x64);
+
+        if (registration.PullAll)
+        {
+            resource.PullAll();
+        }
+
+        return resource;
+    }
+
+    public static Resource LoadResource(
+        ResourceType resourceType,
+        Platform platform,
+        string filePath,
+        IResourceDBLookup? resourceDBLookup,
+        bool x64 = false)
+    {
+        ResourceRegistrationInfo registration = ResolveRegistration(resourceType, platform);
+        Resource resource = registration.Activator();
+        ApplyArchOption(resource, x64);
+        resource.LoadFromPath(filePath, ResolveLoadEndianness(resource, platform, registration.EndianMapped), resourceDBLookup);
+
+        if (registration.PullAll)
+        {
+            resource.PullAll();
+        }
+
+        return resource;
+    }
+
+    private static Dictionary<(ResourceType, Platform), ResourceRegistrationInfo> CreateResourceCreators()
     {
         ResourceCreatorRegistry registry = new();
 
@@ -39,33 +72,42 @@ public static class ResourceFactory
         return registry.Build();
     }
 
-    public static Resource CreateResource(ResourceType resourceType, Platform platform, string filePath, bool x64 = false)
+    private static ResourceRegistrationInfo ResolveRegistration(ResourceType resourceType, Platform platform)
     {
-        return CreateResource(resourceType, platform, filePath, VolatilityMessageHost.Sink, x64);
-    }
-
-    public static Resource CreateResource(
-        ResourceType resourceType,
-        Platform platform,
-        string filePath,
-        IMessageSink sink,
-        bool x64 = false)
-    {
-        sink.Info($"Constructing {platform} {resourceType} resource property data...", MessageCategory.Resource, nameof(ResourceFactory));
-
-        var key = (resourceType, platform);
-        if (resourceCreators.TryGetValue(key, out var creator))
+        if (resourceCreators.TryGetValue((resourceType, platform), out ResourceRegistrationInfo registration))
         {
-            Resource output = creator(filePath);
-            if (x64)
-            {
-                output.SetResourceArch(Arch.x64);
-            }
-
-            return output;
+            return registration;
         }
 
         throw new InvalidPlatformException($"The '{resourceType}' type is not supported for the '{platform}' platform.");
+    }
+
+    private static void ApplyArchOption(Resource resource, bool x64)
+    {
+        if (x64)
+        {
+            resource.SetResourceArch(Arch.x64);
+        }
+    }
+
+    private static Endian ResolveLoadEndianness(Resource resource, Platform platform, bool endianMapped)
+    {
+        if (resource.ResourceEndian != Endian.Agnostic)
+        {
+            return resource.ResourceEndian;
+        }
+
+        if (!endianMapped)
+        {
+            return Endian.Agnostic;
+        }
+
+        return platform switch
+        {
+            Platform.BPR or Platform.TUB => Endian.LE,
+            Platform.X360 or Platform.PS3 => Endian.BE,
+            _ => throw new InvalidOperationException($"No default endianness mapping exists for platform '{platform}'.")
+        };
     }
 
     private static void AddRegisteredResource<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TResource>(
@@ -77,27 +119,7 @@ public static class ResourceFactory
 
     private sealed class ResourceCreatorRegistry
     {
-        private readonly Dictionary<(ResourceType, Platform), Func<string, Resource>> _creators = new();
-
-        public void AddCreator(ResourceType resourceType, Platform platform, Func<string, Resource> creator)
-        {
-            _creators.Add((resourceType, platform), creator);
-        }
-
-        public void Add<TResource>(
-            ResourceType resourceType,
-            Platform platform,
-            Func<string, TResource> creator,
-            Action<TResource>? afterCreate = null)
-            where TResource : Resource
-        {
-            AddCreator(resourceType, platform, path =>
-            {
-                TResource resource = creator(path);
-                afterCreate?.Invoke(resource);
-                return resource;
-            });
-        }
+        private readonly Dictionary<(ResourceType, Platform), ResourceRegistrationInfo> creators = new();
 
         public void AddRegistrations(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type resourceClass)
@@ -111,79 +133,32 @@ public static class ResourceFactory
             {
                 foreach (Platform platform in ExpandPlatforms(registration.Platforms))
                 {
-                    Func<string, Resource> creator = registration.EndianMapped
-                        ? CreateEndianMappedCreator(resourceClass, platform)
-                        : CreatePathCreator(resourceClass);
-
-                    if (registration.PullAll)
-                    {
-                        creator = WrapWithPullAll(creator);
-                    }
-
-                    AddCreator(resourceType, platform, creator);
+                    creators.Add(
+                        (resourceType, platform),
+                        new ResourceRegistrationInfo(
+                            CreateActivator(resourceClass),
+                            registration.EndianMapped,
+                            registration.PullAll));
                 }
             }
         }
 
-        public Dictionary<(ResourceType, Platform), Func<string, Resource>> Build()
+        public Dictionary<(ResourceType, Platform), ResourceRegistrationInfo> Build()
         {
-            return _creators;
+            return creators;
         }
 
-        private static Func<string, Resource> CreatePathCreator(
+        private static Func<Resource> CreateActivator(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type resourceClass)
         {
-            ConstructorInfo? stringCtor = resourceClass.GetConstructor([typeof(string)]);
-            if (stringCtor != null)
-            {
-                return path => (Resource)stringCtor.Invoke([path]);
-            }
-
-            ConstructorInfo? stringEndianCtor = resourceClass.GetConstructor([typeof(string), typeof(Endian)]);
-            if (stringEndianCtor != null)
-            {
-                return path => (Resource)stringEndianCtor.Invoke([path, Endian.Agnostic]);
-            }
-
-            throw new InvalidOperationException(
-                $"Could not find a usable string constructor for resource class '{resourceClass.FullName}'.");
-        }
-
-        private static Func<string, Resource> CreateEndianMappedCreator(
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type resourceClass,
-            Platform platform)
-        {
-            if (platform == Platform.Agnostic)
-            {
-                throw new InvalidOperationException(
-                    $"Resource class '{resourceClass.FullName}' cannot use endian-mapped registration with Platform.Agnostic.");
-            }
-
-            ConstructorInfo? constructor = resourceClass.GetConstructor([typeof(string), typeof(Endian)]);
+            ConstructorInfo? constructor = resourceClass.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
             {
                 throw new InvalidOperationException(
-                    $"Resource class '{resourceClass.FullName}' must expose a (string path, Endian endianness) constructor for endian-mapped registration.");
+                    $"Resource class '{resourceClass.FullName}' must expose a parameterless constructor.");
             }
 
-            Endian endianness = platform switch
-            {
-                Platform.BPR or Platform.TUB => Endian.LE,
-                Platform.X360 or Platform.PS3 => Endian.BE,
-                _ => throw new InvalidOperationException($"No default endianness mapping exists for platform '{platform}'."),
-            };
-
-            return path => (Resource)constructor.Invoke([path, endianness]);
-        }
-
-        private static Func<string, Resource> WrapWithPullAll(Func<string, Resource> creator)
-        {
-            return path =>
-            {
-                Resource resource = creator(path);
-                resource.PullAll();
-                return resource;
-            };
+            return () => (Resource)constructor.Invoke([]);
         }
 
         private static IEnumerable<Platform> ExpandPlatforms(RegistrationPlatforms platforms)
@@ -214,4 +189,9 @@ public static class ResourceFactory
             }
         }
     }
+
+    private sealed record ResourceRegistrationInfo(
+        Func<Resource> Activator,
+        bool EndianMapped,
+        bool PullAll);
 }

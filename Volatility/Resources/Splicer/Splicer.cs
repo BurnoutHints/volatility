@@ -1,7 +1,5 @@
 using System.Runtime.InteropServices;
 
-using static Volatility.Utilities.EnvironmentUtilities;
-
 namespace Volatility.Resources;
 
 // The Splicer resource type contains multiple sound assets and presets for
@@ -79,8 +77,6 @@ public class Splicer : BinaryResource
 
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
-        LoadDependentSamples();
-
         int totalRefs = Splices.Sum(s => s.SampleRefs.Count);
         int sizeOfSplices = Splices.Count * SpliceHeaderSize;
         int sizeOfSampleRefs = totalRefs * SampleRefSize;
@@ -140,38 +136,9 @@ public class Splicer : BinaryResource
         writer.BaseStream.Position = endPosition;
     }
 
-    public void LoadDependentSamples(bool recurse = false)
+    public void SetLoadedSamples(List<SpliceSample> samples)
     {
-        List<SnrID> needed = Splices
-            .SelectMany(s => s.SampleRefs.Select(sr => sr.Sample))
-            .Distinct()
-            .ToList();
-
-        string dir = Path.Combine
-        (
-            GetEnvironmentDirectory(EnvironmentDirectory.Splicer),
-            "Samples"
-        );
-
-        string[] files = Directory.GetFiles(dir, "*.snr", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-
-        Dictionary<SnrID, byte[]> map = new(needed.Count);
-        foreach (string f in files)
-        {
-            byte[] data = File.ReadAllBytes(f);
-            SnrID id = SnrID.HashFromBytes(data);
-            if (!map.ContainsKey(id) && needed.Contains(id))
-            {
-                map[id] = data;
-            }
-        }
-
-        foreach (SnrID id in needed.Where(id => !map.ContainsKey(id)))
-        {
-            throw new FileNotFoundException($"Missing sample for {id}");
-        }
-
-        _samples = needed.Select(id => new SpliceSample { SampleID = id, Data = map[id] }).ToList();
+        _samples = samples ?? throw new ArgumentNullException(nameof(samples));
     }
 
     public List<SpliceSample> GetLoadedSamples()

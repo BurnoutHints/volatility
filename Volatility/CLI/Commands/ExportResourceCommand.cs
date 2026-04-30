@@ -1,141 +1,152 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
+using Volatility.CLI;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
-using Volatility.Utilities;
-
-using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.CLI.Commands;
 
 internal class ExportResourceCommand : ICommand
 {
-        public static string CommandToken => "ExportResource";
-        public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
-        public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path> [--imports=<raw,bnd2manager,dgi,yap,volatility>] [--importsfile]";
+    private readonly IPathProvider pathProvider;
+    private readonly IOperation<LoadResourceRequest, LoadResourceResult> loadOperation;
+    private readonly ExportResourceOperation exportOperation;
 
-        public string? Format { get; set; }
-        public string? ResourcePath { get; set; }
-        public string? OutputPath { get; set; }
-        public string? Imports { get; set; }
-        public bool ImportsFile { get; set; }
-        public bool Overwrite { get; set; }
-        public bool Recursive { get; set; }
+    public static string CommandToken => "ExportResource";
+    public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
+    public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path> [--imports=<raw,bnd2manager,dgi,yap,volatility>] [--importsfile]";
 
-        public async Task Execute()
-        {
+    public string? Format { get; set; }
+    public string? ResourcePath { get; set; }
+    public string? OutputPath { get; set; }
+    public string? Imports { get; set; }
+    public bool ImportsFile { get; set; }
+    public bool Overwrite { get; set; }
+    public bool Recursive { get; set; }
+
+    public async Task Execute()
+    {
         if (string.IsNullOrEmpty(Format))
         {
-            Console.WriteLine("Error: No resource path specified! (--respath)");
+            CLIMessageUtilities.Error<ExportResourceCommand>("Error: No resource path specified! (--respath)");
             return;
         }
+
         if (string.IsNullOrEmpty(ResourcePath))
-                {
-                        Console.WriteLine("Error: No resource path specified! (--respath)");
-                        return;
-                }
-                if (string.IsNullOrEmpty(OutputPath))
-                {
-                        Console.WriteLine("Error: No output path specified! (--outpath)");
-                        return;
-                }
+        {
+            CLIMessageUtilities.Error<ExportResourceCommand>("Error: No resource path specified! (--respath)");
+            return;
+        }
 
-        string filePath = $"" +
-                        $"{     Path.Combine
-                                (
-                                        GetEnvironmentDirectory(EnvironmentDirectory.Resources),
-                                        ResourcePath
-                                )
-                        }";
+        if (string.IsNullOrEmpty(OutputPath))
+        {
+            CLIMessageUtilities.Error<ExportResourceCommand>("Error: No output path specified! (--outpath)");
+            return;
+        }
 
-        string[] sourceFiles = ICommand.GetFilePathsInDirectory(filePath, ICommand.TargetFileType.Any, Recursive);
+        string filePath = Path.Combine(pathProvider.GetDirectory(VolatilityPathLocation.Resources), ResourcePath);
+        string[] sourceFiles = pathProvider.GetFilePaths(filePath, VolatilityFilePathFilter.Any, Recursive);
 
-                if (sourceFiles.Length == 0)
-                {
-                        Console.WriteLine($"Error: No valid file(s) found at the specified path ({ResourcePath}). Ensure the path exists and spaces are properly enclosed. (--path)");
-                        return;
-                }
+        if (sourceFiles.Length == 0)
+        {
+            CLIMessageUtilities.Error<ExportResourceCommand>($"Error: No valid file(s) found at the specified path ({ResourcePath}). Ensure the path exists and spaces are properly enclosed. (--path)");
+            return;
+        }
 
-                if (!TypeUtilities.TryParseEnum(Format, out Platform platform))
-                {
-                    throw new InvalidPlatformException("Error: Invalid file format specified!");
-                }
+        if (!Volatility.Utilities.TypeUtilities.TryParseEnum(Format, out Platform platform))
+        {
+            CLIMessageUtilities.Error<ExportResourceCommand>("Error: Invalid file format specified!");
+            return;
+        }
 
-                Unpacker? importUnpackerOverride = null;
-                if (!string.IsNullOrEmpty(Imports) && !string.Equals(Imports, "DEFAULT", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!TypeUtilities.TryParseEnum(Imports, out Unpacker parsedUnpacker))
-                    {
-                        Console.WriteLine("Error: Invalid imports export mode specified!");
-                        return;
-                    }
+        Unpacker? importUnpackerOverride = null;
+        if (!string.IsNullOrEmpty(Imports) && !string.Equals(Imports, "DEFAULT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Volatility.Utilities.TypeUtilities.TryParseEnum(Imports, out Unpacker parsedUnpacker))
+            {
+                CLIMessageUtilities.Error<ExportResourceCommand>("Error: Invalid imports export mode specified!");
+                return;
+            }
 
-                    importUnpackerOverride = parsedUnpacker;
-                }
+            importUnpackerOverride = parsedUnpacker;
+        }
 
-                var loadOperation = new LoadResourceOperation();
-                var exportOperation = new ExportResourceOperation();
-
-                List<Task> tasks = new List<Task>();
-                foreach (string sourceFile in sourceFiles)
-                {
-            Console.WriteLine(sourceFile);
+        List<Task> tasks = [];
+        foreach (string sourceFile in sourceFiles)
+        {
+            CLIMessageUtilities.Info<ExportResourceCommand>(sourceFile, MessageCategory.Resource);
 
             tasks.Add(Task.Run(async () =>
-                        {
-                                try
-                                {
-                                        File.GetAttributes(sourceFile);
-                                }
-                                catch (FileNotFoundException)
-                                {
-                                        Console.WriteLine("Error: Invalid file import path specified!");
-                                        return;
-                                }
-                                catch (DirectoryNotFoundException)
-                                {
-                                        Console.WriteLine("Error: Can not find directory for specified import path!");
-                                        return;
-                                }
-                                catch (Exception e)
-                                {
-                                        Console.WriteLine($"Error: Caught file exception: {e.Message}");
-                                        return;
-                                }
-
-                if (!TypeUtilities.TryParseEnum(Path.GetExtension(sourceFile).TrimStart('.'), out ResourceType resourceType))
+            {
+                if (!pathProvider.FileExists(sourceFile))
                 {
-                    Console.WriteLine("Error: Resource type is invalid!");
+                    CLIMessageUtilities.Error<ExportResourceCommand>("Error: Invalid file import path specified!");
                     return;
                 }
 
-                Resource resource;
-                                try
-                                {
-                    resource = await loadOperation.ExecuteAsync(sourceFile, resourceType, platform);
-                }
-                                catch (Exception e)
-                                {
-                    Console.WriteLine($"ERROR: Unable to deserialize {Path.GetFileName(sourceFile)} as {resourceType}!\nMessage from {e.TargetSite}: {e.Message}.\nStack Trace:\n{e.StackTrace}");
+                if (!Volatility.Utilities.TypeUtilities.TryParseEnum(Path.GetExtension(sourceFile).TrimStart('.'), out ResourceType resourceType))
+                {
+                    CLIMessageUtilities.Error<ExportResourceCommand>("Error: Resource type is invalid!");
                     return;
                 }
 
-                                await exportOperation.ExecuteAsync(resource, OutputPath, platform, importUnpackerOverride, ImportsFile);
+                OperationResult<LoadResourceResult> loadResult = await loadOperation.ExecuteAsync(
+                    new LoadResourceRequest(sourceFile, resourceType, platform),
+                    progress: null,
+                    cancellationToken: CancellationToken.None);
+                CLIMessageUtilities.PublishIssues(loadResult.Issues, MessageCategory.Resource);
 
-                Console.WriteLine($"Exported {Path.GetFileName(ResourcePath)} as {Path.GetFullPath(OutputPath)}.");
-                        }));
+                if (!loadResult.Success || loadResult.Value == null)
+                {
+                    return;
                 }
-                await Task.WhenAll(tasks);
+
+                try
+                {
+                    await exportOperation.ExecuteAsync(
+                        loadResult.Value.Resource,
+                        OutputPath,
+                        platform,
+                        importUnpackerOverride,
+                        ImportsFile);
+                }
+                catch (Exception ex)
+                {
+                    CLIMessageUtilities.Error<ExportResourceCommand>(
+                        $"ERROR: Unable to export {Path.GetFileName(sourceFile)} as {resourceType}!" +
+                        $"{Environment.NewLine}Message from {ex.TargetSite}: {ex.Message}." +
+                        $"{Environment.NewLine}Stack Trace:{Environment.NewLine}{ex.StackTrace}");
+                    return;
+                }
+
+                CLIMessageUtilities.Success<ExportResourceCommand>(
+                    $"Exported {Path.GetFileName(sourceFile)} as {pathProvider.GetFullPath(OutputPath)}.",
+                    MessageCategory.Resource);
+            }));
         }
+
+        await Task.WhenAll(tasks);
+    }
 
     public void SetArgs(Dictionary<string, object> args)
-        {
-                Format = (args.TryGetValue("format", out object? format) ? format as string : "")?.ToUpper();
-                ResourcePath = args.TryGetValue("respath", out object? respath) ? respath as string : "";
-                OutputPath = args.TryGetValue("outpath", out object? outpath) ? outpath as string : "";
-                Imports = args.TryGetValue("imports", out object? imports) ? imports as string : "";
-                ImportsFile = args.TryGetValue("importsfile", out var importsfile) && (bool)importsfile;
-                Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
-                Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
-        }
+    {
+        Format = (args.TryGetValue("format", out object? format) ? format as string : "")?.ToUpper();
+        ResourcePath = args.TryGetValue("respath", out object? respath) ? respath as string : "";
+        OutputPath = args.TryGetValue("outpath", out object? outpath) ? outpath as string : "";
+        Imports = args.TryGetValue("imports", out object? imports) ? imports as string : "";
+        ImportsFile = args.TryGetValue("importsfile", out var importsfile) && (bool)importsfile;
+        Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
+        Recursive = args.TryGetValue("recurse", out var re) && (bool)re;
+    }
 
-        public ExportResourceCommand() { }
+    public ExportResourceCommand(
+        IPathProvider pathProvider,
+        IOperation<LoadResourceRequest, LoadResourceResult> loadOperation,
+        ExportResourceOperation exportOperation)
+    {
+        this.pathProvider = pathProvider;
+        this.loadOperation = loadOperation;
+        this.exportOperation = exportOperation;
+    }
 }

@@ -1,7 +1,4 @@
 using System.Text;
-using System.Text.RegularExpressions;
-
-using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Resources;
 
@@ -12,8 +9,6 @@ public class ShaderPC : ShaderBase
     public override Platform ResourcePlatform => Platform.TUB;
 
     public string Name;
-
-    private static readonly Regex DbToFileRegex = new(@"(\?ID=\d+)|:", RegexOptions.Compiled);
 
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
@@ -44,48 +39,7 @@ public class ShaderPC : ShaderBase
 
         if (!string.IsNullOrEmpty(shaderSourceText))
         {
-            string resourcesDirectory = GetEnvironmentDirectory(EnvironmentDirectory.Resources);
-            string outputPath;
-
-            if (string.IsNullOrWhiteSpace(ShaderSourcePath))
-            {
-                string baseName = !string.IsNullOrWhiteSpace(AssetName)
-                    ? AssetName
-                    : !string.IsNullOrWhiteSpace(ImportedFileName)
-                        ? Path.GetFileNameWithoutExtension(ImportedFileName)
-                        : "shader";
-
-                string sanitizedName = DbToFileRegex.Replace(baseName, string.Empty);
-                if (string.IsNullOrWhiteSpace(sanitizedName))
-                    sanitizedName = "shader";
-
-                ShaderSourcePath = $"{sanitizedName}.{ResourceType.Shader}.hlsl";
-                outputPath = Path.Combine(resourcesDirectory, ShaderSourcePath);
-            }
-            else if (Path.IsPathRooted(ShaderSourcePath))
-            {
-                outputPath = ShaderSourcePath;
-            }
-            else
-            {
-                outputPath = Path.Combine(resourcesDirectory, ShaderSourcePath);
-            }
-
-            if (!File.Exists(outputPath))
-            {
-                try
-                {
-                    string? directory = Path.GetDirectoryName(outputPath);
-                    if (!string.IsNullOrWhiteSpace(directory))
-                        Directory.CreateDirectory(directory);
-
-                    File.WriteAllText(outputPath, shaderSourceText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                }
-                catch
-                {
-                    // Best-effort: keep parsed shader even if we cannot write the file.
-                }
-            }
+            ImportedShaderSourceText = shaderSourceText;
         }
     }
 

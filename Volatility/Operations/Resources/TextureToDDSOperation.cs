@@ -1,9 +1,12 @@
+using Volatility.Abstractions.Services;
 using Volatility.Resources;
 using Volatility.Utilities;
 
 namespace Volatility.Operations.Resources;
 
-internal class TextureToDDSOperation
+internal sealed class TextureToDDSOperation(
+    IResourceDBLookup resourceDBLookup,
+    ITextureBitmapStore textureBitmapStore)
 {
     public async Task ExecuteAsync(IEnumerable<string> sourceFiles, Platform platform, bool isX64, string? outputPath, bool overwrite, bool verbose)
     {
@@ -15,17 +18,17 @@ internal class TextureToDDSOperation
         {
             tasks.Add(Task.Run(async () =>
             {
-                TextureBase texture = (TextureBase)ResourceFactory.CreateResource(ResourceType.Texture, platform, sourceFile, isX64);
-                string sourceBitmapPath = TextureBitmapUtilities.GetSecondaryBitmapPath(sourceFile, texture.Unpacker);
+                TextureBase texture = (TextureBase)ResourceFactory.LoadResource(ResourceType.Texture, platform, sourceFile, resourceDBLookup, isX64);
+                string sourceBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(sourceFile, texture.Unpacker);
 
                 if (!File.Exists(sourceBitmapPath))
                 {
                     throw new FileNotFoundException($"Failed to find associated bitmap data at path '{sourceBitmapPath}'.");
                 }
 
-                byte[] bitmapData = TextureBitmapUtilities.ReadNormalizedBitmapData(texture, sourceBitmapPath);
+                byte[] bitmapData = textureBitmapStore.ReadNormalizedBitmapData(texture, sourceBitmapPath);
                 byte[] ddsData = DDSTextureUtilities.CreateDDSFile(texture, bitmapData);
-                string destinationPath = ResolveOutputPath(sourceFile, texture.Unpacker, outputPath, multipleInputs);
+                string destinationPath = ResolveOutputPath(sourceFile, texture.Unpacker, outputPath, multipleInputs, textureBitmapStore);
 
                 string? destinationDirectory = Path.GetDirectoryName(destinationPath);
                 if (!string.IsNullOrEmpty(destinationDirectory))
@@ -47,9 +50,14 @@ internal class TextureToDDSOperation
         await Task.WhenAll(tasks);
     }
 
-    private static string ResolveOutputPath(string sourceFile, Unpacker unpacker, string? outputPath, bool multipleInputs)
+    private static string ResolveOutputPath(
+        string sourceFile,
+        Unpacker unpacker,
+        string? outputPath,
+        bool multipleInputs,
+        ITextureBitmapStore textureBitmapStore)
     {
-        string outputName = TextureBitmapUtilities.GetResourceBaseName(sourceFile, unpacker) + ".dds";
+        string outputName = textureBitmapStore.GetResourceBaseName(sourceFile, unpacker) + ".dds";
 
         if (string.IsNullOrWhiteSpace(outputPath))
         {

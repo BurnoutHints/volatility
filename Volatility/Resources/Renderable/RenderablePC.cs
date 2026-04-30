@@ -20,5 +20,7 @@ public class RenderablePC : RenderableBase
         base.ParseFromStream(reader, endianness);
     }
 
+    public RenderablePC() : base() { }
+
     public RenderablePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }

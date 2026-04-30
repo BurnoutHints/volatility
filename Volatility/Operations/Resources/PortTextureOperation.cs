@@ -1,5 +1,6 @@
 using System.Reflection;
 
+using Volatility.Abstractions.Services;
 using Volatility.Resources;
 using Volatility.Utilities;
 
@@ -7,11 +8,15 @@ using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.Operations.Resources;
 
-internal class PortTextureOperation
+internal sealed class PortTextureOperation(
+    IResourceDBLookup resourceDBLookup,
+    ITextureBitmapStore textureBitmapStore)
 {
-    public async Task ExecuteAsync(IEnumerable<string> sourceFiles, string sourceFormat, string sourcePath, string destinationFormat, string? destinationPath, bool verbose, bool useGtf)
+    public async Task ExecuteAsync(IEnumerable<string> sourceFiles, string sourceFormat, string sourcePath, string destinationFormat, string? destinationPath, bool verbose, bool useGTF)
     {
         string resolvedDestinationPath = string.IsNullOrEmpty(destinationPath) ? sourcePath : destinationPath;
+        TextureFormatSpec sourceSpec = ParseTextureFormat(sourceFormat);
+        TextureFormatSpec destinationSpec = ParseTextureFormat(destinationFormat);
 
         List<Task> tasks = new List<Task>();
 
@@ -19,18 +24,11 @@ internal class PortTextureOperation
         {
             tasks.Add(Task.Run(async () =>
             {
-                TextureBase? sourceTexture = ConstructHeader(sourceFile, sourceFormat, verbose);
-                TextureBase? destinationTexture = ConstructHeader(resolvedDestinationPath, destinationFormat, verbose);
+                TextureBase sourceTexture = LoadSourceTexture(sourceFile, sourceSpec, verbose);
+                TextureBase destinationTexture = CreateDestinationTexture(destinationSpec, verbose);
 
-                if (sourceTexture == null || destinationTexture == null)
-                {
-                    throw new InvalidOperationException("Failed to initialize texture header. Ensure the platform matches the file format and that the path is correct.");
-                }
-
-                string localSourceFormat = BPRx64Hack(sourceTexture, sourceFormat);
-                string localDestinationFormat = BPRx64Hack(destinationTexture, destinationFormat);
-
-                sourceTexture.PullAll();
+                string localSourceFormat = sourceSpec.DisplayName;
+                string localDestinationFormat = destinationSpec.DisplayName;
 
                 CopyProperties(sourceTexture, destinationTexture);
 
@@ -167,19 +165,29 @@ internal class PortTextureOperation
                 {
                     outPath = $"{Path.GetDirectoryName(resolvedDestinationPath)}{Path.DirectorySeparatorChar}{outResourceFilename}";
                 }
-                else if (new DirectoryInfo(resolvedDestinationPath).Exists)
+                else if (Directory.Exists(resolvedDestinationPath) || !Path.HasExtension(resolvedDestinationPath))
                 {
-                    outPath = resolvedDestinationPath + Path.DirectorySeparatorChar + outResourceFilename;
+                    outPath = Path.Combine(resolvedDestinationPath, outResourceFilename);
+                }
+                else
+                {
+                    outPath = resolvedDestinationPath;
                 }
 
-                string sourceBitmapPath = TextureBitmapUtilities.GetSecondaryBitmapPath(sourceFile, sourceTexture.Unpacker);
+                string? outputDirectory = Path.GetDirectoryName(outPath);
+                if (!string.IsNullOrEmpty(outputDirectory))
+                {
+                    Directory.CreateDirectory(outputDirectory);
+                }
+
+                string sourceBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(sourceFile, sourceTexture.Unpacker);
 
                 if (!Path.Exists(sourceBitmapPath))
                 {
                     Console.WriteLine($"Failed to find associated bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
                 }
 
-                string destinationBitmapPath = TextureBitmapUtilities.GetSecondaryBitmapPath(outPath, sourceTexture.Unpacker);
+                string destinationBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(outPath, sourceTexture.Unpacker);
 
                 if (Path.Exists(destinationBitmapPath))
                 {
@@ -188,12 +196,12 @@ internal class PortTextureOperation
 
                 try
                 {
-                    if (useGtf && sourceTexture.ResourcePlatform == Platform.PS3)
+                    if (useGTF && sourceTexture is TexturePS3 sourcePs3)
                     {
-                        PS3TextureUtilities.PS3GTFToDDS(sourcePath, sourceBitmapPath, destinationBitmapPath, verbose);
+                        textureBitmapStore.ConvertPS3GTFToDDS(sourcePs3, sourceBitmapPath, destinationBitmapPath, verbose);
                     }
 
-                    byte[] sourceBitmapData = TextureBitmapUtilities.ReadNormalizedBitmapData(sourceTexture, sourceBitmapPath);
+                    byte[] sourceBitmapData = textureBitmapStore.ReadNormalizedBitmapData(sourceTexture, sourceBitmapPath);
 
                     if (destinationTexture is TextureX360 destX && sourceTexture.ResourcePlatform != Platform.X360)
                     {
@@ -235,38 +243,49 @@ internal class PortTextureOperation
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error trying to copy bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}");
+                    throw new IOException(
+                        $"Failed to port texture data for {Path.GetFileNameWithoutExtension(sourceFile)}: {ex.Message}",
+                        ex);
                 }
 
-                Console.WriteLine($"Successfully ported {localSourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)}to {localDestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
+                Console.WriteLine($"Successfully ported {localSourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {localDestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
             }));
         }
 
         await Task.WhenAll(tasks);
     }
 
-    private string BPRx64Hack(TextureBase header, string format)
+    private TextureBase LoadSourceTexture(string path, TextureFormatSpec format, bool verbose)
     {
-        if (header.ResourcePlatform == Platform.BPR && format.EndsWith("X64", StringComparison.Ordinal))
-        {
-            header.SetResourceArch(Arch.x64);
-            return "BPR";
-        }
-        return format;
+        if (verbose) Console.WriteLine($"Loading {format.DisplayName} texture property data...");
+        return (TextureBase)ResourceFactory.LoadResource(ResourceType.Texture, format.Platform, path, resourceDBLookup, format.IsX64);
     }
 
-    private static TextureBase? ConstructHeader(string path, string format, bool verbose)
+    private static TextureBase CreateDestinationTexture(TextureFormatSpec format, bool verbose)
     {
-        if (verbose) Console.WriteLine($"Constructing {format} texture property data...");
-        return format switch
+        if (verbose) Console.WriteLine($"Constructing {format.DisplayName} texture property data...");
+        return (TextureBase)ResourceFactory.CreateResource(ResourceType.Texture, format.Platform, format.IsX64);
+    }
+
+    private static TextureFormatSpec ParseTextureFormat(string format)
+    {
+        string normalizedFormat = format.Trim().ToUpperInvariant();
+        bool isX64 = normalizedFormat.EndsWith("X64", StringComparison.OrdinalIgnoreCase);
+        if (isX64)
         {
-            "BPR" => new TextureBPR(path),
-            "BPRX64" => new TextureBPR(path),
-            "TUB" => new TexturePC(path),
-            "X360" => new TextureX360(path),
-            "PS3" => new TexturePS3(path),
+            normalizedFormat = normalizedFormat[..^3];
+        }
+
+        Platform platform = normalizedFormat switch
+        {
+            "BPR" => Platform.BPR,
+            "TUB" => Platform.TUB,
+            "X360" => Platform.X360,
+            "PS3" => Platform.PS3,
             _ => throw new InvalidPlatformException(),
         };
+
+        return new TextureFormatSpec(platform, isX64, isX64 ? $"{normalizedFormat}X64" : normalizedFormat);
     }
 
     private static void CopyProperties(TextureBase source, TextureBase destination)
@@ -509,4 +528,6 @@ internal class PortTextureOperation
         { DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3 },
         { DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM, GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5 },
     };
+
+    private readonly record struct TextureFormatSpec(Platform Platform, bool IsX64, string DisplayName);
 }

@@ -20,19 +20,12 @@ internal class HelpCommand : ICommand
             Frontend.Commands.TryGetValue(WantedCommand.ToLowerInvariant(), out Type? command);
             if (command != null)
             {
-                ConstructorInfo? constructor = command.GetConstructor(Array.Empty<Type>());
-                if (constructor != null)
-                {
-                    if (constructor.Invoke(Array.Empty<object>()) is ICommand commandInstance)
-                    {
-                        commandInstance?.ShowUsage();
-                        return;
-                    }
-                }
+                ShowUsage(command);
+                return;
             }
         }
 
-        Console.WriteLine("Available commands:");
+        CLIMessageUtilities.Info<HelpCommand>("Available commands:");
         foreach (var command in GetDerivedTypes(typeof(ICommand)))
         {
             string commandName = GetStaticPropertyValue(command, nameof(CommandToken));
@@ -40,15 +33,24 @@ internal class HelpCommand : ICommand
             if (string.IsNullOrEmpty(commandName))
                 continue;
             
-            Console.WriteLine($"    {commandName} - {GetStaticPropertyValue(command, nameof(CommandDescription))}");
+            CLIMessageUtilities.Info<HelpCommand>($"    {commandName} - {GetStaticPropertyValue(command, nameof(CommandDescription))}");
             
         }
-        Console.WriteLine("For information on command arguments, run: help <command name>.");
+        CLIMessageUtilities.Info<HelpCommand>("For information on command arguments, run: help <command name>.");
     }
 
     public void SetArgs(Dictionary<string, object> args)
     {
         WantedCommand = args.TryGetValue("commandName", out object? name) ? name as string : "";
+    }
+
+    private static void ShowUsage(Type commandType)
+    {
+        string token = GetStaticPropertyValue(commandType, nameof(CommandToken));
+        string parameters = GetStaticPropertyValue(commandType, nameof(CommandParameters));
+        string description = GetStaticPropertyValue(commandType, nameof(CommandDescription));
+
+        CLIMessageUtilities.Info(nameof(HelpCommand), $"Usage:\n   {token} {parameters}\n{description}");
     }
 
     public HelpCommand() { }

@@ -1,3 +1,5 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Services;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -6,6 +8,9 @@ namespace Volatility.CLI.Commands;
 
 internal class TextureToDDSCommand : ICommand
 {
+    private readonly IPathProvider pathProvider;
+    private readonly TextureToDDSOperation operation;
+
     public static string CommandToken => "TextureToDDS";
     public static string CommandDescription => "Converts texture resources and their sidecar bitmap data into DDS files.";
     public static string CommandParameters => "[--recurse] [--overwrite] [--verbose] --format=<tub,bpr[x64],x360,ps3> --path=<file/folder path> [--outpath=<file/folder path>]";
@@ -21,20 +26,20 @@ internal class TextureToDDSCommand : ICommand
     {
         if (string.IsNullOrWhiteSpace(Format))
         {
-            Console.WriteLine("Error: No input format specified! (--format)");
+            CLIMessageUtilities.Error<TextureToDDSCommand>("Error: No input format specified! (--format)");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(InputPath))
         {
-            Console.WriteLine("Error: No input path specified! (--path)");
+            CLIMessageUtilities.Error<TextureToDDSCommand>("Error: No input path specified! (--path)");
             return;
         }
 
-        string[] sourceFiles = ICommand.GetFilePathsInDirectory(InputPath, ICommand.TargetFileType.Header, Recursive);
+        string[] sourceFiles = pathProvider.GetFilePaths(InputPath, VolatilityFilePathFilter.Header, Recursive);
         if (sourceFiles.Length == 0)
         {
-            Console.WriteLine($"Error: No valid file(s) found at the specified path ({InputPath}). Ensure the path exists and spaces are properly enclosed. (--path)");
+            CLIMessageUtilities.Error<TextureToDDSCommand>($"Error: No valid file(s) found at the specified path ({InputPath}). Ensure the path exists and spaces are properly enclosed. (--path)");
             return;
         }
 
@@ -50,11 +55,10 @@ internal class TextureToDDSCommand : ICommand
             throw new InvalidPlatformException("Error: Invalid file format specified!");
         }
 
-        Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine($"Starting {sourceFiles.Length} Texture to DDS tasks...");
-        Console.ResetColor();
+        CLIMessageUtilities.Info<TextureToDDSCommand>(
+            $"Starting {sourceFiles.Length} Texture to DDS tasks...",
+            MessageCategory.Texture);
 
-        var operation = new TextureToDDSOperation();
         await operation.ExecuteAsync(sourceFiles, platform, isX64, OutputPath, Overwrite, Verbose);
     }
 
@@ -68,5 +72,9 @@ internal class TextureToDDSCommand : ICommand
         Verbose = args.TryGetValue("verbose", out var ve) && (bool)ve;
     }
 
-    public TextureToDDSCommand() { }
+    public TextureToDDSCommand(IPathProvider pathProvider, TextureToDDSOperation operation)
+    {
+        this.pathProvider = pathProvider;
+        this.operation = operation;
+    }
 }

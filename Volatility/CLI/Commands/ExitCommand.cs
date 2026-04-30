@@ -1,3 +1,5 @@
+using Volatility.CLI;
+
 namespace Volatility.CLI.Commands;
 
 internal class ExitCommand : ICommand
@@ -8,7 +10,7 @@ internal class ExitCommand : ICommand
 
     public async Task Execute()
     {
-        Console.WriteLine("Exiting Volatility...");
+        CLIMessageUtilities.Info<ExitCommand>("Exiting Volatility...");
         Environment.Exit(0);
     }
 

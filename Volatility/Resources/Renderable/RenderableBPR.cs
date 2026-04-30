@@ -20,6 +20,8 @@ public class RenderableBPR : RenderableBase
         base.ParseFromStream(reader, endianness);
     }
 
+    public RenderableBPR() : base() { }
+
     public RenderableBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 

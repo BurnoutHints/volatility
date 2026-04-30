@@ -1,9 +1,14 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Services;
 using Volatility.Operations.Resources;
 
 namespace Volatility.CLI.Commands;
 
 internal class PortTextureCommand : ICommand
 {
+    private readonly IPathProvider pathProvider;
+    private readonly PortTextureOperation operation;
+
     public static string CommandToken => "PortTexture";
     public static string CommandDescription => "Ports texture data from a given source format to the specified destination format.";
     public static string CommandParameters => "[--verbose] [--usegtf] --informat=<tub,bpr[x64],x360,ps3> --inpath=<file/folder path> --outformat=<tub,bpr[x64],x360,ps3> [--outpath=<file/folder path>]";
@@ -19,17 +24,20 @@ internal class PortTextureCommand : ICommand
     {
         if (string.IsNullOrEmpty(SourcePath))
         {
-            Console.WriteLine("Error: No source path specified! (--inpath)");
+            CLIMessageUtilities.Error<PortTextureCommand>("Error: No source path specified! (--inpath)");
             return;
         }
 
-        var sourceFiles = ICommand.GetFilePathsInDirectory(SourcePath, ICommand.TargetFileType.Header);
+        string[] sourceFiles = pathProvider.GetFilePaths(SourcePath, VolatilityFilePathFilter.Header);
+        if (sourceFiles.Length == 0)
+        {
+            CLIMessageUtilities.Error<PortTextureCommand>($"Error: No valid file(s) found at the specified path ({SourcePath}). Ensure the path exists and spaces are properly enclosed. (--inpath)");
+            return;
+        }
 
-        Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine($"Starting {sourceFiles.Length} PortTexture tasks...");
-        Console.ResetColor();
-
-        var operation = new PortTextureOperation();
+        CLIMessageUtilities.Info<PortTextureCommand>(
+            $"Starting {sourceFiles.Length} PortTexture tasks...",
+            MessageCategory.Texture);
 
         await operation.ExecuteAsync(sourceFiles, SourceFormat ?? string.Empty, SourcePath ?? string.Empty, DestinationFormat ?? string.Empty, DestinationPath, Verbose, UseGTF);
     }
@@ -52,5 +60,9 @@ internal class PortTextureCommand : ICommand
         UseGTF = args.TryGetValue("usegtf", out var usegtf) && (bool)usegtf;
     }
 
-    public PortTextureCommand() { }
+    public PortTextureCommand(IPathProvider pathProvider, PortTextureOperation operation)
+    {
+        this.pathProvider = pathProvider;
+        this.operation = operation;
+    }
 }

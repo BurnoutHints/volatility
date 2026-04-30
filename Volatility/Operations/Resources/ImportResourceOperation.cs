@@ -1,34 +1,28 @@
 using System.Text.RegularExpressions;
-
+using Volatility.Abstractions.Services;
 using Volatility.Resources;
-using Volatility.Utilities;
 
 namespace Volatility.Operations.Resources;
 
-internal partial class ImportResourceOperation
+internal sealed partial class ImportResourceOperation(
+    IResourceDBLookup resourceDBLookup,
+    ITextureBitmapStore textureBitmapStore,
+    IProcessRunner processRunner,
+    IShaderSourceStore shaderSourceStore)
 {
-    private readonly string resourcesDirectory;
-    private readonly string toolsDirectory;
-    private readonly string splicerDirectory;
-    private readonly bool overwrite;
-    private static readonly object ConsolePromptLock = new();
-
-    public ImportResourceOperation(string resourcesDirectory, string toolsDirectory, string splicerDirectory, bool overwrite)
+    public async Task<ImportResourceResult> ExecuteAsync(ImportResourceRequest request)
     {
-        this.resourcesDirectory = resourcesDirectory;
-        this.toolsDirectory = toolsDirectory;
-        this.splicerDirectory = splicerDirectory;
-        this.overwrite = overwrite;
-    }
-
-    public async Task<ImportResourceResult> ExecuteAsync(ResourceType resourceType, Platform platform, string sourceFile, bool isX64)
-    {
-        Resource resource = ResourceFactory.CreateResource(resourceType, platform, sourceFile, isX64);
+        Resource resource = ResourceFactory.LoadResource(
+            request.ResourceType,
+            request.Platform,
+            request.SourceFile,
+            resourceDBLookup,
+            request.IsX64);
 
         string filePath = Path.Combine
         (
-            resourcesDirectory,
-            $"{DBToFileRegex().Replace(resource.AssetName, string.Empty)}.{resourceType}"
+            request.ResourcesDirectory,
+            $"{DBToFileRegex().Replace(resource.AssetName, string.Empty)}.{request.ResourceType}"
         );
 
         string? directoryPath = Path.GetDirectoryName(filePath);
@@ -38,9 +32,14 @@ internal partial class ImportResourceOperation
             Directory.CreateDirectory(directoryPath);
         }
 
-        if (resourceType == ResourceType.Texture)
+        if (resource is ShaderBase shader)
         {
-            string texturePath = TextureBitmapUtilities.GetSecondaryBitmapPath(sourceFile, resource.Unpacker);
+            shaderSourceStore.MaterializeImportedSource(shader, request.ResourcesDirectory);
+        }
+
+        if (request.ResourceType == ResourceType.Texture)
+        {
+            string texturePath = textureBitmapStore.GetSecondaryBitmapPath(request.SourceFile, resource.Unpacker);
 
             if (resource is TextureBase texture && File.Exists(texturePath))
             {
@@ -50,15 +49,15 @@ internal partial class ImportResourceOperation
                     Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
                 );
 
-                TextureBitmapUtilities.WriteNormalizedBitmapFile(texture, texturePath, $"{outPath}.{resourceType}Bitmap", overwrite);
+                textureBitmapStore.WriteNormalizedBitmapFile(texture, texturePath, $"{outPath}.{request.ResourceType}Bitmap", request.Overwrite);
             }
         }
 
-        if (resourceType == ResourceType.Splicer)
+        if (request.ResourceType == ResourceType.Splicer)
         {
             string sxPath = Path.Combine
             (
-                toolsDirectory,
+                request.ToolsDirectory,
                 "sx.exe"
             );
 
@@ -70,7 +69,7 @@ internal partial class ImportResourceOperation
 
             string sampleDirectory = Path.Combine
             (
-                splicerDirectory,
+                request.SplicerDirectory,
                 "Samples"
             );
 
@@ -84,7 +83,7 @@ internal partial class ImportResourceOperation
 
                     string samplePathName = Path.Combine(sampleDirectory, sampleName);
 
-                    if (!File.Exists($"{samplePathName}.snr") || overwrite)
+                    if (!File.Exists($"{samplePathName}.snr") || request.Overwrite)
                     {
                         Console.WriteLine($"Writing extracted sample {sampleName}.snr");
                         await File.WriteAllBytesAsync($"{samplePathName}.snr", samples[i].Data);
@@ -102,10 +101,10 @@ internal partial class ImportResourceOperation
 
                         convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName + ".wav");
 
-                        if (!File.Exists(convertedSamplePathName) || overwrite)
+                        if (!File.Exists(convertedSamplePathName) || request.Overwrite)
                         {
                             Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-                            ProcessUtilities.RunAndRelayOutput(
+                            processRunner.RunAndRelayOutput(
                                 sxPath,
                                 $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"");
                         }
@@ -121,23 +120,18 @@ internal partial class ImportResourceOperation
         return new ImportResourceResult(resource, filePath);
     }
 
-    private static bool PromptOverwrite(string filePath)
-    {
-        lock (ConsolePromptLock)
-        {
-            Console.Write($"{Path.GetFileName(filePath)} already exists. Overwrite? [y/N]: ");
-            string? input = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(input))
-                return false;
-
-            input = input.Trim();
-            return input.Equals("y", StringComparison.OrdinalIgnoreCase)
-                || input.Equals("yes", StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
     [GeneratedRegex(@"(\?ID=\d+)|:")]
     private static partial Regex DBToFileRegex();
 }
+
+internal sealed record ImportResourceRequest(
+    ResourceType ResourceType,
+    Platform Platform,
+    string SourceFile,
+    bool IsX64,
+    string ResourcesDirectory,
+    string ToolsDirectory,
+    string SplicerDirectory,
+    bool Overwrite);
 
 internal sealed record ImportResourceResult(Resource Resource, string ResourcePath);

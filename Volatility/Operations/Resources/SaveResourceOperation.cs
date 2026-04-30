@@ -1,11 +1,12 @@
-using YamlDotNet.Serialization;
-
+using Volatility.Abstractions.Operations;
+using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
+using YamlDotNet.Serialization;
 
 namespace Volatility.Operations.Resources;
 
-internal class SaveResourceOperation
+internal sealed class SaveResourceOperation : IOperation<SaveResourceRequest, SaveResourceResult>
 {
     private readonly ISerializer serializer;
 
@@ -21,16 +22,52 @@ internal class SaveResourceOperation
             .Build();
     }
 
-    public async Task ExecuteAsync(Resource resource, string filePath)
+    public async Task<OperationResult<SaveResourceResult>> ExecuteAsync(
+        SaveResourceRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        string? directoryPath = Path.GetDirectoryName(filePath);
-
-        if (!string.IsNullOrEmpty(directoryPath))
+        if (request.Resource is null)
         {
-            Directory.CreateDirectory(directoryPath);
+            return OperationResultFactory.Failure<SaveResourceResult>(
+                "save_resource_missing_resource",
+                "A resource instance is required.",
+                nameof(SaveResourceOperation));
         }
 
-        string serializedString = serializer.Serialize(resource);
-        await File.WriteAllTextAsync(filePath, serializedString);
+        if (string.IsNullOrWhiteSpace(request.FilePath))
+        {
+            return OperationResultFactory.Failure<SaveResourceResult>(
+                "save_resource_missing_path",
+                "A file path is required.",
+                nameof(SaveResourceOperation));
+        }
+
+        try
+        {
+            string? directoryPath = Path.GetDirectoryName(request.FilePath);
+            if (!string.IsNullOrEmpty(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            string serializedString = serializer.Serialize(request.Resource);
+            await File.WriteAllTextAsync(request.FilePath, serializedString, cancellationToken);
+
+            progress?.Report(new OperationProgress("save-resource", 1.0, request.FilePath));
+            return OperationResultFactory.Success(new SaveResourceResult(request.FilePath));
+        }
+        catch (Exception ex)
+        {
+            return OperationResultFactory.Failure<SaveResourceResult>(
+                "save_resource_failed",
+                ex.Message,
+                nameof(SaveResourceOperation));
+        }
     }
+
 }
+
+internal sealed record SaveResourceRequest(Resource Resource, string FilePath) : IOperationRequest;
+
+internal sealed record SaveResourceResult(string FilePath);

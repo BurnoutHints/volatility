@@ -1,50 +1,49 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Volatility.Abstractions.Services;
 using Volatility.Resources;
 
-using static Volatility.Utilities.EnvironmentUtilities;
+namespace Volatility.Services;
 
-namespace Volatility.Utilities;
-
-public static class DXCShaderCompiler
+public sealed class DefaultShaderCompiler(
+    IPathProvider pathProvider,
+    IProcessRunner processRunner)
+    : IShaderCompiler
 {
     private const string DXCPathEnvVar = "VOLATILITY_DXC_PATH";
 
-    public static void CompileStagesToCSO(ShaderBase shader, IReadOnlyList<ShaderStageCompile> stages, Func<ShaderStageCompile, string> outputPathFactory)
+    public void CompileStagesToCSO(ShaderBase shader, IReadOnlyList<ShaderStageCompile> stages, Func<ShaderStageCompile, string> outputPathFactory)
     {
-        if (shader == null)
-            throw new ArgumentNullException(nameof(shader));
-        if (stages == null || stages.Count == 0)
-            throw new InvalidOperationException("No shader stages were provided.");
+        ArgumentNullException.ThrowIfNull(shader);
 
-        foreach (var stage in stages)
+        if (stages == null || stages.Count == 0)
         {
-            string outputPath = outputPathFactory(stage);
-            CompileToCSO(shader, stage, outputPath);
+            throw new InvalidOperationException("No shader stages were provided.");
+        }
+
+        foreach (ShaderStageCompile stage in stages)
+        {
+            CompileToCSO(shader, stage, outputPathFactory(stage));
         }
     }
 
-    public static void CompileToCSO(ShaderBase shader, ShaderStageCompile stage, string outputPath)
+    public void CompileToCSO(ShaderBase shader, ShaderStageCompile stage, string outputPath)
     {
-        if (shader == null)
-            throw new ArgumentNullException(nameof(shader));
-        if (stage == null)
-            throw new ArgumentNullException(nameof(stage));
+        ArgumentNullException.ThrowIfNull(shader);
+        ArgumentNullException.ThrowIfNull(stage);
 
+        string? outputDirectory = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrEmpty(outputDirectory))
+        {
+            Directory.CreateDirectory(outputDirectory);
+        }
+
+        string dxcPath = ResolveDxcPath();
+        string sourcePath = ResolveSourcePath(shader);
         string entryPoint = ResolveEntryPoint(shader, stage);
         string targetProfile = ResolveTargetProfile(shader, stage);
 
-        string? outputDir = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(outputDir))
-        {
-            Directory.CreateDirectory(outputDir);
-        }
-
-        string dxcPath = ResolveDXCPath();
-        string sourcePath = ResolveSourcePath(shader);
-
-        ProcessStartInfo startInfo = BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath);
-        ProcessUtilities.RunAndCapture(startInfo);
+        processRunner.RunAndCapture(BuildStartInfo(dxcPath, sourcePath, shader, stage, entryPoint, targetProfile, outputPath));
     }
 
     private static ProcessStartInfo BuildStartInfo(
@@ -56,7 +55,7 @@ public static class DXCShaderCompiler
         string targetProfile,
         string outputPath)
     {
-        ProcessStartInfo start = new()
+        ProcessStartInfo startInfo = new()
         {
             FileName = dxcPath,
             UseShellExecute = false,
@@ -65,85 +64,97 @@ public static class DXCShaderCompiler
             CreateNoWindow = true
         };
 
-        start.ArgumentList.Add("-nologo");
-        start.ArgumentList.Add("-E");
-        start.ArgumentList.Add(entryPoint);
-        start.ArgumentList.Add("-T");
-        start.ArgumentList.Add(targetProfile);
-        start.ArgumentList.Add("-Fo");
-        start.ArgumentList.Add(outputPath);
+        startInfo.ArgumentList.Add("-nologo");
+        startInfo.ArgumentList.Add("-E");
+        startInfo.ArgumentList.Add(entryPoint);
+        startInfo.ArgumentList.Add("-T");
+        startInfo.ArgumentList.Add(targetProfile);
+        startInfo.ArgumentList.Add("-Fo");
+        startInfo.ArgumentList.Add(outputPath);
 
-        foreach (var define in EnumerateDefines(shader, stage))
+        foreach (ShaderDefine define in EnumerateDefines(shader, stage))
         {
-            if (define == null || string.IsNullOrWhiteSpace(define.Name))
+            if (string.IsNullOrWhiteSpace(define.Name))
+            {
                 continue;
+            }
 
-            start.ArgumentList.Add("-D");
-            start.ArgumentList.Add(string.IsNullOrWhiteSpace(define.Value)
+            startInfo.ArgumentList.Add("-D");
+            startInfo.ArgumentList.Add(string.IsNullOrWhiteSpace(define.Value)
                 ? define.Name
                 : $"{define.Name}={define.Value}");
         }
 
         if (shader.IncludeDirectories != null)
         {
-            foreach (var includeDir in shader.IncludeDirectories)
+            foreach (string includeDirectory in shader.IncludeDirectories)
             {
-                if (string.IsNullOrWhiteSpace(includeDir))
+                if (string.IsNullOrWhiteSpace(includeDirectory))
+                {
                     continue;
+                }
 
-                start.ArgumentList.Add("-I");
-                start.ArgumentList.Add(includeDir);
+                startInfo.ArgumentList.Add("-I");
+                startInfo.ArgumentList.Add(includeDirectory);
             }
         }
 
         if (shader.AdditionalArguments != null)
         {
-            foreach (var arg in shader.AdditionalArguments)
+            foreach (string arg in shader.AdditionalArguments)
             {
-                if (string.IsNullOrWhiteSpace(arg))
-                    continue;
-
-                start.ArgumentList.Add(arg);
+                if (!string.IsNullOrWhiteSpace(arg))
+                {
+                    startInfo.ArgumentList.Add(arg);
+                }
             }
         }
 
         if (stage.AdditionalArguments != null)
         {
-            foreach (var arg in stage.AdditionalArguments)
+            foreach (string arg in stage.AdditionalArguments)
             {
-                if (string.IsNullOrWhiteSpace(arg))
-                    continue;
-
-                start.ArgumentList.Add(arg);
+                if (!string.IsNullOrWhiteSpace(arg))
+                {
+                    startInfo.ArgumentList.Add(arg);
+                }
             }
         }
 
-        start.ArgumentList.Add(sourcePath);
-        return start;
+        startInfo.ArgumentList.Add(sourcePath);
+        return startInfo;
     }
 
     private static IEnumerable<ShaderDefine> EnumerateDefines(ShaderBase shader, ShaderStageCompile stage)
     {
         if (shader.Defines != null)
         {
-            foreach (var define in shader.Defines)
+            foreach (ShaderDefine define in shader.Defines)
+            {
                 yield return define;
+            }
         }
 
         if (stage.Defines != null)
         {
-            foreach (var define in stage.Defines)
+            foreach (ShaderDefine define in stage.Defines)
+            {
                 yield return define;
+            }
         }
     }
 
     private static string ResolveEntryPoint(ShaderBase shader, ShaderStageCompile stage)
     {
         if (!string.IsNullOrWhiteSpace(stage.EntryPoint))
+        {
             return stage.EntryPoint;
+        }
 
         if (!string.IsNullOrWhiteSpace(shader.EntryPoint))
+        {
             return shader.EntryPoint;
+        }
 
         return "main";
     }
@@ -151,14 +162,20 @@ public static class DXCShaderCompiler
     private static string ResolveTargetProfile(ShaderBase shader, ShaderStageCompile stage)
     {
         if (!string.IsNullOrWhiteSpace(stage.TargetProfile))
+        {
             return stage.TargetProfile;
+        }
 
         string? prefix = ShaderStageCompile.GetProfilePrefix(stage.ResolveStage());
         if (!string.IsNullOrWhiteSpace(prefix))
+        {
             return $"{prefix}_5_0";
+        }
 
         if (!string.IsNullOrWhiteSpace(shader.TargetProfile))
+        {
             return shader.TargetProfile;
+        }
 
         return "ps_5_0";
     }
@@ -167,62 +184,79 @@ public static class DXCShaderCompiler
     {
         string? resolvedPath = shader.ResolveShaderSourcePath();
         if (string.IsNullOrWhiteSpace(resolvedPath))
+        {
             throw new InvalidOperationException("ShaderSourcePath is empty.");
+        }
 
         if (!File.Exists(resolvedPath))
+        {
             throw new FileNotFoundException($"Shader source file not found: {resolvedPath}");
+        }
 
         return resolvedPath;
     }
 
-    private static string ResolveDXCPath()
+    private string ResolveDxcPath()
     {
         string? overridePath = Environment.GetEnvironmentVariable(DXCPathEnvVar);
         if (!string.IsNullOrWhiteSpace(overridePath))
         {
             if (!File.Exists(overridePath))
+            {
                 throw new FileNotFoundException($"DXC override path not found: {overridePath}");
+            }
+
             return overridePath;
         }
 
-        string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dxc.exe" : "dxc";
-        string toolsDir = GetEnvironmentDirectory(EnvironmentDirectory.Tools);
-        string rid = GetRuntimeRid();
+        string executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dxc.exe" : "dxc";
+        string toolsDirectory = pathProvider.GetDirectory(VolatilityPathLocation.Tools);
+        string runtimeRid = GetRuntimeRid();
 
         string[] candidates =
         [
-            Path.Combine(toolsDir, "dxc", exeName),
-            Path.Combine(toolsDir, "dxc", rid, exeName),
-            Path.Combine(toolsDir, "dxc", "bin", exeName)
+            Path.Combine(toolsDirectory, "dxc", executableName),
+            Path.Combine(toolsDirectory, "dxc", runtimeRid, executableName),
+            Path.Combine(toolsDirectory, "dxc", "bin", executableName)
         ];
 
         foreach (string candidate in candidates)
         {
             if (File.Exists(candidate))
+            {
                 return candidate;
+            }
         }
 
-        string? pathCandidate = FindOnPath(exeName);
+        string? pathCandidate = FindOnPath(executableName);
         if (!string.IsNullOrEmpty(pathCandidate))
+        {
             return pathCandidate;
+        }
 
-        throw new FileNotFoundException($"dxc not found. Set {DXCPathEnvVar} or place it under {Path.Combine(toolsDir, "dxc")}.");
+        throw new FileNotFoundException($"dxc not found. Set {DXCPathEnvVar} or place it under {Path.Combine(toolsDirectory, "dxc")}.");
     }
 
-    private static string? FindOnPath(string exeName)
+    private static string? FindOnPath(string executableName)
     {
         string? path = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrWhiteSpace(path))
+        {
             return null;
+        }
 
         foreach (string entry in path.Split(Path.PathSeparator))
         {
             if (string.IsNullOrWhiteSpace(entry))
+            {
                 continue;
+            }
 
-            string candidate = Path.Combine(entry.Trim(), exeName);
+            string candidate = Path.Combine(entry.Trim(), executableName);
             if (File.Exists(candidate))
+            {
                 return candidate;
+            }
         }
 
         return null;

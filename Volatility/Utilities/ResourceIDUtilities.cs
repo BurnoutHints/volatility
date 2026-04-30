@@ -1,9 +1,6 @@
-﻿using System.Globalization;
-
-using Newtonsoft.Json;
+using System.Globalization;
 
 using static Volatility.Utilities.DataUtilities;
-using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.Utilities;
 
@@ -35,9 +32,9 @@ public static class ResourceIDUtilities
         return Enumerable.Range(0, id.Length / 2).Select(i => id.Substring(i * 2, 2)).ToArray();
     }
 
-    public static bool ValidateResourceID(string ResourceID)
+    public static bool ValidateResourceID(string resourceID)
     {
-        string[] id = PathToResourceID(ResourceID);
+        string[] id = PathToResourceID(resourceID);
 
         if (id.Length != 4)
         {
@@ -45,13 +42,16 @@ public static class ResourceIDUtilities
             {
                 return IsHexadecimal(id[0]) && (id[0].Length == 0x8 || id[0].Length == 0x10);
             }
+
             return false;
-        }       
+        }
 
         foreach (string part in id)
         {
             if (part.Length != 2 || !IsHexadecimal(part))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -64,7 +64,7 @@ public static class ResourceIDUtilities
         if (string.IsNullOrWhiteSpace(input))
             return false;
 
-        string trimmed = input.Trim().Replace("_", "");
+        string trimmed = input.Trim().Replace("_", string.Empty, StringComparison.Ordinal);
         if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             trimmed = trimmed[2..];
 
@@ -87,75 +87,36 @@ public static class ResourceIDUtilities
         return false;
     }
 
-    public static byte[] FlipResourceIDEndian(byte[] ResourceIDElements)
+    public static byte[] FlipResourceIDEndian(byte[] resourceIDElements)
     {
-        if (ResourceIDElements.Length > 4) // Shouldn't usually happen
+        if (resourceIDElements.Length > 4)
         {
-            Array.Reverse(ResourceIDElements, 0, 4);
+            Array.Reverse(resourceIDElements, 0, 4);
         }
         else
         {
-            Array.Reverse(ResourceIDElements);
+            Array.Reverse(resourceIDElements);
         }
-        return ResourceIDElements;
+
+        return resourceIDElements;
     }
 
-    public static string[] FlipResourceIDEndian(string[] ResourceIDElements)
+    public static string[] FlipResourceIDEndian(string[] resourceIDElements)
     {
-        if (ResourceIDElements.Length > 4) // File names & properties
+        if (resourceIDElements.Length > 4)
         {
-            Array.Reverse(ResourceIDElements, 0, 4);
+            Array.Reverse(resourceIDElements, 0, 4);
         }
         else
         {
-            Array.Reverse(ResourceIDElements);
-        }
-        return ResourceIDElements;
-    }
-
-    public static string FlipResourceIDEndian(string ResourceID)
-    {
-        return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(ResourceID)));
-    }
-
-    public static string GetNameByResourceID(string id)
-    {
-        string path = Path.Combine
-        (
-            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
-            "ResourceDB.json"
-        );
-
-        if (File.Exists(path))
-        {
-            Dictionary<string, string>? data = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
-
-            return data.TryGetValue(id.Replace("_", "").ToLower(), out string? value) ? value : "";
+            Array.Reverse(resourceIDElements);
         }
 
-        return "";
+        return resourceIDElements;
     }
 
-    public static string GetNameByResourceID(ResourceID id)
+    public static string FlipResourceIDEndian(string resourceID)
     {
-        string path = Path.Combine
-        (
-            GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB),
-            "ResourceDB.json"
-        );
-
-        if (File.Exists(path))
-        {
-            Dictionary<string, string>? data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            using var reader = File.OpenText(path);
-            using var json = new JsonTextReader(reader);
-            new JsonSerializer()
-                .Populate(json, data);
-
-            return data.TryGetValue(id.ToString(), out string? value) ? value : "";
-        }
-
-        return "";
+        return string.Concat(FlipResourceIDEndian(ResourceNameToResourceID(resourceID)));
     }
 }

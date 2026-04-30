@@ -1,38 +1,84 @@
+using Volatility.Abstractions.Operations;
+using Volatility.Operations;
+
 namespace Volatility.Operations.StringTables;
 
-internal class MergeStringTableEntriesOperation
+internal sealed class MergeStringTableEntriesOperation
+    : IOperation<MergeStringTableEntriesRequest, MergeStringTableEntriesResult>
 {
-    public void Execute(Dictionary<string, Dictionary<string, StringTableResourceEntry>> target, Dictionary<string, Dictionary<string, StringTableResourceEntry>> source, bool overwrite)
+    public Task<OperationResult<MergeStringTableEntriesResult>> ExecuteAsync(
+        MergeStringTableEntriesRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        foreach ((string typeKey, Dictionary<string, StringTableResourceEntry> resourceEntries) in source)
-        {
-            if (!target.TryGetValue(typeKey, out Dictionary<string, StringTableResourceEntry>? typeDict))
-            {
-                target[typeKey] = new Dictionary<string, StringTableResourceEntry>(resourceEntries, StringComparer.OrdinalIgnoreCase);
-                continue;
-            }
+        cancellationToken.ThrowIfCancellationRequested();
 
-            foreach ((string resourceKey, StringTableResourceEntry entry) in resourceEntries)
+        try
+        {
+            foreach ((string typeKey, Dictionary<string, StringTableResourceEntry> resourceEntries) in request.Source)
             {
-                if (!typeDict.TryGetValue(resourceKey, out StringTableResourceEntry? existing))
+                if (!request.Target.TryGetValue(typeKey, out Dictionary<string, StringTableResourceEntry>? typeDict))
                 {
-                    typeDict[resourceKey] = entry;
+                    request.Target[typeKey] = new Dictionary<string, StringTableResourceEntry>(resourceEntries, StringComparer.OrdinalIgnoreCase);
                     continue;
                 }
 
-                if (overwrite)
+                foreach ((string resourceKey, StringTableResourceEntry entry) in resourceEntries)
                 {
-                    existing.Name = entry.Name;
-                }
-
-                foreach (string appearance in entry.Appearances)
-                {
-                    if (!existing.Appearances.Contains(appearance))
+                    if (!typeDict.TryGetValue(resourceKey, out StringTableResourceEntry? existing))
                     {
-                        existing.Appearances.Add(appearance);
+                        typeDict[resourceKey] = entry;
+                        continue;
+                    }
+
+                    if (request.Overwrite)
+                    {
+                        existing.Name = entry.Name;
+                    }
+
+                    foreach (string appearance in entry.Appearances)
+                    {
+                        if (!existing.Appearances.Contains(appearance))
+                        {
+                            existing.Appearances.Add(appearance);
+                        }
                     }
                 }
             }
+
+            progress?.Report(new OperationProgress("merge-string-table-entries", 1.0, null));
+            return Task.FromResult(OperationResultFactory.Success(new MergeStringTableEntriesResult(request.Target)));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(OperationResultFactory.Failure<MergeStringTableEntriesResult>(
+                "merge_string_table_entries_failed",
+                ex.Message,
+                nameof(MergeStringTableEntriesOperation)));
+        }
+    }
+
+    public void Execute(
+        Dictionary<string, Dictionary<string, StringTableResourceEntry>> target,
+        Dictionary<string, Dictionary<string, StringTableResourceEntry>> source,
+        bool overwrite)
+    {
+        OperationResult<MergeStringTableEntriesResult> result = ExecuteAsync(
+            new MergeStringTableEntriesRequest(target, source, overwrite),
+            progress: null,
+            cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        if (!result.Success)
+        {
+            throw OperationResultFactory.CreateException(result, "Failed to merge string table entries.");
         }
     }
 }
+
+internal sealed record MergeStringTableEntriesRequest(
+    Dictionary<string, Dictionary<string, StringTableResourceEntry>> Target,
+    Dictionary<string, Dictionary<string, StringTableResourceEntry>> Source,
+    bool Overwrite) : IOperationRequest;
+
+internal sealed record MergeStringTableEntriesResult(
+    Dictionary<string, Dictionary<string, StringTableResourceEntry>> Entries);

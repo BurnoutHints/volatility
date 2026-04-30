@@ -1,13 +1,17 @@
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Volatility.Abstractions.Messaging;
 using Volatility.CLI;
 using Volatility.CLI.Commands;
+using Volatility.Hosting;
 using Volatility.Messaging;
 
 namespace Volatility;
 
 internal class Frontend
 {
+    private static IServiceProvider? services;
+
     /* 
      * TODO LIST:
      *
@@ -39,22 +43,40 @@ internal class Frontend
 
     static void Main(string[] args)
     {
+        ServiceCollection services = new();
+        services.AddVolatilityCore();
+
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
+        Frontend.services = serviceProvider;
+        VolatilityMessageHost.Reset(serviceProvider.GetRequiredService<IMessageBus>());
         using IDisposable consoleSubscription = ConfigureMessaging();
 
-        if (args.Length > 0)
+        try
         {
-            RunCommandTokenized(args);
+            if (args.Length > 0)
+            {
+                RunCommandTokenized(args);
+            }
+            else
+            {
+                CommandLine();
+            }
         }
-        else
+        finally
         {
-            CommandLine();
+            Frontend.services = null;
+            VolatilityMessageHost.Reset();
         }
     }
 
     static IDisposable ConfigureMessaging()
     {
-        VolatilityMessageHost.Reset();
-        return VolatilityMessageHost.Bus.Subscribe(new ConsoleMessageSink());
+        if (services == null)
+        {
+            throw new InvalidOperationException("Volatility services have not been configured.");
+        }
+
+        return services.GetRequiredService<IMessageBus>().Subscribe(new ConsoleMessageSink());
     }
 
     static void CommandLine()
@@ -73,7 +95,7 @@ internal class Frontend
 
         VolatilityMessageHost.Sink.Info(
             $"Volatility {assembly.GetName().Version} - Build Date: {buildTimestamp}\n",
-            MessageCategory.Cli,
+            MessageCategory.CLI,
             nameof(Frontend));
 
         while (true)
@@ -136,7 +158,7 @@ internal class Frontend
             }
             catch (Exception ex)
             {
-                VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.Cli, nameof(Frontend));
+                VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.CLI, nameof(Frontend));
 #if DEBUG
                 throw;
 #endif
@@ -162,7 +184,7 @@ internal class Frontend
         }
         catch (Exception ex)
         {
-            VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.Cli, nameof(Frontend));
+            VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.CLI, nameof(Frontend));
 #if DEBUG
             throw;
 #endif
@@ -200,7 +222,12 @@ internal class Frontend
 
         if (Commands.TryGetValue(commandName, out Type? commandType) && commandType != null)
         {
-            ICommand? command = Activator.CreateInstance(commandType) as ICommand;
+            if (services == null)
+            {
+                throw new InvalidOperationException("Volatility services have not been configured.");
+            }
+
+            ICommand? command = ActivatorUtilities.CreateInstance(services, commandType) as ICommand;
             if (command != null)
             {
                 command.SetArgs(args);

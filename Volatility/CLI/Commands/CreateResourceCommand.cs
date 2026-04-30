@@ -1,14 +1,20 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
+using Volatility.CLI;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
-using Volatility.Utilities;
 
-using static Volatility.Utilities.EnvironmentUtilities;
 using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.CLI.Commands;
 
 internal class CreateResourceCommand : ICommand
 {
+    private readonly IPathProvider pathProvider;
+    private readonly IOperation<CreateResourceRequest, CreateResourceResult> createOperation;
+    private readonly IOperation<SaveResourceRequest, SaveResourceResult> saveOperation;
+
     public static string CommandToken => "CreateResource";
     public static string CommandDescription => "Creates a new resource file with default/empty fields.";
     public static string CommandParameters => "[--overwrite] --type=<resource type OR index> --format=<tub,bpr[x64],x360,ps3> --name=<asset name> [--id=<resource id>] [--outpath=<file path>]";
@@ -24,74 +30,85 @@ internal class CreateResourceCommand : ICommand
     {
         if (string.IsNullOrWhiteSpace(ResType))
         {
-            Console.WriteLine("Error: No resource type specified! (--type)");
+            CLIMessageUtilities.Error<CreateResourceCommand>("Error: No resource type specified! (--type)");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(Format))
         {
-            Console.WriteLine("Error: No format specified! (--format)");
+            CLIMessageUtilities.Error<CreateResourceCommand>("Error: No format specified! (--format)");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(Name) && string.IsNullOrWhiteSpace(OutputPath))
         {
-            Console.WriteLine("Error: No resource name or output path specified! (--name or --outpath)");
+            CLIMessageUtilities.Error<CreateResourceCommand>("Error: No resource name or output path specified! (--name or --outpath)");
             return;
         }
 
         string formatValue = Format ?? string.Empty;
         bool isX64 = formatValue.EndsWith("x64", StringComparison.OrdinalIgnoreCase);
         if (isX64)
-            formatValue = formatValue[..^3];
-
-        if (!TypeUtilities.TryParseEnum(formatValue, out Platform platform))
         {
-            Console.WriteLine("Error: Invalid file format specified!");
+            formatValue = formatValue[..^3];
+        }
+
+        if (!Volatility.Utilities.TypeUtilities.TryParseEnum(formatValue, out Platform platform))
+        {
+            CLIMessageUtilities.Error<CreateResourceCommand>("Error: Invalid file format specified!");
             return;
         }
 
-        if (!TypeUtilities.TryParseEnum(ResType, out ResourceType resType))
+        if (!Volatility.Utilities.TypeUtilities.TryParseEnum(ResType, out ResourceType resourceType))
         {
-            Console.WriteLine("Error: Invalid resource type specified!");
+            CLIMessageUtilities.Error<CreateResourceCommand>("Error: Invalid resource type specified!");
             return;
         }
 
         ResourceID? parsedId = null;
         if (!string.IsNullOrWhiteSpace(ResourceId))
         {
-            if (!TryParseResourceID(ResourceId, out var id))
+            if (!TryParseResourceID(ResourceId, out ResourceID id))
             {
-                Console.WriteLine("Error: Invalid resource ID specified! (--id)");
+                CLIMessageUtilities.Error<CreateResourceCommand>("Error: Invalid resource ID specified! (--id)");
                 return;
             }
 
             parsedId = id;
         }
 
-        string resourcesDirectory = GetEnvironmentDirectory(EnvironmentDirectory.Resources);
-        CreateResourceOperation createOperation = new(resourcesDirectory);
-        SaveResourceOperation saveOperation = new();
+        OperationResult<CreateResourceResult> createResult = await createOperation.ExecuteAsync(
+            new CreateResourceRequest(resourceType, platform, Name, OutputPath, parsedId, isX64),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+        CLIMessageUtilities.PublishIssues(createResult.Issues, MessageCategory.Resource);
 
-        CreateResourceResult result;
-        try
+        if (!createResult.Success || createResult.Value == null)
         {
-            result = createOperation.Execute(resType, platform, Name, OutputPath, parsedId, isX64);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
             return;
         }
 
-        if (File.Exists(result.ResourcePath) && !Overwrite)
+        CreateResourceResult result = createResult.Value;
+        if (pathProvider.FileExists(result.ResourcePath) && !Overwrite)
         {
-            Console.WriteLine($"Error: Output file already exists ({result.ResourcePath}). Use --overwrite to replace it.");
+            CLIMessageUtilities.Error<CreateResourceCommand>($"Error: Output file already exists ({result.ResourcePath}). Use --overwrite to replace it.");
             return;
         }
 
-        await saveOperation.ExecuteAsync(result.Resource, result.ResourcePath);
-        Console.WriteLine($"Created {Path.GetFileName(result.ResourcePath)} at {Path.GetFullPath(result.ResourcePath)}.");
+        OperationResult<SaveResourceResult> saveResult = await saveOperation.ExecuteAsync(
+            new SaveResourceRequest(result.Resource, result.ResourcePath),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+        CLIMessageUtilities.PublishIssues(saveResult.Issues, MessageCategory.Resource);
+
+        if (!saveResult.Success)
+        {
+            return;
+        }
+
+        CLIMessageUtilities.Success<CreateResourceCommand>(
+            $"Created {Path.GetFileName(result.ResourcePath)} at {pathProvider.GetFullPath(result.ResourcePath)}.",
+            MessageCategory.Resource);
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -104,4 +121,13 @@ internal class CreateResourceCommand : ICommand
         Overwrite = args.TryGetValue("overwrite", out var ow) && (bool)ow;
     }
 
+    public CreateResourceCommand(
+        IPathProvider pathProvider,
+        IOperation<CreateResourceRequest, CreateResourceResult> createOperation,
+        IOperation<SaveResourceRequest, SaveResourceResult> saveOperation)
+    {
+        this.pathProvider = pathProvider;
+        this.createOperation = createOperation;
+        this.saveOperation = saveOperation;
+    }
 }

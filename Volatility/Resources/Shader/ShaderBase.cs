@@ -1,4 +1,7 @@
-﻿namespace Volatility.Resources;
+using System.Text.RegularExpressions;
+using YamlDotNet.Serialization;
+
+namespace Volatility.Resources;
 
 [ResourceDefinition(ResourceType.Shader)]
 [ResourceRegistration(RegistrationPlatforms.Agnostic)]
@@ -27,10 +30,14 @@ public class ShaderBase : Resource
     [EditorCategory("Shader/Compile"), EditorLabel("Additional Arguments"), EditorTooltip("Extra dxc command-line arguments.")]
     public List<string> AdditionalArguments { get; set; } = [];
 
+    [YamlIgnore]
+    public string? ImportedShaderSourceText { get; set; }
+
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
         base.WriteToStream(writer, endianness);
     }
+
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness)
     {
         base.ParseFromStream(reader, endianness);
@@ -86,6 +93,11 @@ public class ShaderBase : Resource
 
         shaderSourceText = File.ReadAllText(resolvedPath);
         return true;
+    }
+
+    internal static Regex ShaderPathSanitizer()
+    {
+        return new Regex(@"(\?ID=\d+)|:", RegexOptions.Compiled);
     }
 
     public ShaderBase() : base() { }

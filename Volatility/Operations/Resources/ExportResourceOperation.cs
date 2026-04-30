@@ -1,21 +1,36 @@
+using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
 namespace Volatility.Operations.Resources;
 
-internal class ExportResourceOperation
+internal sealed class ExportResourceOperation(
+    IPathProvider pathProvider,
+    IShaderCompiler shaderCompiler,
+    CreateShaderProgramBufferOperation shaderProgramBufferOperation,
+    ISplicerSampleStore splicerSampleStore)
 {
     public Task ExecuteAsync(
         Resource resource,
         string outputPath,
         Platform platform,
         Unpacker? importUnpackerOverride = null,
-        bool writeImportsToSeparateFile = false)
+        bool writeImportsToSeparateFile = false,
+        string? splicerDirectory = null)
     {
         string? directoryPath = Path.GetDirectoryName(outputPath);
 
         if (!string.IsNullOrEmpty(directoryPath))
         {
             Directory.CreateDirectory(directoryPath);
+        }
+
+        if (resource is Splicer splicer)
+        {
+            splicerSampleStore.PopulateDependentSamples(
+                splicer,
+                splicerDirectory ?? pathProvider.GetDirectory(VolatilityPathLocation.Splicer));
         }
 
         using FileStream fs = new(outputPath, FileMode.Create);
@@ -51,21 +66,30 @@ internal class ExportResourceOperation
 
             if (platform == Platform.BPR)
             {
-                CreateShaderProgramBufferOperation bufferOperation = new();
                 foreach (var stage in stages)
                 {
                     string shaderProgramBufferPath = GetShaderProgramBufferPath(outputPath, stage, useStageSuffix);
                     string csoPath = GetShaderCSOPath(outputPath, stage, useStageSuffix);
 
-                    DXCShaderCompiler.CompileToCSO(shader, stage, csoPath);
-                    ShaderProgramBufferBase buffer = bufferOperation.ExecuteFromFile(csoPath, stage.ResolveStage(), platform);
-                    bufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
+                    shaderCompiler.CompileToCSO(shader, stage, csoPath);
+                    OperationResult<CreateShaderProgramBufferResult> bufferResult = shaderProgramBufferOperation.ExecuteAsync(
+                        new CreateShaderProgramBufferRequest(stage.ResolveStage(), platform, csoPath),
+                        progress: null,
+                        cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+                    if (!bufferResult.Success || bufferResult.Value == null)
+                    {
+                        throw OperationResultFactory.CreateException(bufferResult, "Failed to create shader program buffer.");
+                    }
+
+                    ShaderProgramBufferBase buffer = bufferResult.Value.Buffer;
+                    shaderProgramBufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
                     WritePaddedCSOFile(csoPath, GetSecondaryResourcePath(shaderProgramBufferPath));
                 }
             }
             else
             {
-                DXCShaderCompiler.CompileStagesToCSO(shader, stages, stage =>
+                shaderCompiler.CompileStagesToCSO(shader, stages, stage =>
                     GetShaderProgramBufferPath(outputPath, stage, useStageSuffix));
             }
         }

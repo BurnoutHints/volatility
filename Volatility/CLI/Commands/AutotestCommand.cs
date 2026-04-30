@@ -1,6 +1,9 @@
 using System.Reflection;
 using System.Text;
 
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Services;
+using Volatility.CLI;
 using Volatility.Operations.Autotest;
 using Volatility.Resources;
 
@@ -11,6 +14,9 @@ namespace Volatility.CLI.Commands;
 
 internal class AutotestCommand : ICommand
 {
+    private readonly IPathProvider pathProvider;
+    private readonly GameAutotestOperation gameAutotestOperation;
+
     public static string CommandToken => "autotest";
     public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
         " When provided a path & format, will import, export, then reimport specified file to ensure IO parity." +
@@ -33,8 +39,7 @@ internal class AutotestCommand : ICommand
         IReadOnlyList<string> gamePaths = ParseGamePaths();
         if (gamePaths.Count > 0)
         {
-            GameAutotestOperation operation = new();
-            GameAutotestSummary summary = await operation.ExecuteAsync(new GameAutotestOptions
+            GameAutotestSummary summary = await gameAutotestOperation.ExecuteAsync(new GameAutotestOptions
             {
                 GamePaths = gamePaths,
                 BundleToolPath = BundleToolPath,
@@ -44,31 +49,35 @@ internal class AutotestCommand : ICommand
                 KeepArtifacts = KeepArtifacts
             });
 
-            Console.WriteLine(
-                $"AUTOTEST - Completed. Passed={summary.Passed}, Failed={summary.Failed}, Skipped={summary.Skipped}");
+            CLIMessageUtilities.Info<AutotestCommand>(
+                $"AUTOTEST - Completed. Passed={summary.Passed}, Failed={summary.Failed}, Skipped={summary.Skipped}",
+                MessageCategory.Autotest);
 
             if (!string.IsNullOrWhiteSpace(RecapPath))
             {
                 string recapFilePath = WriteDetailedRecap(gamePaths, summary, RecapPath);
-                Console.WriteLine($"AUTOTEST - Detailed recap written to: {recapFilePath}");
+                CLIMessageUtilities.Success<AutotestCommand>(
+                    $"AUTOTEST - Detailed recap written to: {recapFilePath}",
+                    MessageCategory.Autotest);
             }
             return;
         }
 
         if (!string.IsNullOrEmpty(Path))
         {
-            TextureBase? header = Format switch
+            if (!TryParseEnum(Format, out Platform platform))
             {
-                "BPR" => new TextureBPR(Path),
-                "TUB" => new TexturePC(Path),
-                "X360" => new TextureX360(Path),
-                "PS3" => new TexturePS3(Path),
-                _ => throw new InvalidPlatformException(),
-            };
+                throw new InvalidPlatformException();
+            }
 
-            header.PullAll();
+            string inputPath = pathProvider.GetFullPath(Path);
+            TextureBase header = (TextureBase)ResourceFactory.LoadResource(
+                ResourceType.Texture,
+                platform,
+                inputPath,
+                resourceDBLookup: null);
 
-            TestHeaderRW($"autotest_{System.IO.Path.GetFileName(Path)}", header);
+            TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
 
             return;
         }
@@ -156,7 +165,9 @@ internal class AutotestCommand : ICommand
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
-        Console.WriteLine($"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipPathResourceIDEndian(endianFlipTestName)}");
+        CLIMessageUtilities.Info<AutotestCommand>(
+            $"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipPathResourceIDEndian(endianFlipTestName)}",
+            MessageCategory.Autotest);
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -209,22 +220,12 @@ internal class AutotestCommand : ICommand
             if (skipImport)
                 return;
             
-            TextureBase? newHeader = System.ComponentModel.TypeDescriptor.CreateInstance(
-                                provider: null,
-                                objectType: header.GetType(),
-                                argTypes: [typeof(string)],
-                                args: new object[] { fs.Name }) as TextureBase;
-
-            try
-            {
-                newHeader?.PullAll();
-            }
-            catch (NotImplementedException)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"A pull isn't implemented for {newHeader?.GetType().Name}!");
-                Console.ResetColor();
-            }
+            TextureBase newHeader = (TextureBase)ResourceFactory.LoadResource(
+                ResourceType.Texture,
+                header.ResourcePlatform,
+                fs.Name,
+                resourceDBLookup: null,
+                x64: header.ResourceArch == Arch.x64);
 
             TestCompareHeaders(header, newHeader);
         }
@@ -310,7 +311,7 @@ internal class AutotestCommand : ICommand
             .ToList();
     }
 
-    private static string WriteDetailedRecap(IReadOnlyList<string> gamePaths, GameAutotestSummary summary, string outputPath)
+    private string WriteDetailedRecap(IReadOnlyList<string> gamePaths, GameAutotestSummary summary, string outputPath)
     {
         string recapPath = ResolveRecapPath(outputPath);
         StringBuilder builder = new();
@@ -404,17 +405,17 @@ internal class AutotestCommand : ICommand
         return recapPath;
     }
 
-    private static string ResolveRecapPath(string outputPath)
+    private string ResolveRecapPath(string outputPath)
     {
-        string fullPath = System.IO.Path.GetFullPath(outputPath);
+        string fullPath = pathProvider.GetFullPath(outputPath);
         bool looksLikeDirectory =
             outputPath.EndsWith(System.IO.Path.DirectorySeparatorChar) ||
             outputPath.EndsWith(System.IO.Path.AltDirectorySeparatorChar) ||
             string.IsNullOrWhiteSpace(System.IO.Path.GetExtension(fullPath));
 
-        if (Directory.Exists(fullPath) || looksLikeDirectory)
+        if (pathProvider.DirectoryExists(fullPath) || looksLikeDirectory)
         {
-            Directory.CreateDirectory(fullPath);
+            pathProvider.CreateDirectory(fullPath);
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
             return System.IO.Path.Combine(fullPath, $"autotest_recap_{timestamp}.md");
         }
@@ -422,7 +423,7 @@ internal class AutotestCommand : ICommand
         string? directory = System.IO.Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrWhiteSpace(directory))
         {
-            Directory.CreateDirectory(directory);
+            pathProvider.CreateDirectory(directory);
         }
 
         return fullPath;
@@ -448,5 +449,9 @@ internal class AutotestCommand : ICommand
             .Trim();
     }
 
-    public AutotestCommand() { }
+    public AutotestCommand(IPathProvider pathProvider, GameAutotestOperation gameAutotestOperation)
+    {
+        this.pathProvider = pathProvider;
+        this.gameAutotestOperation = gameAutotestOperation;
+    }
 }

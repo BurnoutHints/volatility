@@ -1,27 +1,25 @@
 using System.Text;
-
 using Newtonsoft.Json;
-
+using Volatility.Abstractions.Services;
 using Volatility.Operations.StringTables;
-
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Volatility.Utilities;
+namespace Volatility.Services;
 
-internal static class StringTableStorageUtilities
+public sealed class FileStringTableStore : IStringTableStore
 {
-    public static async Task WriteYamlAsync(string yamlFile, Dictionary<string, Dictionary<string, StringTableResourceEntry>> entries)
+    public async Task WriteYamlAsync(string yamlFile, Dictionary<string, Dictionary<string, StringTableResourceEntry>> entries)
     {
-        var serializer = new SerializerBuilder()
+        string yaml = new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
+            .Build()
+            .Serialize(entries);
 
-        string yaml = serializer.Serialize(entries);
         await File.WriteAllTextAsync(yamlFile, yaml, Encoding.UTF8);
     }
 
-    public static async Task<Dictionary<string, string>> LoadJsonAsync(string jsonFile)
+    public async Task<Dictionary<string, string>> LoadJsonAsync(string jsonFile)
     {
         if (!File.Exists(jsonFile))
         {
@@ -36,19 +34,22 @@ internal static class StringTableStorageUtilities
             : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
-    public static async Task WriteJsonAsync(string jsonFile, Dictionary<string, string> entries)
+    public async Task WriteJsonAsync(string jsonFile, Dictionary<string, string> entries)
     {
         string json = JsonConvert.SerializeObject(entries, Formatting.Indented);
         await File.WriteAllTextAsync(jsonFile, json, Encoding.UTF8);
     }
 
-    public static void MergeLegacyEntries(Dictionary<string, string> target, Dictionary<string, Dictionary<string, StringTableResourceEntry>> source, bool overwrite)
+    public void MergeLegacyEntries(
+        Dictionary<string, string> target,
+        Dictionary<string, Dictionary<string, StringTableResourceEntry>> source,
+        bool overwrite)
     {
-        foreach ((string _, Dictionary<string, StringTableResourceEntry> resourceEntries) in source)
+        foreach (Dictionary<string, StringTableResourceEntry> resourceEntries in source.Values)
         {
             foreach ((string resourceKey, StringTableResourceEntry entry) in resourceEntries)
             {
-                string normalizedKey = NormalizeResourceID(resourceKey);
+                string normalizedKey = resourceKey.Replace("_", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
 
                 if (!target.ContainsKey(normalizedKey) || overwrite)
                 {
@@ -56,10 +57,5 @@ internal static class StringTableStorageUtilities
                 }
             }
         }
-    }
-
-    private static string NormalizeResourceID(string resourceID)
-    {
-        return resourceID.Replace("_", "").ToLowerInvariant();
     }
 }

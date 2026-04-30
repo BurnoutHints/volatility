@@ -1,5 +1,8 @@
 using System.Globalization;
 
+using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -35,6 +38,15 @@ internal sealed record GameAutotestCaseResult(
 
 internal sealed class GameAutotestOperation
 {
+    private readonly IPathProvider pathProvider;
+    private readonly IProcessRunner processRunner;
+    private readonly ImportResourceOperation importOperation;
+    private readonly SaveResourceOperation saveOperation;
+    private readonly LoadResourceOperation loadOperation;
+    private readonly ExportResourceOperation exportOperation;
+    private readonly TextureToDDSOperation textureToDdsOperation;
+    private readonly PortTextureOperation portTextureOperation;
+
     private static readonly HashSet<ResourceType> RoundTripTypes =
     [
         ResourceType.Texture,
@@ -86,6 +98,26 @@ internal sealed class GameAutotestOperation
         "TRK_UNIT0_GR.BNDL",
     ];
 
+    public GameAutotestOperation(
+        IPathProvider pathProvider,
+        IProcessRunner processRunner,
+        ImportResourceOperation importOperation,
+        SaveResourceOperation saveOperation,
+        LoadResourceOperation loadOperation,
+        ExportResourceOperation exportOperation,
+        TextureToDDSOperation textureToDdsOperation,
+        PortTextureOperation portTextureOperation)
+    {
+        this.pathProvider = pathProvider;
+        this.processRunner = processRunner;
+        this.importOperation = importOperation;
+        this.saveOperation = saveOperation;
+        this.loadOperation = loadOperation;
+        this.exportOperation = exportOperation;
+        this.textureToDdsOperation = textureToDdsOperation;
+        this.portTextureOperation = portTextureOperation;
+    }
+
     public async Task<GameAutotestSummary> ExecuteAsync(GameAutotestOptions options)
     {
         if (options.GamePaths.Count == 0)
@@ -93,12 +125,12 @@ internal sealed class GameAutotestOperation
             throw new InvalidOperationException("At least one game path must be provided.");
         }
 
-        string repoRoot = WorkspaceUtilities.FindRepositoryRoot();
+        string repoRoot = pathProvider.GetRepositoryRoot();
         bool useYapBundleTool = IsYapTool(options.BundleToolPath);
         string bundleToolPath = GetBundleTool(repoRoot, options.BundleToolPath);
         string sessionRoot = GetSessionRoot(repoRoot, options.WorkingDirectory);
 
-        Directory.CreateDirectory(sessionRoot);
+        pathProvider.CreateDirectory(sessionRoot);
 
         GameAutotestSummary summary = new();
         foreach (string gamePath in options.GamePaths)
@@ -119,7 +151,7 @@ internal sealed class GameAutotestOperation
         GameAutotestSummary summary)
     {
         string gameWorkRoot = Path.Combine(sessionRoot, $"{SanitizePath(game.Name)}_{game.Platform}");
-        Directory.CreateDirectory(gameWorkRoot);
+        pathProvider.CreateDirectory(gameWorkRoot);
 
         Console.WriteLine($"AUTOTEST - Game: {game.Name} ({game.Platform})");
         Console.WriteLine($"AUTOTEST - Working directory: {gameWorkRoot}");
@@ -156,23 +188,15 @@ internal sealed class GameAutotestOperation
         string exportsRoot = Path.Combine(gameWorkRoot, "exports");
         string ddsRoot = Path.Combine(gameWorkRoot, "dds");
         string portRoot = Path.Combine(gameWorkRoot, "port");
-        string toolsRoot = EnvironmentUtilities.GetEnvironmentDirectory(EnvironmentUtilities.EnvironmentDirectory.Tools);
+        string toolsRoot = pathProvider.GetDirectory(VolatilityPathLocation.Tools);
 
-        Directory.CreateDirectory(pass1Resources);
-        Directory.CreateDirectory(pass2Resources);
-        Directory.CreateDirectory(splicerPass1);
-        Directory.CreateDirectory(splicerPass2);
-        Directory.CreateDirectory(exportsRoot);
-        Directory.CreateDirectory(ddsRoot);
-        Directory.CreateDirectory(portRoot);
-
-        ImportResourceOperation importPass1 = new(pass1Resources, toolsRoot, splicerPass1, overwrite: true);
-        ImportResourceOperation importPass2 = new(pass2Resources, toolsRoot, splicerPass2, overwrite: true);
-        SaveResourceOperation saveOperation = new();
-        LoadResourceOperation loadOperation = new();
-        ExportResourceOperation exportOperation = new();
-        TextureToDDSOperation textureToDdsOperation = new();
-        PortTextureOperation portTextureOperation = new();
+        pathProvider.CreateDirectory(pass1Resources);
+        pathProvider.CreateDirectory(pass2Resources);
+        pathProvider.CreateDirectory(splicerPass1);
+        pathProvider.CreateDirectory(splicerPass2);
+        pathProvider.CreateDirectory(exportsRoot);
+        pathProvider.CreateDirectory(ddsRoot);
+        pathProvider.CreateDirectory(portRoot);
 
         foreach (ResourceTestCandidate candidate in candidates)
         {
@@ -181,22 +205,22 @@ internal sealed class GameAutotestOperation
                 await RunRoundTripAsync(
                     game,
                     candidate,
-                    importPass1,
-                    importPass2,
-                    saveOperation,
-                    loadOperation,
-                    exportOperation,
+                    pass1Resources,
+                    pass2Resources,
+                    toolsRoot,
+                    splicerPass1,
+                    splicerPass2,
                     exportsRoot,
                     summary);
             }
             else if (ImportOnlyTypes.Contains(candidate.ResourceType))
             {
-                await RunImportOnlyAsync(game, candidate, importPass1, saveOperation, summary);
+                await RunImportOnlyAsync(game, candidate, pass1Resources, toolsRoot, splicerPass1, summary);
             }
 
             if (candidate.ResourceType == ResourceType.Texture)
             {
-                await RunTextureOperationsAsync(game, candidate, textureToDdsOperation, portTextureOperation, ddsRoot, portRoot, summary);
+                await RunTextureOperationsAsync(game, candidate, ddsRoot, portRoot, summary);
             }
         }
 
@@ -206,14 +230,14 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static async Task RunRoundTripAsync(
+    private async Task RunRoundTripAsync(
         GameInstall game,
         ResourceTestCandidate candidate,
-        ImportResourceOperation importPass1,
-        ImportResourceOperation importPass2,
-        SaveResourceOperation saveOperation,
-        LoadResourceOperation loadOperation,
-        ExportResourceOperation exportOperation,
+        string pass1Resources,
+        string pass2Resources,
+        string toolsRoot,
+        string splicerPass1,
+        string splicerPass2,
         string exportsRoot,
         GameAutotestSummary summary)
     {
@@ -223,12 +247,20 @@ internal sealed class GameAutotestOperation
 
         try
         {
-            ImportResourceResult firstImport = await importPass1.ExecuteAsync(candidate.ResourceType, game.Platform, candidate.SourcePath, isX64: false);
-            await saveOperation.ExecuteAsync(firstImport.Resource, firstImport.ResourcePath);
+            ImportResourceResult firstImport = await importOperation.ExecuteAsync(new ImportResourceRequest(
+                candidate.ResourceType,
+                game.Platform,
+                candidate.SourcePath,
+                IsX64: false,
+                pass1Resources,
+                toolsRoot,
+                splicerPass1,
+                Overwrite: true));
+            await SaveAsync(firstImport.Resource, firstImport.ResourcePath);
 
-            Resource loaded = await loadOperation.ExecuteAsync(firstImport.ResourcePath, candidate.ResourceType, game.Platform);
+            Resource loaded = await LoadAsync(firstImport.ResourcePath, candidate.ResourceType, game.Platform);
             exportPath = Path.Combine(exportsRoot, Path.GetFileName(candidate.SourcePath));
-            await exportOperation.ExecuteAsync(loaded, exportPath, game.Platform);
+            await exportOperation.ExecuteAsync(loaded, exportPath, game.Platform, splicerDirectory: splicerPass1);
 
             BinaryComparisonResult binaryComparison = CompareFiles(candidate.SourcePath, exportPath);
             AddCase(summary, new GameAutotestCaseResult(
@@ -240,8 +272,16 @@ internal sealed class GameAutotestOperation
                 TestedResourceType: candidate.ResourceType));
             binaryParityRecorded = true;
 
-            ImportResourceResult secondImport = await importPass2.ExecuteAsync(candidate.ResourceType, game.Platform, exportPath, isX64: false);
-            await saveOperation.ExecuteAsync(secondImport.Resource, secondImport.ResourcePath);
+            ImportResourceResult secondImport = await importOperation.ExecuteAsync(new ImportResourceRequest(
+                candidate.ResourceType,
+                game.Platform,
+                exportPath,
+                IsX64: false,
+                pass2Resources,
+                toolsRoot,
+                splicerPass2,
+                Overwrite: true));
+            await SaveAsync(secondImport.Resource, secondImport.ResourcePath);
 
             string firstYaml = NormalizeYaml(await File.ReadAllTextAsync(firstImport.ResourcePath));
             string secondYaml = NormalizeYaml(await File.ReadAllTextAsync(secondImport.ResourcePath));
@@ -282,19 +322,28 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static async Task RunImportOnlyAsync(
+    private async Task RunImportOnlyAsync(
         GameInstall game,
         ResourceTestCandidate candidate,
-        ImportResourceOperation importOperation,
-        SaveResourceOperation saveOperation,
+        string resourcesDirectory,
+        string toolsRoot,
+        string splicerDirectory,
         GameAutotestSummary summary)
     {
         string caseName = $"{candidate.ResourceType}:{candidate.DisplayName}";
 
         try
         {
-            ImportResourceResult importResult = await importOperation.ExecuteAsync(candidate.ResourceType, game.Platform, candidate.SourcePath, isX64: false);
-            await saveOperation.ExecuteAsync(importResult.Resource, importResult.ResourcePath);
+            ImportResourceResult importResult = await importOperation.ExecuteAsync(new ImportResourceRequest(
+                candidate.ResourceType,
+                game.Platform,
+                candidate.SourcePath,
+                IsX64: false,
+                resourcesDirectory,
+                toolsRoot,
+                splicerDirectory,
+                Overwrite: true));
+            await SaveAsync(importResult.Resource, importResult.ResourcePath);
             AddCase(summary, new GameAutotestCaseResult(game.Name, caseName, "import", "PASS", TestedResourceType: candidate.ResourceType));
         }
         catch (Exception ex)
@@ -303,11 +352,9 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static async Task RunTextureOperationsAsync(
+    private async Task RunTextureOperationsAsync(
         GameInstall game,
         ResourceTestCandidate candidate,
-        TextureToDDSOperation textureToDdsOperation,
-        PortTextureOperation portTextureOperation,
         string ddsRoot,
         string portRoot,
         GameAutotestSummary summary)
@@ -337,7 +384,7 @@ internal sealed class GameAutotestOperation
             string destinationFormat = destinationPlatform == Platform.TUB ? "TUB" : destinationPlatform.ToString().ToUpperInvariant();
             string sourceFormat = game.Platform == Platform.TUB ? "TUB" : game.Platform.ToString().ToUpperInvariant();
             string destinationPath = Path.Combine(portRoot, destinationPlatform.ToString());
-            Directory.CreateDirectory(destinationPath);
+            pathProvider.CreateDirectory(destinationPath);
 
             await portTextureOperation.ExecuteAsync(
                 [candidate.SourcePath],
@@ -346,7 +393,7 @@ internal sealed class GameAutotestOperation
                 destinationFormat,
                 destinationPath,
                 verbose: false,
-                useGtf: false);
+                useGTF: false);
 
             AddCase(summary, new GameAutotestCaseResult(game.Name, portCaseName, "porttexture", "PASS", TestedResourceType: ResourceType.Texture));
         }
@@ -356,13 +403,41 @@ internal sealed class GameAutotestOperation
         }
     }
 
+    private async Task<Resource> LoadAsync(string sourceFile, ResourceType resourceType, Platform platform)
+    {
+        OperationResult<LoadResourceResult> result = await loadOperation.ExecuteAsync(
+            new LoadResourceRequest(sourceFile, resourceType, platform),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+
+        if (!result.Success || result.Value == null)
+        {
+            throw OperationResultFactory.CreateException(result, "Failed to load resource.");
+        }
+
+        return result.Value.Resource;
+    }
+
+    private async Task SaveAsync(Resource resource, string filePath)
+    {
+        OperationResult<SaveResourceResult> result = await saveOperation.ExecuteAsync(
+            new SaveResourceRequest(resource, filePath),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+
+        if (!result.Success)
+        {
+            throw OperationResultFactory.CreateException(result, "Failed to save resource.");
+        }
+    }
+
     private static IEnumerable<ResourceTestCandidate> GetDirect(GameInstall game)
     {
         _ = game;
         yield break;
     }
 
-    private static List<ProbedBundle> ProbeBundles(
+    private List<ProbedBundle> ProbeBundles(
         GameInstall game,
         string bundleToolPath,
         bool useYapBundleTool,
@@ -376,7 +451,7 @@ internal sealed class GameAutotestOperation
         }
 
         string probeRoot = Path.Combine(gameWorkRoot, "bundle_probes");
-        Directory.CreateDirectory(probeRoot);
+        pathProvider.CreateDirectory(probeRoot);
 
         HashSet<ResourceType> reportedUnsupportedTypes = [];
         List<ProbedBundle> probes = [];
@@ -393,14 +468,14 @@ internal sealed class GameAutotestOperation
             {
                 if (useYapBundleTool)
                 {
-                    ProcessUtilities.RunAndCapture(
+                    processRunner.RunAndCapture(
                         bundleToolPath,
                         $"e \"{bundlePath}\" \"{outputDirectory}\"",
                         Path.GetDirectoryName(bundleToolPath));
                 }
                 else
                 {
-                    ProcessUtilities.RunAndCapture(
+                    processRunner.RunAndCapture(
                         bundleToolPath,
                         $"--bundle \"{bundlePath}\" --output \"{outputDirectory}\" --manifest \"{manifestPath}\" --metadataonly",
                         Path.GetDirectoryName(bundleToolPath));
@@ -444,7 +519,7 @@ internal sealed class GameAutotestOperation
         return probes;
     }
 
-    private static List<ProbedBundle> ProbeYapBundles(
+    private List<ProbedBundle> ProbeYapBundles(
         GameInstall game,
         string bundleToolPath,
         string gameWorkRoot,
@@ -471,7 +546,7 @@ internal sealed class GameAutotestOperation
 
         try
         {
-            ProcessUtilities.RunAndCapture(
+            processRunner.RunAndCapture(
                 bundleToolPath,
                 $"-d e \"{inputRoot}\" \"{probeRoot}\"",
                 Path.GetDirectoryName(bundleToolPath));
@@ -513,7 +588,7 @@ internal sealed class GameAutotestOperation
         return probes;
     }
 
-    private static List<ResourceTestCandidate> GetBundleTests(
+    private List<ResourceTestCandidate> GetBundleTests(
         GameInstall game,
         string bundleToolPath,
         bool useYapBundleTool,
@@ -523,7 +598,7 @@ internal sealed class GameAutotestOperation
         GameAutotestSummary summary)
     {
         string extractedRoot = Path.Combine(gameWorkRoot, "bundles");
-        Directory.CreateDirectory(extractedRoot);
+        pathProvider.CreateDirectory(extractedRoot);
 
         HashSet<ResourceType> blockedTypes = [];
         Dictionary<ResourceType, int> selectedCounts = new();
@@ -573,7 +648,7 @@ internal sealed class GameAutotestOperation
 
                 try
                 {
-                    ProcessUtilities.RunAndCapture(
+                    processRunner.RunAndCapture(
                         bundleToolPath,
                         $"--bundle \"{probedBundle.BundlePath}\" --output \"{outputDirectory}\" --manifest \"{manifestPath}\"",
                         Path.GetDirectoryName(bundleToolPath));
@@ -701,14 +776,14 @@ internal sealed class GameAutotestOperation
         }
     }
 
-    private static void ResetDirectory(string path)
+    private void ResetDirectory(string path)
     {
-        if (Directory.Exists(path))
+        if (pathProvider.DirectoryExists(path))
         {
             Directory.Delete(path, recursive: true);
         }
 
-        Directory.CreateDirectory(path);
+        pathProvider.CreateDirectory(path);
     }
 
     private static IEnumerable<BundleManifestEntry> ParseManifest(string bundlePath, string outputDirectory, string manifestPath)
@@ -1053,7 +1128,7 @@ internal sealed class GameAutotestOperation
         return string.Equals(bundleToolPath, "YAP", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string GetBundleTool(string repoRoot, string? bundleToolPath)
+    private string GetBundleTool(string repoRoot, string? bundleToolPath)
     {
         if (IsYapTool(bundleToolPath))
         {
@@ -1062,8 +1137,8 @@ internal sealed class GameAutotestOperation
 
         if (!string.IsNullOrWhiteSpace(bundleToolPath))
         {
-            string explicitPath = Path.GetFullPath(bundleToolPath);
-            if (!File.Exists(explicitPath))
+            string explicitPath = pathProvider.GetFullPath(bundleToolPath);
+            if (!pathProvider.FileExists(explicitPath))
             {
                 throw new FileNotFoundException($"Bundle extractor not found: {explicitPath}");
             }
@@ -1072,15 +1147,15 @@ internal sealed class GameAutotestOperation
         }
 
         string defaultTool = Path.Combine(repoRoot, "tools", "libbndl-extractor", "build", "volatility_libbndl_extract.exe");
-        if (File.Exists(defaultTool))
+        if (pathProvider.FileExists(defaultTool))
         {
             return defaultTool;
         }
 
         string buildScript = Path.Combine(repoRoot, "tools", "libbndl-extractor", "build.ps1");
-        ProcessUtilities.RunAndCapture("powershell", $"-ExecutionPolicy Bypass -File \"{buildScript}\"", repoRoot);
+        processRunner.RunAndCapture("powershell", $"-ExecutionPolicy Bypass -File \"{buildScript}\"", repoRoot);
 
-        if (!File.Exists(defaultTool))
+        if (!pathProvider.FileExists(defaultTool))
         {
             throw new FileNotFoundException($"Failed to build bundle extractor at {defaultTool}");
         }
@@ -1088,27 +1163,27 @@ internal sealed class GameAutotestOperation
         return defaultTool;
     }
 
-    private static string GetSessionRoot(string repoRoot, string? workingDirectory)
+    private string GetSessionRoot(string repoRoot, string? workingDirectory)
     {
         if (!string.IsNullOrWhiteSpace(workingDirectory))
         {
-            return Path.GetFullPath(workingDirectory);
+            return pathProvider.GetFullPath(workingDirectory);
         }
 
         string stamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
         return Path.Combine(repoRoot, ".tmp", "game-autotest", stamp);
     }
 
-    private static GameInstall DetectGame(string gamePath)
+    private GameInstall DetectGame(string gamePath)
     {
-        string fullPath = Path.GetFullPath(gamePath);
-        if (!Directory.Exists(fullPath))
+        string fullPath = pathProvider.GetFullPath(gamePath);
+        if (!pathProvider.DirectoryExists(fullPath))
         {
             throw new DirectoryNotFoundException($"Game directory not found: {fullPath}");
         }
 
-        if (File.Exists(Path.Combine(fullPath, "BurnoutPR.exe")) ||
-            File.Exists(Path.Combine(fullPath, "BurnoutPR_trial.exe")))
+        if (pathProvider.FileExists(Path.Combine(fullPath, "BurnoutPR.exe")) ||
+            pathProvider.FileExists(Path.Combine(fullPath, "BurnoutPR_trial.exe")))
         {
             return new GameInstall(Path.GetFileName(fullPath), fullPath, Platform.TUB);
         }

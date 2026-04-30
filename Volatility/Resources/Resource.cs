@@ -1,4 +1,6 @@
-﻿using static Volatility.Utilities.ResourceIDUtilities;
+using Volatility.Abstractions.Services;
+
+using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.Resources;
 
@@ -20,21 +22,22 @@ public abstract class Resource
     public Unpacker Unpacker = Unpacker.Raw;
 
     public ResourceType ResourceType => ResourceMetadata.GetResourceType(GetType());
-    public virtual Endian ResourceEndian => Endian.Agnostic;   // Forced endianness for platform-specific resources (e.g. Textures)
+    public virtual Endian ResourceEndian => Endian.Agnostic;
     public virtual Platform ResourcePlatform => Platform.Agnostic;
     public virtual Arch ResourceArch => Arch;
     public virtual void SetResourceArch(Arch newArch) { Arch = newArch; }
     public virtual IEnumerable<KeyValuePair<long, ResourceImport>> GetExternalImports() { yield break; }
 
-    public virtual void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic) 
-    { 
+    public virtual void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
+    {
         if (ResourceEndian != Endian.Agnostic)
             writer.SetEndianness(ResourceEndian);
 
         else if (endianness != Endian.Agnostic)
             writer.SetEndianness(endianness);
     }
-    public virtual void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic) 
+
+    public virtual void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {
         if (ResourceEndian != Endian.Agnostic)
             reader.SetEndianness(ResourceEndian);
@@ -47,69 +50,70 @@ public abstract class Resource
 
     public Resource(string path, Endian endianness = Endian.Agnostic)
     {
-        InitializeFromPath(path, endianness);
+        LoadFromPath(path, endianness);
     }
 
-    protected void InitializeFromPath(string path, Endian endianness = Endian.Agnostic)
+    internal void LoadFromPath(
+        string path,
+        Endian endianness = Endian.Agnostic,
+        IResourceDBLookup? resourceDBLookup = null)
     {
         if (string.IsNullOrEmpty(path))
             return;
 
         ImportedFileName = path;
 
-        // Don't parse a directory
         if (new DirectoryInfo(path).Exists)
             return;
 
         string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
-
-        Endian importEndianness = (ResourceEndian != Endian.Agnostic) ? ResourceEndian : endianness;
+        Endian importEndianness = ResourceEndian != Endian.Agnostic ? ResourceEndian : endianness;
 
         if (!string.IsNullOrEmpty(name))
         {
-            // If the filename is a ResourceID, we scan the users' ResourceDB (if available)
-            // to find a matching asset name for the provided ResourceID. If none is found,
-            // the ResourceID is used in place of a real asset name. If the filename is not a
-            // ResourceID, we simply use the file name as the asset name, and calculate a new ResourceID.
             Unpacker = GetUnpackerFromFileName(Path.GetFileName(ImportedFileName));
             if (Unpacker != Unpacker.Raw)
             {
                 int idx = name.LastIndexOf('_');
                 name = Unpacker switch
                 {
-                    Unpacker.DGI => name.Replace("_", ""),
+                    Unpacker.DGI => name.Replace("_", string.Empty, StringComparison.Ordinal),
                     Unpacker.Bnd2Manager or Unpacker.YAP when idx > 0 => name[..idx],
-                    Unpacker.Bnd2Manager or Unpacker.YAP => name,                    
+                    Unpacker.Bnd2Manager or Unpacker.YAP => name,
                     _ => name
                 };
             }
+
             if (ValidateResourceID(name))
             {
-                // We store ResourceIDs how BE platforms do to be consistent with the original console releases.
-                // This makes it easy to cross reference assets between all platforms.
-                ResourceID = Convert.ToUInt64((importEndianness == Endian.LE && Unpacker != Unpacker.YAP)
-                    ? FlipResourceIDEndian(name)
-                    : name
-                    , 16);
+                ResourceID = Convert.ToUInt64(
+                    importEndianness == Endian.LE && Unpacker != Unpacker.YAP
+                        ? FlipResourceIDEndian(name)
+                        : name,
+                    16);
 
-                string newName = GetNameByResourceID(ResourceID);
-                AssetName = !string.IsNullOrEmpty(newName)
-                    ? newName
+                string resolvedName = resourceDBLookup?.GetNameByResourceId(ResourceID) ?? string.Empty;
+                AssetName = !string.IsNullOrEmpty(resolvedName)
+                    ? resolvedName
                     : ResourceID.ToString();
             }
             else
             {
-                // TODO: Add new entry to ResourceDB
-                ResourceID = Convert.ToUInt64(ResourceID.FromIDString(name));
                 AssetName = name;
+
+                if (TryParseResourceID(name, out ResourceID parsedResourceId))
+                {
+                    ResourceID = parsedResourceId;
+                }
+                else
+                {
+                    ResourceID = ResourceID.HashFromString(name);
+                }
             }
-
         }
 
-        using (ResourceBinaryReader reader = new ResourceBinaryReader(new FileStream($"{path}", FileMode.Open), importEndianness))
-        {
-            ParseFromStream(reader, importEndianness);
-        }
+        using ResourceBinaryReader reader = new(new FileStream(path, FileMode.Open), importEndianness);
+        ParseFromStream(reader, importEndianness);
     }
 
     private static Unpacker GetUnpackerFromFileName(string filename)
@@ -121,7 +125,6 @@ public abstract class Resource
             var n when n.EndsWith("_primary.dat", StringComparison.OrdinalIgnoreCase) => Unpacker.YAP,
             var n when n.EndsWith(".dat", StringComparison.OrdinalIgnoreCase)
                       && n.Count(c => c == '_') == 3 => Unpacker.DGI,
-            var n when n.EndsWith(".dat", StringComparison.OrdinalIgnoreCase) => Unpacker.YAP,
             _ => Unpacker.Raw,
         };
     }
@@ -129,7 +132,6 @@ public abstract class Resource
     public virtual void PushAll() { }
     public virtual void PullAll() { }
 }
-
 
 public enum ResourceType
 {
@@ -270,7 +272,7 @@ public enum Platform
     PS3 = 3,
 }
 
-public enum Unpacker 
+public enum Unpacker
 {
     Raw = 0,
     Volatility = 1,

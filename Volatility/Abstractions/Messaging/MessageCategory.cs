@@ -9,5 +9,5 @@ public enum MessageCategory
     StringTable,
     Autotest,
     Process,
-    Cli
+    CLI
 }

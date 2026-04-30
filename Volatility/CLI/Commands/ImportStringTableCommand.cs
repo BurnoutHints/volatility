@@ -1,12 +1,18 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
+using Volatility.CLI;
 using Volatility.Operations.StringTables;
-using Volatility.Utilities;
-
-using static Volatility.Utilities.EnvironmentUtilities;
 
 namespace Volatility.CLI.Commands;
 
 internal class ImportStringTableCommand : ICommand
 {
+    private readonly IPathProvider pathProvider;
+    private readonly IStringTableStore stringTableStore;
+    private readonly IOperation<LoadResourceDictionaryRequest, LoadResourceDictionaryResult> loadOperation;
+    private readonly ImportStringTableOperation importOperation;
+
     public static string CommandToken => "ImportStringTable";
     public static string CommandDescription => "Imports entries into the ResourceDB from files containing a ResourceStringTable.";
     public static string CommandParameters => "[--verbose] [--overwrite] [--recurse] [--endian=<le,be>] [--version=<v1,v2>] --path=<file path>";
@@ -22,53 +28,73 @@ internal class ImportStringTableCommand : ICommand
     {
         if (string.IsNullOrEmpty(ImportPath))
         {
-            Console.WriteLine("Error: No import path specified! (--path)");
+            CLIMessageUtilities.Error<ImportStringTableCommand>("Error: No import path specified! (--path)");
             return;
         }
 
-        var filePaths = ICommand.GetFilePathsInDirectory(ImportPath, ICommand.TargetFileType.Any, Recursive);
+        string[] filePaths = pathProvider.GetFilePaths(ImportPath, VolatilityFilePathFilter.Any, Recursive);
         if (filePaths.Length == 0)
         {
-            Console.WriteLine("Error: No files or folders found within the specified path!");
+            CLIMessageUtilities.Error<ImportStringTableCommand>("Error: No files or folders found within the specified path!");
             return;
         }
 
-        Console.WriteLine("Importing data from ResourceStringTables into the ResourceDB... this may take a while!");
+        CLIMessageUtilities.Info<ImportStringTableCommand>(
+            "Importing data from ResourceStringTables into the ResourceDB... this may take a while!",
+            MessageCategory.StringTable);
 
-        string directoryPath = GetEnvironmentDirectory(EnvironmentDirectory.ResourceDB);
-        Directory.CreateDirectory(directoryPath);
+        string directoryPath = pathProvider.GetDirectory(VolatilityPathLocation.ResourceDB);
+        pathProvider.CreateDirectory(directoryPath);
 
-        var loadOperation = new LoadResourceDictionaryOperation();
-        var mergeOperation = new MergeStringTableEntriesOperation();
-        var importOperation = new ImportStringTableOperation(mergeOperation);
         string version = Version ?? "v2";
 
-        if (version == "v1")
+        try
         {
-            string jsonFile = Path.Combine(directoryPath, "ResourceDB.json");
-            var importedEntries = new Dictionary<string, Dictionary<string, StringTableResourceEntry>>(StringComparer.OrdinalIgnoreCase);
-            await importOperation.ExecuteAsync(filePaths, importedEntries, Endian ?? "le", Overwrite, Verbose);
+            if (version == "v1")
+            {
+                string jsonFile = Path.Combine(directoryPath, "ResourceDB.json");
+                var importedEntries = new Dictionary<string, Dictionary<string, StringTableResourceEntry>>(StringComparer.OrdinalIgnoreCase);
+                await importOperation.ExecuteAsync(filePaths, importedEntries, Endian ?? "le", Overwrite, Verbose);
 
-            var legacyEntries = await StringTableStorageUtilities.LoadJsonAsync(jsonFile);
-            StringTableStorageUtilities.MergeLegacyEntries(legacyEntries, importedEntries, Overwrite);
-            await StringTableStorageUtilities.WriteJsonAsync(jsonFile, legacyEntries);
+                var legacyEntries = await stringTableStore.LoadJsonAsync(jsonFile);
+                stringTableStore.MergeLegacyEntries(legacyEntries, importedEntries, Overwrite);
+                await stringTableStore.WriteJsonAsync(jsonFile, legacyEntries);
 
-            Console.WriteLine($"Finished importing all ResourceDB (v1) data at {jsonFile}.");
-            return;
+                CLIMessageUtilities.Success<ImportStringTableCommand>(
+                    $"Finished importing all ResourceDB (v1) data at {jsonFile}.",
+                    MessageCategory.StringTable);
+                return;
+            }
+
+            if (version != "v2")
+            {
+                CLIMessageUtilities.Error<ImportStringTableCommand>("Error: Invalid version specified! (--version must be v1 or v2)");
+                return;
+            }
+
+            string yamlFile = Path.Combine(directoryPath, "ResourceDB.yaml");
+            OperationResult<LoadResourceDictionaryResult> loadResult = await loadOperation.ExecuteAsync(
+                new LoadResourceDictionaryRequest(yamlFile),
+                progress: null,
+                cancellationToken: CancellationToken.None);
+            CLIMessageUtilities.PublishIssues(loadResult.Issues, MessageCategory.StringTable);
+
+            if (!loadResult.Success || loadResult.Value == null)
+            {
+                return;
+            }
+
+            await importOperation.ExecuteAsync(filePaths, loadResult.Value.Entries, Endian ?? "le", Overwrite, Verbose);
+            await stringTableStore.WriteYamlAsync(yamlFile, loadResult.Value.Entries);
+
+            CLIMessageUtilities.Success<ImportStringTableCommand>(
+                $"Finished importing all ResourceDB (v2) data at {yamlFile}.",
+                MessageCategory.StringTable);
         }
-
-        if (version != "v2")
+        catch (Exception ex)
         {
-            Console.WriteLine("Error: Invalid version specified! (--version must be v1 or v2)");
-            return;
+            CLIMessageUtilities.Error<ImportStringTableCommand>($"Error: {ex.Message}");
         }
-
-        string yamlFile = Path.Combine(directoryPath, "ResourceDB.yaml");
-        var allEntries = await loadOperation.ExecuteAsync(yamlFile);
-        await importOperation.ExecuteAsync(filePaths, allEntries, Endian ?? "le", Overwrite, Verbose);
-        await StringTableStorageUtilities.WriteYamlAsync(yamlFile, allEntries);
-
-        Console.WriteLine($"Finished importing all ResourceDB (v2) data at {yamlFile}.");
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -81,5 +107,15 @@ internal class ImportStringTableCommand : ICommand
         Verbose = args.TryGetValue("verbose", out var ve) && (bool)ve;
     }
 
-    public ImportStringTableCommand() { }
+    public ImportStringTableCommand(
+        IPathProvider pathProvider,
+        IStringTableStore stringTableStore,
+        IOperation<LoadResourceDictionaryRequest, LoadResourceDictionaryResult> loadOperation,
+        ImportStringTableOperation importOperation)
+    {
+        this.pathProvider = pathProvider;
+        this.stringTableStore = stringTableStore;
+        this.loadOperation = loadOperation;
+        this.importOperation = importOperation;
+    }
 }

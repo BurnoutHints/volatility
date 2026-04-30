@@ -1,27 +1,43 @@
 using System.Text;
 using System.Xml.Linq;
+using Volatility.Abstractions.Operations;
+using Volatility.Operations;
 
-using static Volatility.Utilities.ResourceIDUtilities;
 using static Volatility.Utilities.DictUtilities;
+using static Volatility.Utilities.ResourceIDUtilities;
 
 namespace Volatility.Operations.StringTables;
 
-internal class ImportStringTableOperation
+internal sealed class ImportStringTableOperation
 {
-    private readonly MergeStringTableEntriesOperation mergeOperation;
+    private readonly IOperation<MergeStringTableEntriesRequest, MergeStringTableEntriesResult> mergeOperation;
 
-    public ImportStringTableOperation(MergeStringTableEntriesOperation mergeOperation)
+    public ImportStringTableOperation(
+        IOperation<MergeStringTableEntriesRequest, MergeStringTableEntriesResult> mergeOperation)
     {
         this.mergeOperation = mergeOperation;
     }
 
-    public async Task ExecuteAsync(IEnumerable<string> filePaths, Dictionary<string, Dictionary<string, StringTableResourceEntry>> entries, string endian, bool overwrite, bool verbose)
+    public async Task ExecuteAsync(
+        IEnumerable<string> filePaths,
+        Dictionary<string, Dictionary<string, StringTableResourceEntry>> entries,
+        string endian,
+        bool overwrite,
+        bool verbose)
     {
         var results = await Task.WhenAll(filePaths.Select(path => ProcessFileAsync(path, endian, overwrite, verbose)));
 
-        foreach (var fileResult in results)
+        foreach (Dictionary<string, Dictionary<string, StringTableResourceEntry>> fileResult in results)
         {
-            mergeOperation.Execute(entries, fileResult, overwrite);
+            OperationResult<MergeStringTableEntriesResult> mergeResult = await mergeOperation.ExecuteAsync(
+                new MergeStringTableEntriesRequest(entries, fileResult, overwrite),
+                progress: null,
+                cancellationToken: CancellationToken.None);
+
+            if (!mergeResult.Success)
+            {
+                throw OperationResultFactory.CreateException(mergeResult, "Failed to merge string table entries.");
+            }
         }
 
         GC.Collect();
@@ -29,7 +45,11 @@ internal class ImportStringTableOperation
         GC.Collect();
     }
 
-    private async Task<Dictionary<string, Dictionary<string, StringTableResourceEntry>>> ProcessFileAsync(string filePath, string endian, bool overwrite, bool verbose)
+    private static async Task<Dictionary<string, Dictionary<string, StringTableResourceEntry>>> ProcessFileAsync(
+        string filePath,
+        string endian,
+        bool overwrite,
+        bool verbose)
     {
         var entriesByType = new Dictionary<string, Dictionary<string, StringTableResourceEntry>>(StringComparer.OrdinalIgnoreCase);
         string fileName = Path.GetFileName(filePath)!;
@@ -39,12 +59,16 @@ internal class ImportStringTableOperation
         int end = text.IndexOf("</ResourceStringTable>") + "</ResourceStringTable>".Length;
         if (start < 0 || end <= start)
         {
-            if (verbose) Console.WriteLine($"Skipping (no table): {fileName}");
+            if (verbose)
+            {
+                Console.WriteLine($"Skipping (no table): {fileName}");
+            }
+
             return entriesByType;
         }
 
         XDocument xmlDoc = XDocument.Parse(text[start..end]);
-        var entries = xmlDoc.Descendants("Resource")
+        var resourceEntries = xmlDoc.Descendants("Resource")
             .Select(x => new
             {
                 Id = endian == "be"
@@ -54,20 +78,28 @@ internal class ImportStringTableOperation
                 Name = (string)x.Attribute("name")!
             }).ToList();
 
-        foreach (var e in entries)
+        foreach (var entry in resourceEntries)
         {
-            var dict = entriesByType.GetOrCreate(e.Type, () => new Dictionary<string, StringTableResourceEntry>());
-            if (!dict.TryGetValue(e.Id, out StringTableResourceEntry? existing))
+            var dict = entriesByType.GetOrCreate(entry.Type, () => new Dictionary<string, StringTableResourceEntry>());
+            if (!dict.TryGetValue(entry.Id, out StringTableResourceEntry? existing))
             {
-                dict[e.Id] = new StringTableResourceEntry { Name = e.Name, Appearances = { fileName } };
-                if (verbose) Console.WriteLine($"Found {e.Type} entry in {Path.GetFileName(filePath)} - {e.Name}");
+                dict[entry.Id] = new StringTableResourceEntry { Name = entry.Name, Appearances = { fileName } };
+                if (verbose)
+                {
+                    Console.WriteLine($"Found {entry.Type} entry in {Path.GetFileName(filePath)} - {entry.Name}");
+                }
             }
             else
             {
                 if (overwrite)
-                    existing.Name = e.Name;
+                {
+                    existing.Name = entry.Name;
+                }
+
                 if (!existing.Appearances.Contains(fileName))
+                {
                     existing.Appearances.Add(fileName);
+                }
             }
         }
 
