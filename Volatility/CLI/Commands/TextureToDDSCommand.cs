@@ -1,4 +1,5 @@
 using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
@@ -9,7 +10,7 @@ namespace Volatility.CLI.Commands;
 internal class TextureToDDSCommand : ICommand
 {
     private readonly IPathProvider pathProvider;
-    private readonly TextureToDDSOperation operation;
+    private readonly IOperation<TextureToDDSRequest, TextureToDDSResult> operation;
 
     public static string CommandToken => "TextureToDDS";
     public static string CommandDescription => "Converts texture resources and their sidecar bitmap data into DDS files.";
@@ -59,7 +60,11 @@ internal class TextureToDDSCommand : ICommand
             $"Starting {sourceFiles.Length} Texture to DDS tasks...",
             MessageCategory.Texture);
 
-        await operation.ExecuteAsync(sourceFiles, platform, isX64, OutputPath, Overwrite, Verbose);
+        OperationResult<TextureToDDSResult> result = await operation.ExecuteAsync(
+            new TextureToDDSRequest(sourceFiles, platform, isX64, OutputPath, Overwrite, Verbose),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+        CLIMessageUtilities.PublishIssues(result.Issues, MessageCategory.Texture);
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -72,7 +77,9 @@ internal class TextureToDDSCommand : ICommand
         Verbose = args.TryGetValue("verbose", out var ve) && (bool)ve;
     }
 
-    public TextureToDDSCommand(IPathProvider pathProvider, TextureToDDSOperation operation)
+    public TextureToDDSCommand(
+        IPathProvider pathProvider,
+        IOperation<TextureToDDSRequest, TextureToDDSResult> operation)
     {
         this.pathProvider = pathProvider;
         this.operation = operation;

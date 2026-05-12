@@ -11,7 +11,7 @@ internal class ImportStringTableCommand : ICommand
     private readonly IPathProvider pathProvider;
     private readonly IStringTableStore stringTableStore;
     private readonly IOperation<LoadResourceDictionaryRequest, LoadResourceDictionaryResult> loadOperation;
-    private readonly ImportStringTableOperation importOperation;
+    private readonly IOperation<ImportStringTableRequest, ImportStringTableResult> importOperation;
 
     public static string CommandToken => "ImportStringTable";
     public static string CommandDescription => "Imports entries into the ResourceDB from files containing a ResourceStringTable.";
@@ -54,7 +54,16 @@ internal class ImportStringTableCommand : ICommand
             {
                 string jsonFile = Path.Combine(directoryPath, "ResourceDB.json");
                 var importedEntries = new Dictionary<string, Dictionary<string, StringTableResourceEntry>>(StringComparer.OrdinalIgnoreCase);
-                await importOperation.ExecuteAsync(filePaths, importedEntries, Endian ?? "le", Overwrite, Verbose);
+                OperationResult<ImportStringTableResult> importResult = await importOperation.ExecuteAsync(
+                    new ImportStringTableRequest(filePaths, importedEntries, Endian ?? "le", Overwrite, Verbose),
+                    progress: null,
+                    cancellationToken: CancellationToken.None);
+                CLIMessageUtilities.PublishIssues(importResult.Issues, MessageCategory.StringTable);
+
+                if (!importResult.Success)
+                {
+                    return;
+                }
 
                 var legacyEntries = await stringTableStore.LoadJsonAsync(jsonFile);
                 stringTableStore.MergeLegacyEntries(legacyEntries, importedEntries, Overwrite);
@@ -84,7 +93,17 @@ internal class ImportStringTableCommand : ICommand
                 return;
             }
 
-            await importOperation.ExecuteAsync(filePaths, loadResult.Value.Entries, Endian ?? "le", Overwrite, Verbose);
+            OperationResult<ImportStringTableResult> importV2Result = await importOperation.ExecuteAsync(
+                new ImportStringTableRequest(filePaths, loadResult.Value.Entries, Endian ?? "le", Overwrite, Verbose),
+                progress: null,
+                cancellationToken: CancellationToken.None);
+            CLIMessageUtilities.PublishIssues(importV2Result.Issues, MessageCategory.StringTable);
+
+            if (!importV2Result.Success)
+            {
+                return;
+            }
+
             await stringTableStore.WriteYamlAsync(yamlFile, loadResult.Value.Entries);
 
             CLIMessageUtilities.Success<ImportStringTableCommand>(
@@ -111,7 +130,7 @@ internal class ImportStringTableCommand : ICommand
         IPathProvider pathProvider,
         IStringTableStore stringTableStore,
         IOperation<LoadResourceDictionaryRequest, LoadResourceDictionaryResult> loadOperation,
-        ImportStringTableOperation importOperation)
+        IOperation<ImportStringTableRequest, ImportStringTableResult> importOperation)
     {
         this.pathProvider = pathProvider;
         this.stringTableStore = stringTableStore;

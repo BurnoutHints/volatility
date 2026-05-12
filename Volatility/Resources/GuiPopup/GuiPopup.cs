@@ -114,10 +114,6 @@ public class GuiPopup : Resource
             Popups.Add(popup);
         }
 
-        if (totalSize > 0 && totalSize != reader.BaseStream.Length)
-        {
-            Console.WriteLine($"WARNING: GuiPopup reported size 0x{totalSize:X}, actual size 0x{reader.BaseStream.Length:X}.");
-        }
     }
 
     public GuiPopup() : base() { }

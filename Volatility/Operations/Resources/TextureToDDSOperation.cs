@@ -1,53 +1,111 @@
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
 
 namespace Volatility.Operations.Resources;
 
 internal sealed class TextureToDDSOperation(
+    IResourceFactory resourceFactory,
     IResourceDBLookup resourceDBLookup,
-    ITextureBitmapStore textureBitmapStore)
+    ITextureBitmapStore textureBitmapStore,
+    IMessageSink messageSink)
+    : IOperation<TextureToDDSRequest, TextureToDDSResult>
 {
-    public async Task ExecuteAsync(IEnumerable<string> sourceFiles, Platform platform, bool isX64, string? outputPath, bool overwrite, bool verbose)
+    public async Task<OperationResult<TextureToDDSResult>> ExecuteAsync(
+        TextureToDDSRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        string[] files = sourceFiles.ToArray();
-        bool multipleInputs = files.Length > 1;
+        cancellationToken.ThrowIfCancellationRequested();
 
-        List<Task> tasks = new();
-        foreach (string sourceFile in files)
+        try
         {
-            tasks.Add(Task.Run(async () =>
+            string[] files = request.SourceFiles.ToArray();
+            bool multipleInputs = files.Length > 1;
+
+            List<Task<string>> tasks = new();
+            foreach (string sourceFile in files)
             {
-                TextureBase texture = (TextureBase)ResourceFactory.LoadResource(ResourceType.Texture, platform, sourceFile, resourceDBLookup, isX64);
-                string sourceBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(sourceFile, texture.Unpacker);
+                tasks.Add(ConvertFileAsync(sourceFile, request, multipleInputs, cancellationToken));
+            }
 
-                if (!File.Exists(sourceBitmapPath))
-                {
-                    throw new FileNotFoundException($"Failed to find associated bitmap data at path '{sourceBitmapPath}'.");
-                }
+            string[] outputPaths = await Task.WhenAll(tasks);
+            progress?.Report(new OperationProgress("texture-to-dds", 1.0, null));
+            return OperationResultFactory.Success(new TextureToDDSResult(outputPaths));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return OperationResultFactory.Failure<TextureToDDSResult>(
+                "texture_to_dds_failed",
+                ex.Message,
+                nameof(TextureToDDSOperation));
+        }
+    }
 
-                byte[] bitmapData = textureBitmapStore.ReadNormalizedBitmapData(texture, sourceBitmapPath);
-                byte[] ddsData = DDSTextureUtilities.CreateDDSFile(texture, bitmapData);
-                string destinationPath = ResolveOutputPath(sourceFile, texture.Unpacker, outputPath, multipleInputs, textureBitmapStore);
+    public static byte[] ConvertToDDS(TextureBase texture, byte[] bitmapData)
+    {
+        return DDSTextureUtilities.CreateDDSFile(texture, bitmapData);
+    }
 
-                string? destinationDirectory = Path.GetDirectoryName(destinationPath);
-                if (!string.IsNullOrEmpty(destinationDirectory))
-                {
-                    Directory.CreateDirectory(destinationDirectory);
-                }
+    private async Task<string> ConvertFileAsync(
+        string sourceFile,
+        TextureToDDSRequest request,
+        bool multipleInputs,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
 
-                if (!overwrite && File.Exists(destinationPath))
-                {
-                    throw new IOException($"The file '{destinationPath}' already exists.");
-                }
+        TextureBase texture = (TextureBase)resourceFactory.LoadResource(
+            ResourceType.Texture,
+            request.Platform,
+            sourceFile,
+            resourceDBLookup,
+            request.IsX64);
 
-                if (verbose) Console.WriteLine($"Writing DDS texture data to {destinationPath}...");
-                await File.WriteAllBytesAsync(destinationPath, ddsData);
-                Console.WriteLine($"Wrote DDS for {Path.GetFileName(sourceFile)} to {destinationPath}.");
-            }));
+        string sourceBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(sourceFile, texture.Unpacker);
+
+        if (!File.Exists(sourceBitmapPath))
+        {
+            throw new FileNotFoundException($"Failed to find associated bitmap data at path '{sourceBitmapPath}'.");
         }
 
-        await Task.WhenAll(tasks);
+        byte[] bitmapData = textureBitmapStore.ReadNormalizedBitmapData(texture, sourceBitmapPath);
+        byte[] ddsData = ConvertToDDS(texture, bitmapData);
+        string destinationPath = ResolveOutputPath(sourceFile, texture.Unpacker, request.OutputPath, multipleInputs, textureBitmapStore);
+
+        string? destinationDirectory = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrEmpty(destinationDirectory))
+        {
+            Directory.CreateDirectory(destinationDirectory);
+        }
+
+        if (!request.Overwrite && File.Exists(destinationPath))
+        {
+            throw new IOException($"The file '{destinationPath}' already exists.");
+        }
+
+        if (request.Verbose)
+        {
+            messageSink.Verbose(
+                $"Writing DDS texture data to {destinationPath}...",
+                MessageCategory.Texture,
+                nameof(TextureToDDSOperation));
+        }
+
+        await File.WriteAllBytesAsync(destinationPath, ddsData, cancellationToken);
+        messageSink.Info(
+            $"Wrote DDS for {Path.GetFileName(sourceFile)} to {destinationPath}.",
+            MessageCategory.Texture,
+            nameof(TextureToDDSOperation));
+
+        return destinationPath;
     }
 
     private static string ResolveOutputPath(
@@ -75,3 +133,13 @@ internal sealed class TextureToDDSOperation(
         return Path.Combine(outputPath, outputName);
     }
 }
+
+public sealed record TextureToDDSRequest(
+    IReadOnlyList<string> SourceFiles,
+    Platform Platform,
+    bool IsX64,
+    string? OutputPath,
+    bool Overwrite,
+    bool Verbose) : IOperationRequest;
+
+public sealed record TextureToDDSResult(IReadOnlyList<string> OutputPaths);

@@ -87,11 +87,6 @@ public class Model : Resource
             throw new InvalidDataException($"Version mismatch! Version should be 2. (Found version {version})");
         }
 
-        if (numRenderables == 0)
-        {
-            Console.WriteLine("WARNING: Found no renderables in this model!");
-        }
-
         if (numStates != numRenderables)
         {
             throw new InvalidDataException(

@@ -2,8 +2,10 @@ using System.Reflection;
 using System.Text;
 
 using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
 using Volatility.CLI;
+using Volatility.Operations;
 using Volatility.Operations.Autotest;
 using Volatility.Resources;
 
@@ -15,7 +17,7 @@ namespace Volatility.CLI.Commands;
 internal class AutotestCommand : ICommand
 {
     private readonly IPathProvider pathProvider;
-    private readonly GameAutotestOperation gameAutotestOperation;
+    private readonly IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation;
 
     public static string CommandToken => "autotest";
     public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
@@ -39,15 +41,26 @@ internal class AutotestCommand : ICommand
         IReadOnlyList<string> gamePaths = ParseGamePaths();
         if (gamePaths.Count > 0)
         {
-            GameAutotestSummary summary = await gameAutotestOperation.ExecuteAsync(new GameAutotestOptions
+            OperationResult<GameAutotestSummary> result = await gameAutotestOperation.ExecuteAsync(
+                new GameAutotestRequest
+                {
+                    GamePaths = gamePaths,
+                    BundleToolPath = BundleToolPath,
+                    WorkingDirectory = WorkingDirectory,
+                    BundleLimitPerGame = BundleLimit,
+                    ResourcesPerType = ResourceLimit,
+                    KeepArtifacts = KeepArtifacts
+                },
+                progress: null,
+                cancellationToken: CancellationToken.None);
+
+            CLIMessageUtilities.PublishIssues(result.Issues);
+            if (!result.Success || result.Value == null)
             {
-                GamePaths = gamePaths,
-                BundleToolPath = BundleToolPath,
-                WorkingDirectory = WorkingDirectory,
-                BundleLimitPerGame = BundleLimit,
-                ResourcesPerType = ResourceLimit,
-                KeepArtifacts = KeepArtifacts
-            });
+                throw OperationResultFactory.CreateException(result, "Game autotest failed.");
+            }
+
+            GameAutotestSummary summary = result.Value;
 
             CLIMessageUtilities.Info<AutotestCommand>(
                 $"AUTOTEST - Completed. Passed={summary.Passed}, Failed={summary.Failed}, Skipped={summary.Skipped}",
@@ -449,7 +462,9 @@ internal class AutotestCommand : ICommand
             .Trim();
     }
 
-    public AutotestCommand(IPathProvider pathProvider, GameAutotestOperation gameAutotestOperation)
+    public AutotestCommand(
+        IPathProvider pathProvider,
+        IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation)
     {
         this.pathProvider = pathProvider;
         this.gameAutotestOperation = gameAutotestOperation;

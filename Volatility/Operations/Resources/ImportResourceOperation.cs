@@ -1,130 +1,170 @@
 using System.Text.RegularExpressions;
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Resources;
 
 namespace Volatility.Operations.Resources;
 
 internal sealed partial class ImportResourceOperation(
+    IResourceFactory resourceFactory,
     IResourceDBLookup resourceDBLookup,
     ITextureBitmapStore textureBitmapStore,
     IProcessRunner processRunner,
-    IShaderSourceStore shaderSourceStore)
+    IShaderSourceStore shaderSourceStore,
+    IMessageSink messageSink)
+    : IOperation<ImportResourceRequest, ImportResourceResult>
 {
-    public async Task<ImportResourceResult> ExecuteAsync(ImportResourceRequest request)
+    public async Task<OperationResult<ImportResourceResult>> ExecuteAsync(
+        ImportResourceRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        Resource resource = ResourceFactory.LoadResource(
-            request.ResourceType,
-            request.Platform,
-            request.SourceFile,
-            resourceDBLookup,
-            request.IsX64);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        string filePath = Path.Combine
-        (
-            request.ResourcesDirectory,
-            $"{DBToFileRegex().Replace(resource.AssetName, string.Empty)}.{request.ResourceType}"
-        );
-
-        string? directoryPath = Path.GetDirectoryName(filePath);
-
-        if (!string.IsNullOrEmpty(directoryPath))
+        try
         {
-            Directory.CreateDirectory(directoryPath);
-        }
+            Resource resource = resourceFactory.LoadResource(
+                request.ResourceType,
+                request.Platform,
+                request.SourceFile,
+                resourceDBLookup,
+                request.IsX64);
 
-        if (resource is ShaderBase shader)
-        {
-            shaderSourceStore.MaterializeImportedSource(shader, request.ResourcesDirectory);
-        }
+            string filePath = Path.Combine
+            (
+                request.ResourcesDirectory,
+                $"{DBToFileRegex().Replace(resource.AssetName, string.Empty)}.{request.ResourceType}"
+            );
 
-        if (request.ResourceType == ResourceType.Texture)
-        {
-            string texturePath = textureBitmapStore.GetSecondaryBitmapPath(request.SourceFile, resource.Unpacker);
+            string? directoryPath = Path.GetDirectoryName(filePath);
 
-            if (resource is TextureBase texture && File.Exists(texturePath))
+            if (!string.IsNullOrEmpty(directoryPath))
             {
-                string outPath = Path.Combine
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            if (resource is ShaderBase shader)
+            {
+                shaderSourceStore.MaterializeImportedSource(shader, request.ResourcesDirectory);
+            }
+
+            if (request.ResourceType == ResourceType.Texture)
+            {
+                string texturePath = textureBitmapStore.GetSecondaryBitmapPath(request.SourceFile, resource.Unpacker);
+
+                if (resource is TextureBase texture && File.Exists(texturePath))
+                {
+                    string outPath = Path.Combine
+                    (
+                        directoryPath ?? string.Empty,
+                        Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                    );
+
+                    textureBitmapStore.WriteNormalizedBitmapFile(texture, texturePath, $"{outPath}.{request.ResourceType}Bitmap", request.Overwrite);
+                }
+            }
+
+            if (request.ResourceType == ResourceType.Splicer)
+            {
+                string sxPath = Path.Combine
                 (
-                    directoryPath ?? string.Empty,
-                    Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFullPath(filePath)))
+                    request.ToolsDirectory,
+                    "sx.exe"
                 );
 
-                textureBitmapStore.WriteNormalizedBitmapFile(texture, texturePath, $"{outPath}.{request.ResourceType}Bitmap", request.Overwrite);
-            }
-        }
+                bool sxExists = File.Exists(sxPath);
 
-        if (request.ResourceType == ResourceType.Splicer)
-        {
-            string sxPath = Path.Combine
-            (
-                request.ToolsDirectory,
-                "sx.exe"
-            );
+                Splicer? splicer = resource as Splicer;
 
-            bool sxExists = File.Exists(sxPath);
+                List<Splicer.SpliceSample>? samples = splicer?.GetLoadedSamples();
 
-            Splicer? splicer = resource as Splicer;
+                string sampleDirectory = Path.Combine
+                (
+                    request.SplicerDirectory,
+                    "Samples"
+                );
 
-            List<Splicer.SpliceSample>? samples = splicer?.GetLoadedSamples();
+                Directory.CreateDirectory(sampleDirectory);
 
-            string sampleDirectory = Path.Combine
-            (
-                request.SplicerDirectory,
-                "Samples"
-            );
-
-            Directory.CreateDirectory(sampleDirectory);
-
-            if (samples != null)
-            {
-                for (int i = 0; i < samples.Count; i++)
+                if (samples != null)
                 {
-                    string sampleName = $"{samples[i].SampleID}";
-
-                    string samplePathName = Path.Combine(sampleDirectory, sampleName);
-
-                    if (!File.Exists($"{samplePathName}.snr") || request.Overwrite)
+                    for (int i = 0; i < samples.Count; i++)
                     {
-                        Console.WriteLine($"Writing extracted sample {sampleName}.snr");
-                        await File.WriteAllBytesAsync($"{samplePathName}.snr", samples[i].Data);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Skipping extracted sample {sampleName}.snr");
-                    }
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                    if (sxExists)
-                    {
-                        string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
+                        string sampleName = $"{samples[i].SampleID}";
 
-                        Directory.CreateDirectory(convertedSamplePathName);
+                        string samplePathName = Path.Combine(sampleDirectory, sampleName);
 
-                        convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName + ".wav");
-
-                        if (!File.Exists(convertedSamplePathName) || request.Overwrite)
+                        if (!File.Exists($"{samplePathName}.snr") || request.Overwrite)
                         {
-                            Console.WriteLine($"Converting extracted sample {sampleName}.snr to wave...");
-                            processRunner.RunAndRelayOutput(
-                                sxPath,
-                                $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"");
+                            messageSink.Info(
+                                $"Writing extracted sample {sampleName}.snr",
+                                MessageCategory.Resource,
+                                nameof(ImportResourceOperation));
+                            await File.WriteAllBytesAsync($"{samplePathName}.snr", samples[i].Data, cancellationToken);
                         }
                         else
                         {
-                            Console.WriteLine($"Converted sample {Path.GetFileName(convertedSamplePathName)} already exists, skipping...");
+                            messageSink.Info(
+                                $"Skipping extracted sample {sampleName}.snr",
+                                MessageCategory.Resource,
+                                nameof(ImportResourceOperation));
+                        }
+
+                        if (sxExists)
+                        {
+                            string convertedSamplePathName = Path.Combine(sampleDirectory, "_extracted");
+
+                            Directory.CreateDirectory(convertedSamplePathName);
+
+                            convertedSamplePathName = Path.Combine(convertedSamplePathName, sampleName + ".wav");
+
+                            if (!File.Exists(convertedSamplePathName) || request.Overwrite)
+                            {
+                                messageSink.Info(
+                                    $"Converting extracted sample {sampleName}.snr to wave...",
+                                    MessageCategory.Resource,
+                                    nameof(ImportResourceOperation));
+                                processRunner.RunAndRelayOutput(
+                                    sxPath,
+                                    $"-wave -s16l_int -v0 \"{samplePathName}.snr\" -=\"{convertedSamplePathName}\"");
+                            }
+                            else
+                            {
+                                messageSink.Info(
+                                    $"Converted sample {Path.GetFileName(convertedSamplePathName)} already exists, skipping...",
+                                    MessageCategory.Resource,
+                                    nameof(ImportResourceOperation));
+                            }
                         }
                     }
                 }
             }
-        }
 
-        return new ImportResourceResult(resource, filePath);
+            progress?.Report(new OperationProgress("import-resource", 1.0, filePath));
+            return OperationResultFactory.Success(new ImportResourceResult(resource, filePath));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return OperationResultFactory.Failure<ImportResourceResult>(
+                "import_resource_failed",
+                ex.Message,
+                nameof(ImportResourceOperation));
+        }
     }
 
     [GeneratedRegex(@"(\?ID=\d+)|:")]
     private static partial Regex DBToFileRegex();
 }
 
-internal sealed record ImportResourceRequest(
+public sealed record ImportResourceRequest(
     ResourceType ResourceType,
     Platform Platform,
     string SourceFile,
@@ -132,6 +172,6 @@ internal sealed record ImportResourceRequest(
     string ResourcesDirectory,
     string ToolsDirectory,
     string SplicerDirectory,
-    bool Overwrite);
+    bool Overwrite) : IOperationRequest;
 
-internal sealed record ImportResourceResult(Resource Resource, string ResourcePath);
+public sealed record ImportResourceResult(Resource Resource, string ResourcePath);

@@ -3,6 +3,7 @@ using Volatility.Abstractions.Services;
 using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
+
 namespace Volatility.Operations.Resources;
 
 internal sealed class ExportResourceOperation(
@@ -10,100 +11,121 @@ internal sealed class ExportResourceOperation(
     IShaderCompiler shaderCompiler,
     IOperation<CreateShaderProgramBufferRequest, CreateShaderProgramBufferResult> shaderProgramBufferOperation,
     ISplicerSampleStore splicerSampleStore)
+    : IOperation<ExportResourceRequest, ExportResourceResult>
 {
-    public Task ExecuteAsync(
-        Resource resource,
-        string outputPath,
-        Platform platform,
-        Unpacker? importUnpackerOverride = null,
-        bool writeImportsToSeparateFile = false,
-        string? splicerDirectory = null)
+    public async Task<OperationResult<ExportResourceResult>> ExecuteAsync(
+        ExportResourceRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        string? directoryPath = Path.GetDirectoryName(outputPath);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (!string.IsNullOrEmpty(directoryPath))
+        try
         {
-            Directory.CreateDirectory(directoryPath);
-        }
+            Resource resource = request.Resource;
+            string outputPath = request.OutputPath;
+            Platform platform = request.Platform;
 
-        if (resource is Splicer splicer)
-        {
-            splicerSampleStore.PopulateDependentSamples(
-                splicer,
-                splicerDirectory ?? pathProvider.GetDirectory(VolatilityPathLocation.Splicer));
-        }
+            string? directoryPath = Path.GetDirectoryName(outputPath);
 
-        using FileStream fs = new(outputPath, FileMode.Create);
-
-        Endian endian = resource.ResourceEndian != Endian.Agnostic
-            ? resource.ResourceEndian
-            : EndianMapping.GetDefaultEndian(platform);
-
-        using ResourceBinaryWriter writer = new(fs, endian);
-
-        switch (resource)
-        {
-            case TextureBase texture:
-                texture.PushAll();
-                goto default;
-            default:
-                resource.WriteToStream(writer);
-                break;
-        }
-
-        WriteExternalImports(
-            resource,
-            outputPath,
-            writer,
-            endian,
-            ResolveExternalImportsUnpackerFormat(resource, importUnpackerOverride),
-            writeImportsToSeparateFile);
-
-        if (resource is ShaderBase shader)
-        {
-            var stages = shader.GetCompileStages();
-            bool useStageSuffix = stages.Count > 1;
-
-            if (platform == Platform.BPR)
+            if (!string.IsNullOrEmpty(directoryPath))
             {
-                foreach (var stage in stages)
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            if (resource is Splicer splicer)
+            {
+                splicerSampleStore.PopulateDependentSamples(
+                    splicer,
+                    request.SplicerDirectory ?? pathProvider.GetDirectory(VolatilityPathLocation.Splicer));
+            }
+
+            using FileStream fs = new(outputPath, FileMode.Create);
+
+            Endian endian = resource.ResourceEndian != Endian.Agnostic
+                ? resource.ResourceEndian
+                : EndianMapping.GetDefaultEndian(platform);
+
+            using ResourceBinaryWriter writer = new(fs, endian);
+
+            switch (resource)
+            {
+                case TextureBase texture:
+                    texture.PushAll();
+                    goto default;
+                default:
+                    resource.WriteToStream(writer);
+                    break;
+            }
+
+            WriteExternalImports(
+                resource,
+                outputPath,
+                writer,
+                endian,
+                ResolveExternalImportsUnpackerFormat(resource, request.ImportUnpackerOverride),
+                request.WriteImportsToSeparateFile);
+
+            if (resource is ShaderBase shader)
+            {
+                var stages = shader.GetCompileStages();
+                bool useStageSuffix = stages.Count > 1;
+
+                if (platform == Platform.BPR)
                 {
-                    string shaderProgramBufferPath = GetShaderProgramBufferPath(outputPath, stage, useStageSuffix);
-                    string csoPath = GetShaderCSOPath(outputPath, stage, useStageSuffix);
-
-                    shaderCompiler.CompileToCSO(shader, stage, csoPath);
-                    OperationResult<CreateShaderProgramBufferResult> bufferResult = shaderProgramBufferOperation.ExecuteAsync(
-                        new CreateShaderProgramBufferRequest(stage.ResolveStage(), platform, csoPath),
-                        progress: null,
-                        cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
-
-                    if (!bufferResult.Success || bufferResult.Value == null)
+                    foreach (var stage in stages)
                     {
-                        throw OperationResultFactory.CreateException(bufferResult, "Failed to create shader program buffer.");
-                    }
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                    ShaderProgramBufferBase buffer = bufferResult.Value.Buffer;
-                    CreateShaderProgramBufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
-                    WritePaddedCSOFile(csoPath, GetSecondaryResourcePath(shaderProgramBufferPath));
+                        string shaderProgramBufferPath = GetShaderProgramBufferPath(outputPath, stage, useStageSuffix);
+                        string csoPath = GetShaderCSOPath(outputPath, stage, useStageSuffix);
+
+                        shaderCompiler.CompileToCSO(shader, stage, csoPath);
+                        OperationResult<CreateShaderProgramBufferResult> bufferResult = await shaderProgramBufferOperation.ExecuteAsync(
+                            new CreateShaderProgramBufferRequest(stage.ResolveStage(), platform, csoPath),
+                            progress: null,
+                            cancellationToken);
+
+                        if (!bufferResult.Success || bufferResult.Value == null)
+                        {
+                            throw OperationResultFactory.CreateException(bufferResult, "Failed to create shader program buffer.");
+                        }
+
+                        ShaderProgramBufferBase buffer = bufferResult.Value.Buffer;
+                        CreateShaderProgramBufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
+                        WritePaddedCSOFile(csoPath, GetSecondaryResourcePath(shaderProgramBufferPath));
+                    }
+                }
+                else
+                {
+                    shaderCompiler.CompileStagesToCSO(shader, stages, stage =>
+                        GetShaderProgramBufferPath(outputPath, stage, useStageSuffix));
                 }
             }
-            else
-            {
-                shaderCompiler.CompileStagesToCSO(shader, stages, stage =>
-                    GetShaderProgramBufferPath(outputPath, stage, useStageSuffix));
-            }
-        }
 
-        if (resource is ShaderProgramBufferBPR shaderProgramBuffer && platform == Platform.BPR)
+            if (resource is ShaderProgramBufferBPR shaderProgramBuffer && platform == Platform.BPR)
+            {
+                if (shaderProgramBuffer.CompiledShaderBytecode.Length > 0)
+                {
+                    string secondaryCSOPath = GetSecondaryResourcePath(outputPath);
+                    WritePaddedCSOBytes(shaderProgramBuffer.CompiledShaderBytecode, secondaryCSOPath);
+                }
+            }
+
+            progress?.Report(new OperationProgress("export-resource", 1.0, outputPath));
+            return OperationResultFactory.Success(new ExportResourceResult(outputPath));
+        }
+        catch (OperationCanceledException)
         {
-            if (shaderProgramBuffer.CompiledShaderBytecode.Length > 0)
-            {
-                string secondaryCSOPath = GetSecondaryResourcePath(outputPath);
-                WritePaddedCSOBytes(shaderProgramBuffer.CompiledShaderBytecode, secondaryCSOPath);
-            }
+            throw;
         }
-
-        return Task.CompletedTask;
+        catch (Exception ex)
+        {
+            return OperationResultFactory.Failure<ExportResourceResult>(
+                "export_resource_failed",
+                ex.Message,
+                nameof(ExportResourceOperation));
+        }
     }
 
     private static Unpacker ResolveExternalImportsUnpackerFormat(
@@ -262,3 +284,13 @@ internal sealed class ExportResourceOperation(
         PaddingUtilities.WritePadding(output, 0x100);
     }
 }
+
+public sealed record ExportResourceRequest(
+    Resource Resource,
+    string OutputPath,
+    Platform Platform,
+    Unpacker? ImportUnpackerOverride = null,
+    bool WriteImportsToSeparateFile = false,
+    string? SplicerDirectory = null) : IOperationRequest;
+
+public sealed record ExportResourceResult(string OutputPath);

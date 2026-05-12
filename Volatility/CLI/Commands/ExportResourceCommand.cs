@@ -11,7 +11,7 @@ internal class ExportResourceCommand : ICommand
 {
     private readonly IPathProvider pathProvider;
     private readonly IOperation<LoadResourceRequest, LoadResourceResult> loadOperation;
-    private readonly ExportResourceOperation exportOperation;
+    private readonly IOperation<ExportResourceRequest, ExportResourceResult> exportOperation;
 
     public static string CommandToken => "ExportResource";
     public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
@@ -102,21 +102,19 @@ internal class ExportResourceCommand : ICommand
                     return;
                 }
 
-                try
-                {
-                    await exportOperation.ExecuteAsync(
+                OperationResult<ExportResourceResult> exportResult = await exportOperation.ExecuteAsync(
+                    new ExportResourceRequest(
                         loadResult.Value.Resource,
                         OutputPath,
                         platform,
                         importUnpackerOverride,
-                        ImportsFile);
-                }
-                catch (Exception ex)
+                        ImportsFile),
+                    progress: null,
+                    cancellationToken: CancellationToken.None);
+                CLIMessageUtilities.PublishIssues(exportResult.Issues, MessageCategory.Resource);
+
+                if (!exportResult.Success)
                 {
-                    CLIMessageUtilities.Error<ExportResourceCommand>(
-                        $"ERROR: Unable to export {Path.GetFileName(sourceFile)} as {resourceType}!" +
-                        $"{Environment.NewLine}Message from {ex.TargetSite}: {ex.Message}." +
-                        $"{Environment.NewLine}Stack Trace:{Environment.NewLine}{ex.StackTrace}");
                     return;
                 }
 
@@ -143,7 +141,7 @@ internal class ExportResourceCommand : ICommand
     public ExportResourceCommand(
         IPathProvider pathProvider,
         IOperation<LoadResourceRequest, LoadResourceResult> loadOperation,
-        ExportResourceOperation exportOperation)
+        IOperation<ExportResourceRequest, ExportResourceResult> exportOperation)
     {
         this.pathProvider = pathProvider;
         this.loadOperation = loadOperation;

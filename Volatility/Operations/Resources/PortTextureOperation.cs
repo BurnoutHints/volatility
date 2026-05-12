@@ -1,6 +1,9 @@
 using System.Reflection;
 
+using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
 
@@ -9,21 +12,71 @@ using static Volatility.Utilities.ResourceIDUtilities;
 namespace Volatility.Operations.Resources;
 
 internal sealed class PortTextureOperation(
+    IResourceFactory resourceFactory,
     IResourceDBLookup resourceDBLookup,
-    ITextureBitmapStore textureBitmapStore)
+    ITextureBitmapStore textureBitmapStore,
+    IMessageSink messageSink)
+    : IOperation<PortTextureRequest, PortTextureResult>
 {
-    public async Task ExecuteAsync(IEnumerable<string> sourceFiles, string sourceFormat, string sourcePath, string destinationFormat, string? destinationPath, bool verbose, bool useGTF)
+    public async Task<OperationResult<PortTextureResult>> ExecuteAsync(
+        PortTextureRequest request,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
     {
-        string resolvedDestinationPath = string.IsNullOrEmpty(destinationPath) ? sourcePath : destinationPath;
-        TextureFormatSpec sourceSpec = ParseTextureFormat(sourceFormat);
-        TextureFormatSpec destinationSpec = ParseTextureFormat(destinationFormat);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        List<Task> tasks = new List<Task>();
-
-        foreach (string sourceFile in sourceFiles)
+        try
         {
-            tasks.Add(Task.Run(async () =>
+            string resolvedDestinationPath = string.IsNullOrEmpty(request.DestinationPath)
+                ? request.SourcePath
+                : request.DestinationPath;
+            TextureFormatSpec sourceSpec = ParseTextureFormat(request.SourceFormat);
+            TextureFormatSpec destinationSpec = ParseTextureFormat(request.DestinationFormat);
+
+            List<string> outputPaths = new(request.SourceFiles.Count);
+            for (int i = 0; i < request.SourceFiles.Count; i++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                string outputPath = await PortFileAsync(
+                    request.SourceFiles[i],
+                    resolvedDestinationPath,
+                    sourceSpec,
+                    destinationSpec,
+                    request.Verbose,
+                    request.UseGTF,
+                    cancellationToken);
+                outputPaths.Add(outputPath);
+                progress?.Report(new OperationProgress(
+                    "port-texture",
+                    (double)outputPaths.Count / request.SourceFiles.Count,
+                    outputPath));
+            }
+
+            return OperationResultFactory.Success(new PortTextureResult(outputPaths));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return OperationResultFactory.Failure<PortTextureResult>(
+                "port_texture_failed",
+                ex.Message,
+                nameof(PortTextureOperation));
+        }
+    }
+
+    private async Task<string> PortFileAsync(
+        string sourceFile,
+        string resolvedDestinationPath,
+        TextureFormatSpec sourceSpec,
+        TextureFormatSpec destinationSpec,
+        bool verbose,
+        bool useGTF,
+        CancellationToken cancellationToken)
+    {
                 TextureBase sourceTexture = LoadSourceTexture(sourceFile, sourceSpec, verbose);
                 TextureBase destinationTexture = CreateDestinationTexture(destinationSpec, verbose);
 
@@ -45,7 +98,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3x360Format;
                         if (ps3x360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3x360Format}! (Source is {ps3.Format})");
+                            LogWarning($"Destination texture format is {ps3x360Format}! (Source is {ps3.Format})");
                         break;
                     case (TextureX360 x360, TexturePS3 ps3):
                         X360toPS3Mapping.TryGetValue(x360.Format.DataFormat, out CELL_GCM_COLOR_FORMAT x360ps3Format);
@@ -54,7 +107,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360ps3Format;
                         if (x360ps3Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360ps3Format}! (Source is {x360.Format.DataFormat})");
+                            LogWarning($"Destination texture format is {x360ps3Format}! (Source is {x360.Format.DataFormat})");
                         break;
                     case (TextureBPR bprsrc, TextureBPR bprdst):
                         bprdst.Format = bprsrc.Format;
@@ -67,7 +120,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)tub.Format;
                         destinationFormatIndex = (int)tubbprFormat;
                         if (tubbprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {tubbprFormat}! (Source is {tub.Format})");
+                            LogWarning($"Destination texture format is {tubbprFormat}! (Source is {tub.Format})");
                         break;
                     case (TextureBPR bpr, TexturePC tub):
                         BPRtoTUBMapping.TryGetValue(bpr.Format, out D3DFORMAT bprtubFormat);
@@ -75,7 +128,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprtubFormat;
                         if (bprtubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprtubFormat}! (Source is {bpr.Format})");
+                            LogWarning($"Destination texture format is {bprtubFormat}! (Source is {bpr.Format})");
                         break;
                     case (TexturePS3 ps3, TextureBPR bpr):
                         PS3toBPRMapping.TryGetValue(ps3.Format, out DXGI_FORMAT ps3bprFormat);
@@ -84,7 +137,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3bprFormat;
                         if (ps3bprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3bprFormat}! (Source is {ps3.Format})");
+                            LogWarning($"Destination texture format is {ps3bprFormat}! (Source is {ps3.Format})");
                         break;
                     case (TexturePS3 ps3, TexturePC tub):
                         PS3toTUBMapping.TryGetValue(ps3.Format, out D3DFORMAT ps3tubFormat);
@@ -93,7 +146,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)ps3.Format;
                         destinationFormatIndex = (int)ps3tubFormat;
                         if (ps3tubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {ps3tubFormat}! (Source is {ps3.Format})");
+                            LogWarning($"Destination texture format is {ps3tubFormat}! (Source is {ps3.Format})");
                         break;
                     case (TextureX360 x360, TexturePC tub):
                         X360toTUBMapping.TryGetValue(x360.Format.DataFormat, out D3DFORMAT x360tubFormat);
@@ -102,7 +155,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360tubFormat;
                         if (x360tubFormat == D3DFORMAT.D3DFMT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360tubFormat}! (Source is {x360.Format.DataFormat})");
+                            LogWarning($"Destination texture format is {x360tubFormat}! (Source is {x360.Format.DataFormat})");
                         break;
                     case (TextureX360 x360, TextureBPR bpr):
                         X360toBPRMapping.TryGetValue(x360.Format.DataFormat, out DXGI_FORMAT x360bprFormat);
@@ -111,7 +164,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)x360.Format.DataFormat;
                         destinationFormatIndex = (int)x360bprFormat;
                         if (x360bprFormat == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-                            Console.WriteLine($"WARNING: Destination texture format is {x360bprFormat}! (Source is {x360.Format.DataFormat})");
+                            LogWarning($"Destination texture format is {x360bprFormat}! (Source is {x360.Format.DataFormat})");
                         break;
                     case (TexturePC tub, TextureX360 x360):
                         TUBtoX360Mapping.TryGetValue(tub.Format, out GPUTEXTUREFORMAT tubx360Format);
@@ -120,7 +173,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)tub.Format;
                         destinationFormatIndex = (int)tubx360Format;
                         if (tubx360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {tubx360Format}! (Source is {tub.Format})");
+                            LogWarning($"Destination texture format is {tubx360Format}! (Source is {tub.Format})");
                         break;
                     case (TextureBPR bpr, TexturePS3 ps3):
                         BPRtoPS3Mapping.TryGetValue(bpr.Format, out CELL_GCM_COLOR_FORMAT bprps3format);
@@ -129,7 +182,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprps3format;
                         if (bprps3format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprps3format}! (Source is {bpr.Format})");
+                            LogWarning($"Destination texture format is {bprps3format}! (Source is {bpr.Format})");
                         break;
                     case (TexturePC tub, TexturePS3 ps3):
                         TUBtoPS3Mapping.TryGetValue(tub.Format, out CELL_GCM_COLOR_FORMAT tubps3Format);
@@ -138,7 +191,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)tub.Format;
                         destinationFormatIndex = (int)tubps3Format;
                         if (tubps3Format == CELL_GCM_COLOR_FORMAT.CELL_GCM_TEXTURE_INVALID)
-                            Console.WriteLine($"WARNING: Destination texture format is {tubps3Format}! (Source is {tub.Format})");
+                            LogWarning($"Destination texture format is {tubps3Format}! (Source is {tub.Format})");
                         break;
                     case (TextureBPR bpr, TextureX360 x360):
                         BPRtoX360Mapping.TryGetValue(bpr.Format, out GPUTEXTUREFORMAT bprx360Format);
@@ -147,7 +200,7 @@ internal sealed class PortTextureOperation(
                         sourceFormatIndex = (int)bpr.Format;
                         destinationFormatIndex = (int)bprx360Format;
                         if (bprx360Format == GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_REVERSE)
-                            Console.WriteLine($"WARNING: Destination texture format is {bprx360Format}! (Source is {bpr.Format})");
+                            LogWarning($"Destination texture format is {bprx360Format}! (Source is {bpr.Format})");
                         break;
                     default:
                         throw new NotImplementedException($"Conversion technique {localSourceFormat} > {localDestinationFormat} is not yet implemented.");
@@ -184,18 +237,20 @@ internal sealed class PortTextureOperation(
 
                 if (!Path.Exists(sourceBitmapPath))
                 {
-                    Console.WriteLine($"Failed to find associated bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
+                    LogWarning($"Failed to find associated bitmap data for {Path.GetFileNameWithoutExtension(sourceFile)} at path {sourceBitmapPath}!");
                 }
 
                 string destinationBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(outPath, sourceTexture.Unpacker);
 
                 if (Path.Exists(destinationBitmapPath))
                 {
-                    if (verbose) Console.WriteLine($"Found existing bitmap data at {destinationBitmapPath}, overwriting...");
+                    LogVerbose(verbose, $"Found existing bitmap data at {destinationBitmapPath}, overwriting...");
                 }
 
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     if (useGTF && sourceTexture is TexturePS3 sourcePs3)
                     {
                         textureBitmapStore.ConvertPS3GTFToDDS(sourcePs3, sourceBitmapPath, destinationBitmapPath, verbose);
@@ -210,19 +265,19 @@ internal sealed class PortTextureOperation(
 
                     if (!TryConvertTexture(sourceTexture, destinationTexture, sourceBitmapData, destinationBitmapPath))
                     {
-                        if (verbose) Console.WriteLine($"Writing associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
-                        File.WriteAllBytes(destinationBitmapPath, sourceBitmapData);
+                        LogVerbose(verbose, $"Writing associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                        await File.WriteAllBytesAsync(destinationBitmapPath, sourceBitmapData, cancellationToken);
                     }
                     else
                     {
-                        if (verbose) Console.WriteLine($"Converting associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
+                        LogVerbose(verbose, $"Converting associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
                     }
-                    if (verbose) Console.WriteLine($"Wrote texture bitmap data to {destinationFormat} destination directory.");
+                    LogVerbose(verbose, $"Wrote texture bitmap data to {destinationSpec.DisplayName} destination directory.");
 
                     if (destinationTexture is TextureBPR destBprTexture && File.Exists(destinationBitmapPath))
                     {
                         destBprTexture.PlacedDataSize = (uint)new FileInfo(destinationBitmapPath).Length;
-                        if (verbose) Console.WriteLine($"BPR PlacedDataSize set to {destBprTexture.PlacedDataSize} (file: {destinationBitmapPath}).");
+                        LogVerbose(verbose, $"BPR PlacedDataSize set to {destBprTexture.PlacedDataSize} (file: {destinationBitmapPath}).");
                     }
 
                     using FileStream fs = new(outPath, FileMode.Create, FileAccess.Write);
@@ -230,7 +285,7 @@ internal sealed class PortTextureOperation(
                     {
                         try
                         {
-                            if (verbose) Console.WriteLine($"Writing converted {destinationFormat} texture property data to destination file {Path.GetFileName(outPath)}...");
+                            LogVerbose(verbose, $"Writing converted {destinationSpec.DisplayName} texture property data to destination file {Path.GetFileName(outPath)}...");
                             destinationTexture.WriteToStream(writer);
                         }
                         catch
@@ -248,23 +303,36 @@ internal sealed class PortTextureOperation(
                         ex);
                 }
 
-                Console.WriteLine($"Successfully ported {localSourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {localDestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.");
-            }));
-        }
-
-        await Task.WhenAll(tasks);
+                messageSink.Success(
+                    $"Successfully ported {localSourceFormat} formatted {Path.GetFileNameWithoutExtension(sourceFile)} to {localDestinationFormat} as {Path.GetFileNameWithoutExtension(outPath)}.",
+                    MessageCategory.Texture,
+                    nameof(PortTextureOperation));
+                return outPath;
     }
 
     private TextureBase LoadSourceTexture(string path, TextureFormatSpec format, bool verbose)
     {
-        if (verbose) Console.WriteLine($"Loading {format.DisplayName} texture property data...");
-        return (TextureBase)ResourceFactory.LoadResource(ResourceType.Texture, format.Platform, path, resourceDBLookup, format.IsX64);
+        LogVerbose(verbose, $"Loading {format.DisplayName} texture property data...");
+        return (TextureBase)resourceFactory.LoadResource(ResourceType.Texture, format.Platform, path, resourceDBLookup, format.IsX64);
     }
 
-    private static TextureBase CreateDestinationTexture(TextureFormatSpec format, bool verbose)
+    private TextureBase CreateDestinationTexture(TextureFormatSpec format, bool verbose)
     {
-        if (verbose) Console.WriteLine($"Constructing {format.DisplayName} texture property data...");
-        return (TextureBase)ResourceFactory.CreateResource(ResourceType.Texture, format.Platform, format.IsX64);
+        LogVerbose(verbose, $"Constructing {format.DisplayName} texture property data...");
+        return (TextureBase)resourceFactory.CreateResource(ResourceType.Texture, format.Platform, format.IsX64);
+    }
+
+    private void LogVerbose(bool verbose, string text)
+    {
+        if (verbose)
+        {
+            messageSink.Verbose(text, MessageCategory.Texture, nameof(PortTextureOperation));
+        }
+    }
+
+    private void LogWarning(string text)
+    {
+        messageSink.Warning(text, MessageCategory.Texture, nameof(PortTextureOperation));
     }
 
     private static TextureFormatSpec ParseTextureFormat(string format)
@@ -531,3 +599,14 @@ internal sealed class PortTextureOperation(
 
     private readonly record struct TextureFormatSpec(Platform Platform, bool IsX64, string DisplayName);
 }
+
+public sealed record PortTextureRequest(
+    IReadOnlyList<string> SourceFiles,
+    string SourceFormat,
+    string SourcePath,
+    string DestinationFormat,
+    string? DestinationPath,
+    bool Verbose,
+    bool UseGTF) : IOperationRequest;
+
+public sealed record PortTextureResult(IReadOnlyList<string> OutputPaths);

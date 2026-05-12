@@ -1,5 +1,7 @@
 using Volatility.Abstractions.Messaging;
+using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Operations.Resources;
 
 namespace Volatility.CLI.Commands;
@@ -7,7 +9,7 @@ namespace Volatility.CLI.Commands;
 internal class PortTextureCommand : ICommand
 {
     private readonly IPathProvider pathProvider;
-    private readonly PortTextureOperation operation;
+    private readonly IOperation<PortTextureRequest, PortTextureResult> operation;
 
     public static string CommandToken => "PortTexture";
     public static string CommandDescription => "Ports texture data from a given source format to the specified destination format.";
@@ -39,7 +41,23 @@ internal class PortTextureCommand : ICommand
             $"Starting {sourceFiles.Length} PortTexture tasks...",
             MessageCategory.Texture);
 
-        await operation.ExecuteAsync(sourceFiles, SourceFormat ?? string.Empty, SourcePath ?? string.Empty, DestinationFormat ?? string.Empty, DestinationPath, Verbose, UseGTF);
+        OperationResult<PortTextureResult> result = await operation.ExecuteAsync(
+            new PortTextureRequest(
+                sourceFiles,
+                SourceFormat ?? string.Empty,
+                SourcePath ?? string.Empty,
+                DestinationFormat ?? string.Empty,
+                DestinationPath,
+                Verbose,
+                UseGTF),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+
+        CLIMessageUtilities.PublishIssues(result.Issues);
+        if (!result.Success)
+        {
+            throw OperationResultFactory.CreateException(result, "Failed to port texture.");
+        }
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -60,7 +78,9 @@ internal class PortTextureCommand : ICommand
         UseGTF = args.TryGetValue("usegtf", out var usegtf) && (bool)usegtf;
     }
 
-    public PortTextureCommand(IPathProvider pathProvider, PortTextureOperation operation)
+    public PortTextureCommand(
+        IPathProvider pathProvider,
+        IOperation<PortTextureRequest, PortTextureResult> operation)
     {
         this.pathProvider = pathProvider;
         this.operation = operation;

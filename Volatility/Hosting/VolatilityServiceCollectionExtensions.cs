@@ -35,14 +35,12 @@ public static class VolatilityServiceCollectionExtensions
         services.AddTransient<IOperation<CreateShaderProgramBufferRequest, CreateShaderProgramBufferResult>, CreateShaderProgramBufferOperation>();
         services.AddTransient<IOperation<LoadResourceDictionaryRequest, LoadResourceDictionaryResult>, LoadResourceDictionaryOperation>();
         services.AddTransient<IOperation<MergeStringTableEntriesRequest, MergeStringTableEntriesResult>, MergeStringTableEntriesOperation>();
-
-        // Temporary registrations for operations that are not on the OperationResult contract yet
-        services.AddTransient<ImportResourceOperation>();
-        services.AddTransient<ImportStringTableOperation>();
-        services.AddTransient<ExportResourceOperation>();
-        services.AddTransient<TextureToDDSOperation>();
-        services.AddTransient<PortTextureOperation>();
-        services.AddTransient<GameAutotestOperation>();
+        services.AddTransient<IOperation<ImportResourceRequest, ImportResourceResult>, ImportResourceOperation>();
+        services.AddTransient<IOperation<ImportStringTableRequest, ImportStringTableResult>, ImportStringTableOperation>();
+        services.AddTransient<IOperation<ExportResourceRequest, ExportResourceResult>, ExportResourceOperation>();
+        services.AddTransient<IOperation<TextureToDDSRequest, TextureToDDSResult>, TextureToDDSOperation>();
+        services.AddTransient<IOperation<PortTextureRequest, PortTextureResult>, PortTextureOperation>();
+        services.AddTransient<IOperation<GameAutotestRequest, GameAutotestSummary>, GameAutotestOperation>();
 
         return services;
     }

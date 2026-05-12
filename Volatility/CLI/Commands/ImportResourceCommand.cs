@@ -11,7 +11,7 @@ namespace Volatility.CLI.Commands;
 internal class ImportResourceCommand : ICommand
 {
         private readonly IPathProvider pathProvider;
-        private readonly ImportResourceOperation importOperation;
+        private readonly IOperation<ImportResourceRequest, ImportResourceResult> importOperation;
         private readonly IOperation<SaveResourceRequest, SaveResourceResult> saveOperation;
 
         public static string CommandToken => "ImportResource";
@@ -78,7 +78,8 @@ internal class ImportResourceCommand : ICommand
                 {
                         tasks.Add(Task.Run(async () =>
                         {
-                                ImportResourceResult result = await importOperation.ExecuteAsync(new ImportResourceRequest(
+                                OperationResult<ImportResourceResult> importResult = await importOperation.ExecuteAsync(
+                                    new ImportResourceRequest(
                                         resType,
                                         platform,
                                         sourceFile,
@@ -86,7 +87,17 @@ internal class ImportResourceCommand : ICommand
                                         resourcesDirectory,
                                         toolsDirectory,
                                         splicerDirectory,
-                                        Overwrite));
+                                        Overwrite),
+                                    progress: null,
+                                    cancellationToken: CancellationToken.None);
+                                CLIMessageUtilities.PublishIssues(importResult.Issues, MessageCategory.Resource);
+
+                                if (!importResult.Success || importResult.Value == null)
+                                {
+                                        throw OperationResultFactory.CreateException(importResult, "Failed to import resource.");
+                                }
+
+                                ImportResourceResult result = importResult.Value;
 
                                 OperationResult<SaveResourceResult> saveResult = await saveOperation.ExecuteAsync(
                                         new SaveResourceRequest(result.Resource, result.ResourcePath, Overwrite),
@@ -118,7 +129,7 @@ internal class ImportResourceCommand : ICommand
 
     public ImportResourceCommand(
         IPathProvider pathProvider,
-        ImportResourceOperation importOperation,
+        IOperation<ImportResourceRequest, ImportResourceResult> importOperation,
         IOperation<SaveResourceRequest, SaveResourceResult> saveOperation)
     {
         this.pathProvider = pathProvider;

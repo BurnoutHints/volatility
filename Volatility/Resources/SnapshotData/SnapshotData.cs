@@ -90,7 +90,7 @@ public struct SnapshotChannelData
         uint terminator = reader.ReadUInt32();
         if (terminator != 0xFFFFFFFF)
         {
-            Console.Error.WriteLine($"Expected 0xFFFFFFFF at {reader.BaseStream.Position}, got {terminator}!");
+            throw new InvalidDataException($"Expected 0xFFFFFFFF at {reader.BaseStream.Position}, got {terminator}.");
         }
 
         return channelData;
