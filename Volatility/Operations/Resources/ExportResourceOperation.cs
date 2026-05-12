@@ -26,6 +26,14 @@ internal sealed class ExportResourceOperation(
             string outputPath = request.OutputPath;
             Platform platform = request.Platform;
 
+            if (!request.Overwrite && TryGetExistingOutputPath(resource, outputPath, platform, request.ImportUnpackerOverride, request.WriteImportsToSeparateFile, out string? existingOutputPath))
+            {
+                return OperationResultFactory.Failure<ExportResourceResult>(
+                    "export_resource_target_exists",
+                    $"Output file already exists ({existingOutputPath}). Use overwrite to replace it.",
+                    nameof(ExportResourceOperation));
+            }
+
             string? directoryPath = Path.GetDirectoryName(outputPath);
 
             if (!string.IsNullOrEmpty(directoryPath))
@@ -40,7 +48,7 @@ internal sealed class ExportResourceOperation(
                     request.SplicerDirectory ?? pathProvider.GetDirectory(VolatilityPathLocation.Splicer));
             }
 
-            using FileStream fs = new(outputPath, FileMode.Create);
+            using FileStream fs = new(outputPath, request.Overwrite ? FileMode.Create : FileMode.CreateNew);
 
             Endian endian = resource.ResourceEndian != Endian.Agnostic
                 ? resource.ResourceEndian
@@ -133,6 +141,94 @@ internal sealed class ExportResourceOperation(
         Unpacker? importUnpackerOverride)
     {
         return importUnpackerOverride ?? resource.Unpacker;
+    }
+
+    private static bool TryGetExistingOutputPath(
+        Resource resource,
+        string outputPath,
+        Platform platform,
+        Unpacker? importUnpackerOverride,
+        bool forceExternalImportsFile,
+        out string? existingOutputPath)
+    {
+        foreach (string path in EnumerateOutputPaths(resource, outputPath, platform, importUnpackerOverride, forceExternalImportsFile))
+        {
+            if (File.Exists(path))
+            {
+                existingOutputPath = path;
+                return true;
+            }
+        }
+
+        existingOutputPath = null;
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateOutputPaths(
+        Resource resource,
+        string outputPath,
+        Platform platform,
+        Unpacker? importUnpackerOverride,
+        bool forceExternalImportsFile)
+    {
+        yield return outputPath;
+
+        foreach (string importsPath in EnumerateImportsSidecarPaths(outputPath, ResolveExternalImportsUnpackerFormat(resource, importUnpackerOverride), forceExternalImportsFile))
+        {
+            yield return importsPath;
+        }
+
+        if (resource is ShaderBase shader)
+        {
+            var stages = shader.GetCompileStages();
+            bool useStageSuffix = stages.Count > 1;
+
+            foreach (var stage in stages)
+            {
+                string shaderProgramBufferPath = GetShaderProgramBufferPath(outputPath, stage, useStageSuffix);
+
+                yield return shaderProgramBufferPath;
+
+                if (platform == Platform.BPR)
+                {
+                    yield return GetShaderCSOPath(outputPath, stage, useStageSuffix);
+                    yield return GetSecondaryResourcePath(shaderProgramBufferPath);
+                }
+            }
+        }
+
+        if (resource is ShaderProgramBufferBPR shaderProgramBuffer &&
+            platform == Platform.BPR &&
+            shaderProgramBuffer.CompiledShaderBytecode.Length > 0)
+        {
+            yield return GetSecondaryResourcePath(outputPath);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateImportsSidecarPaths(
+        string outputPath,
+        Unpacker importUnpacker,
+        bool forceExternalImportsFile)
+    {
+        string yamlImportsPath = ResourceImport.GetImportsPath(outputPath, Unpacker.YAP);
+        string datImportsPath = ResourceImport.GetImportsPath(outputPath, Unpacker.Raw);
+
+        if (importUnpacker == Unpacker.YAP)
+        {
+            yield return yamlImportsPath;
+            yield return datImportsPath;
+            yield break;
+        }
+
+        if (forceExternalImportsFile)
+        {
+            yield return datImportsPath;
+            yield return yamlImportsPath;
+            yield break;
+        }
+
+        yield return yamlImportsPath;
+        yield return datImportsPath;
     }
 
     private static void WriteExternalImports(
@@ -291,6 +387,7 @@ public sealed record ExportResourceRequest(
     Platform Platform,
     Unpacker? ImportUnpackerOverride = null,
     bool WriteImportsToSeparateFile = false,
+    bool Overwrite = false,
     string? SplicerDirectory = null) : IOperationRequest;
 
 public sealed record ExportResourceResult(string OutputPath);

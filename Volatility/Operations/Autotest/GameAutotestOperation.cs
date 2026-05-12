@@ -294,6 +294,7 @@ internal sealed class GameAutotestOperation
                 loaded,
                 exportPath,
                 game.Platform,
+                Overwrite: true,
                 SplicerDirectory: splicerPass1), cancellationToken);
 
             BinaryComparisonResult binaryComparison = CompareFiles(candidate.SourcePath, exportPath);

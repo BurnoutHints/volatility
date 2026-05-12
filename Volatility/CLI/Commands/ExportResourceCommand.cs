@@ -15,7 +15,7 @@ internal class ExportResourceCommand : ICommand
 
     public static string CommandToken => "ExportResource";
     public static string CommandDescription => "Exports information and relevant data from an imported/created resource into a platform's format.";
-    public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file path> [--imports=<raw,bnd2manager,dgi,yap,volatility>] [--importsfile]";
+    public static string CommandParameters => "--recurse --overwrite --type=<resource type OR index> --format=<tub,bpr,x360,ps3> --respath=<data path> --outpath=<file/folder path> [--imports=<raw,bnd2manager,dgi,yap,volatility>] [--importsfile]";
 
     public string? Format { get; set; }
     public string? ResourcePath { get; set; }
@@ -72,6 +72,11 @@ internal class ExportResourceCommand : ICommand
             importUnpackerOverride = parsedUnpacker;
         }
 
+        bool multipleOutputs = sourceFiles.Length > 1;
+        string inputRoot = pathProvider.DirectoryExists(filePath)
+            ? pathProvider.GetFullPath(filePath)
+            : Path.GetDirectoryName(pathProvider.GetFullPath(filePath)) ?? pathProvider.GetFullPath(filePath);
+
         List<Task> tasks = [];
         foreach (string sourceFile in sourceFiles)
         {
@@ -102,13 +107,16 @@ internal class ExportResourceCommand : ICommand
                     return;
                 }
 
+                string outputPath = ResolveOutputPath(sourceFile, inputRoot, OutputPath, multipleOutputs);
+
                 OperationResult<ExportResourceResult> exportResult = await exportOperation.ExecuteAsync(
                     new ExportResourceRequest(
                         loadResult.Value.Resource,
-                        OutputPath,
+                        outputPath,
                         platform,
                         importUnpackerOverride,
-                        ImportsFile),
+                        ImportsFile,
+                        Overwrite),
                     progress: null,
                     cancellationToken: CancellationToken.None);
                 CLIMessageUtilities.PublishIssues(exportResult.Issues, MessageCategory.Resource);
@@ -119,7 +127,7 @@ internal class ExportResourceCommand : ICommand
                 }
 
                 CLIMessageUtilities.Success<ExportResourceCommand>(
-                    $"Exported {Path.GetFileName(sourceFile)} as {pathProvider.GetFullPath(OutputPath)}.",
+                    $"Exported {Path.GetFileName(sourceFile)} as {pathProvider.GetFullPath(outputPath)}.",
                     MessageCategory.Resource);
             }));
         }
@@ -146,5 +154,20 @@ internal class ExportResourceCommand : ICommand
         this.pathProvider = pathProvider;
         this.loadOperation = loadOperation;
         this.exportOperation = exportOperation;
+    }
+
+    private static string ResolveOutputPath(
+        string sourceFile,
+        string inputRoot,
+        string outputPath,
+        bool multipleOutputs)
+    {
+        if (!multipleOutputs)
+        {
+            return outputPath;
+        }
+
+        string relativePath = Path.GetRelativePath(inputRoot, sourceFile);
+        return Path.Combine(outputPath, relativePath);
     }
 }
