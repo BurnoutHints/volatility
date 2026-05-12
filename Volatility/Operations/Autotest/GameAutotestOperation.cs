@@ -41,8 +41,8 @@ internal sealed class GameAutotestOperation
     private readonly IPathProvider pathProvider;
     private readonly IProcessRunner processRunner;
     private readonly ImportResourceOperation importOperation;
-    private readonly SaveResourceOperation saveOperation;
-    private readonly LoadResourceOperation loadOperation;
+    private readonly IOperation<SaveResourceRequest, SaveResourceResult> saveOperation;
+    private readonly IOperation<LoadResourceRequest, LoadResourceResult> loadOperation;
     private readonly ExportResourceOperation exportOperation;
     private readonly TextureToDDSOperation textureToDdsOperation;
     private readonly PortTextureOperation portTextureOperation;
@@ -102,8 +102,8 @@ internal sealed class GameAutotestOperation
         IPathProvider pathProvider,
         IProcessRunner processRunner,
         ImportResourceOperation importOperation,
-        SaveResourceOperation saveOperation,
-        LoadResourceOperation loadOperation,
+        IOperation<SaveResourceRequest, SaveResourceResult> saveOperation,
+        IOperation<LoadResourceRequest, LoadResourceResult> loadOperation,
         ExportResourceOperation exportOperation,
         TextureToDDSOperation textureToDdsOperation,
         PortTextureOperation portTextureOperation)
@@ -421,7 +421,7 @@ internal sealed class GameAutotestOperation
     private async Task SaveAsync(Resource resource, string filePath)
     {
         OperationResult<SaveResourceResult> result = await saveOperation.ExecuteAsync(
-            new SaveResourceRequest(resource, filePath),
+            new SaveResourceRequest(resource, filePath, Overwrite: true),
             progress: null,
             cancellationToken: CancellationToken.None);
 

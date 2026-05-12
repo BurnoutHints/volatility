@@ -1,3 +1,4 @@
+using Volatility.Abstractions.Messaging;
 using Volatility.Abstractions.Services;
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -6,7 +7,8 @@ namespace Volatility.Services;
 
 public sealed class FileTextureBitmapStore(
     IPathProvider pathProvider,
-    IProcessRunner processRunner)
+    IProcessRunner processRunner,
+    IMessageSink messageSink)
     : ITextureBitmapStore
 {
     public string GetResourceBaseName(string headerPath, Unpacker unpacker)
@@ -80,8 +82,14 @@ public sealed class FileTextureBitmapStore(
 
         if (verbose)
         {
-            Console.WriteLine($"Running: {gtf2ddsExecutablePath} -o \"{destinationBitmapPath}.dds\" \"{destinationBitmapPath}.gtf\"");
-            Console.WriteLine("Converting PS3 GTF texture to DDS...");
+            messageSink.Verbose(
+                $"Running: {gtf2ddsExecutablePath} -o \"{destinationBitmapPath}.dds\" \"{destinationBitmapPath}.gtf\"",
+                MessageCategory.Texture,
+                nameof(FileTextureBitmapStore));
+            messageSink.Verbose(
+                "Converting PS3 GTF texture to DDS...",
+                MessageCategory.Texture,
+                nameof(FileTextureBitmapStore));
         }
 
         processRunner.RunAndRelayOutput(
@@ -100,7 +108,10 @@ public sealed class FileTextureBitmapStore(
 
         if (verbose)
         {
-            Console.WriteLine("Trimmed converted DDS header.");
+            messageSink.Verbose(
+                "Trimmed converted DDS header.",
+                MessageCategory.Texture,
+                nameof(FileTextureBitmapStore));
         }
     }
 

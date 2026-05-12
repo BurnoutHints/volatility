@@ -1,12 +1,14 @@
 using System.Runtime.Serialization;
 using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
 using Volatility.Operations;
 using Volatility.Resources;
 using Volatility.Utilities;
 
 namespace Volatility.Operations.Resources;
 
-internal sealed class LoadResourceOperation : IOperation<LoadResourceRequest, LoadResourceResult>
+internal sealed class LoadResourceOperation(IResourceFactory resourceFactory)
+    : IOperation<LoadResourceRequest, LoadResourceResult>
 {
     public async Task<OperationResult<LoadResourceResult>> ExecuteAsync(
         LoadResourceRequest request,
@@ -25,7 +27,7 @@ internal sealed class LoadResourceOperation : IOperation<LoadResourceRequest, Lo
         {
             string yaml = await File.ReadAllTextAsync(request.SourceFile, cancellationToken);
 
-            Resource resource = ResourceFactory.CreateResource(request.ResourceType, request.Platform);
+            Resource resource = resourceFactory.CreateResource(request.ResourceType, request.Platform);
             Resource? result = (Resource?)ResourceYamlDeserializer.DeserializeResource(resource.GetType(), yaml);
 
             if (result is null)
@@ -58,6 +60,6 @@ internal sealed class LoadResourceOperation : IOperation<LoadResourceRequest, Lo
 
 }
 
-internal sealed record LoadResourceRequest(string SourceFile, ResourceType ResourceType, Platform Platform) : IOperationRequest;
+public sealed record LoadResourceRequest(string SourceFile, ResourceType ResourceType, Platform Platform) : IOperationRequest;
 
-internal sealed record LoadResourceResult(Resource Resource);
+public sealed record LoadResourceResult(Resource Resource);

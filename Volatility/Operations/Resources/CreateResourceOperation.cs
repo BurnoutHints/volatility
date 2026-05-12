@@ -1,10 +1,13 @@
 using Volatility.Abstractions.Operations;
+using Volatility.Abstractions.Services;
 using Volatility.Operations;
 using Volatility.Resources;
 
 namespace Volatility.Operations.Resources;
 
-internal sealed class CreateResourceOperation(string resourcesDirectory)
+internal sealed class CreateResourceOperation(
+    IPathProvider pathProvider,
+    IResourceFactory resourceFactory)
     : IOperation<CreateResourceRequest, CreateResourceResult>
 {
     public Task<OperationResult<CreateResourceResult>> ExecuteAsync(
@@ -16,7 +19,7 @@ internal sealed class CreateResourceOperation(string resourcesDirectory)
 
         try
         {
-            Resource resource = ResourceFactory.CreateResource(request.ResourceType, request.Platform, request.IsX64);
+            Resource resource = resourceFactory.CreateResource(request.ResourceType, request.Platform, request.IsX64);
 
             string resolvedPath = ResolveOutputPath(request.OutputPath, request.ResourceType, request.AssetName);
             string resolvedAssetName = ResolveAssetName(request.AssetName, resolvedPath);
@@ -54,6 +57,7 @@ internal sealed class CreateResourceOperation(string resourcesDirectory)
 
     private string ResolveOutputPath(string? outputPath, ResourceType resourceType, string? assetName)
     {
+        string resourcesDirectory = pathProvider.GetDirectory(VolatilityPathLocation.Resources);
         string resolvedPath;
 
         if (string.IsNullOrWhiteSpace(outputPath))
@@ -100,7 +104,7 @@ internal sealed class CreateResourceOperation(string resourcesDirectory)
     }
 }
 
-internal sealed record CreateResourceRequest(
+public sealed record CreateResourceRequest(
     ResourceType ResourceType,
     Platform Platform,
     string? AssetName,
@@ -108,4 +112,4 @@ internal sealed record CreateResourceRequest(
     ResourceID? ResourceId,
     bool IsX64) : IOperationRequest;
 
-internal sealed record CreateResourceResult(Resource Resource, string ResourcePath);
+public sealed record CreateResourceResult(Resource Resource, string ResourcePath);

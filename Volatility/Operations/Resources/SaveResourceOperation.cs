@@ -45,6 +45,14 @@ internal sealed class SaveResourceOperation : IOperation<SaveResourceRequest, Sa
 
         try
         {
+            if (!request.Overwrite && File.Exists(request.FilePath))
+            {
+                return OperationResultFactory.Failure<SaveResourceResult>(
+                    "save_resource_target_exists",
+                    $"Output file already exists ({request.FilePath}). Use overwrite to replace it.",
+                    nameof(SaveResourceOperation));
+            }
+
             string? directoryPath = Path.GetDirectoryName(request.FilePath);
             if (!string.IsNullOrEmpty(directoryPath))
             {
@@ -68,6 +76,6 @@ internal sealed class SaveResourceOperation : IOperation<SaveResourceRequest, Sa
 
 }
 
-internal sealed record SaveResourceRequest(Resource Resource, string FilePath) : IOperationRequest;
+public sealed record SaveResourceRequest(Resource Resource, string FilePath, bool Overwrite) : IOperationRequest;
 
-internal sealed record SaveResourceResult(string FilePath);
+public sealed record SaveResourceResult(string FilePath);

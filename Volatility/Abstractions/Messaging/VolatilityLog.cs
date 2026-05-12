@@ -1,5 +1,3 @@
-using Volatility.Messaging;
-
 namespace Volatility.Abstractions.Messaging;
 
 public static class VolatilityLog
@@ -62,7 +60,12 @@ public static class VolatilityLog
         string? source,
         IReadOnlyDictionary<string, object?>? data)
     {
+        if (sink is null)
+        {
+            return;
+        }
+
         VolatilityMessage message = new(severity, category, text, source, data);
-        (sink ?? NullMessageSink.Instance).Publish(in message);
+        sink.Publish(in message);
     }
 }

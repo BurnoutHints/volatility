@@ -58,27 +58,12 @@ internal sealed class MergeStringTableEntriesOperation
         }
     }
 
-    public void Execute(
-        Dictionary<string, Dictionary<string, StringTableResourceEntry>> target,
-        Dictionary<string, Dictionary<string, StringTableResourceEntry>> source,
-        bool overwrite)
-    {
-        OperationResult<MergeStringTableEntriesResult> result = ExecuteAsync(
-            new MergeStringTableEntriesRequest(target, source, overwrite),
-            progress: null,
-            cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
-
-        if (!result.Success)
-        {
-            throw OperationResultFactory.CreateException(result, "Failed to merge string table entries.");
-        }
-    }
 }
 
-internal sealed record MergeStringTableEntriesRequest(
+public sealed record MergeStringTableEntriesRequest(
     Dictionary<string, Dictionary<string, StringTableResourceEntry>> Target,
     Dictionary<string, Dictionary<string, StringTableResourceEntry>> Source,
     bool Overwrite) : IOperationRequest;
 
-internal sealed record MergeStringTableEntriesResult(
+public sealed record MergeStringTableEntriesResult(
     Dictionary<string, Dictionary<string, StringTableResourceEntry>> Entries);

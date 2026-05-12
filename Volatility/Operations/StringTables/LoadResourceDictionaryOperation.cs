@@ -57,23 +57,9 @@ internal sealed class LoadResourceDictionaryOperation
         }
     }
 
-    public async Task<Dictionary<string, Dictionary<string, StringTableResourceEntry>>> ExecuteAsync(string yamlFile)
-    {
-        OperationResult<LoadResourceDictionaryResult> result = await ExecuteAsync(
-            new LoadResourceDictionaryRequest(yamlFile),
-            progress: null,
-            cancellationToken: CancellationToken.None);
-
-        if (!result.Success || result.Value == null)
-        {
-            throw OperationResultFactory.CreateException(result, "Failed to load resource dictionary.");
-        }
-
-        return result.Value.Entries;
-    }
 }
 
-internal sealed record LoadResourceDictionaryRequest(string YamlFile) : IOperationRequest;
+public sealed record LoadResourceDictionaryRequest(string YamlFile) : IOperationRequest;
 
-internal sealed record LoadResourceDictionaryResult(
+public sealed record LoadResourceDictionaryResult(
     Dictionary<string, Dictionary<string, StringTableResourceEntry>> Entries);

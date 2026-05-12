@@ -33,17 +33,15 @@ public sealed class EnvironmentPathProvider : IPathProvider
     public string GetExecutableDirectory()
     {
         string? processPath = null;
-        PropertyInfo? processPathProperty = typeof(Environment).GetProperty("ProcessPath", BindingFlags.Static | BindingFlags.Public);
-        if (processPathProperty != null)
-        {
-            processPath = processPathProperty.GetValue(null) as string;
-        }
-
-        if (string.IsNullOrEmpty(processPath) &&
-            Assembly.GetEntryAssembly()?.Location is string entryAssemblyLocation &&
+        if (Assembly.GetEntryAssembly()?.Location is string entryAssemblyLocation &&
             !string.IsNullOrEmpty(entryAssemblyLocation))
         {
             processPath = entryAssemblyLocation;
+        }
+
+        if (string.IsNullOrEmpty(processPath))
+        {
+            processPath = Environment.ProcessPath;
         }
 
         if (string.IsNullOrEmpty(processPath))

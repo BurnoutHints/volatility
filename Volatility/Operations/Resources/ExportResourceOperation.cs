@@ -8,7 +8,7 @@ namespace Volatility.Operations.Resources;
 internal sealed class ExportResourceOperation(
     IPathProvider pathProvider,
     IShaderCompiler shaderCompiler,
-    CreateShaderProgramBufferOperation shaderProgramBufferOperation,
+    IOperation<CreateShaderProgramBufferRequest, CreateShaderProgramBufferResult> shaderProgramBufferOperation,
     ISplicerSampleStore splicerSampleStore)
 {
     public Task ExecuteAsync(
@@ -83,7 +83,7 @@ internal sealed class ExportResourceOperation(
                     }
 
                     ShaderProgramBufferBase buffer = bufferResult.Value.Buffer;
-                    shaderProgramBufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
+                    CreateShaderProgramBufferOperation.WriteToFile(buffer, shaderProgramBufferPath, platform);
                     WritePaddedCSOFile(csoPath, GetSecondaryResourcePath(shaderProgramBufferPath));
                 }
             }

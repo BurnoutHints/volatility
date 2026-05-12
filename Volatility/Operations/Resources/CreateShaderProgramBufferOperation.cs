@@ -56,7 +56,7 @@ internal sealed class CreateShaderProgramBufferOperation
         }
     }
 
-    public void WriteToFile(ShaderProgramBufferBase buffer, string outputPath, Platform platform)
+    public static void WriteToFile(ShaderProgramBufferBase buffer, string outputPath, Platform platform)
     {
         ArgumentNullException.ThrowIfNull(buffer);
 
@@ -105,10 +105,10 @@ internal sealed class CreateShaderProgramBufferOperation
     }
 }
 
-internal sealed record CreateShaderProgramBufferRequest(
+public sealed record CreateShaderProgramBufferRequest(
     ShaderStageType Stage,
     Platform Platform,
     string? CsoPath = null,
     byte[]? CsoBytes = null) : IOperationRequest;
 
-internal sealed record CreateShaderProgramBufferResult(ShaderProgramBufferBase Buffer);
+public sealed record CreateShaderProgramBufferResult(ShaderProgramBufferBase Buffer);

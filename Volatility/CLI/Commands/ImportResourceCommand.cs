@@ -12,7 +12,7 @@ internal class ImportResourceCommand : ICommand
 {
         private readonly IPathProvider pathProvider;
         private readonly ImportResourceOperation importOperation;
-        private readonly SaveResourceOperation saveOperation;
+        private readonly IOperation<SaveResourceRequest, SaveResourceResult> saveOperation;
 
         public static string CommandToken => "ImportResource";
         public static string CommandDescription => "Imports information and relevant data from a specified platform's resource into a standardized format.";
@@ -89,7 +89,7 @@ internal class ImportResourceCommand : ICommand
                                         Overwrite));
 
                                 OperationResult<SaveResourceResult> saveResult = await saveOperation.ExecuteAsync(
-                                        new SaveResourceRequest(result.Resource, result.ResourcePath),
+                                        new SaveResourceRequest(result.Resource, result.ResourcePath, Overwrite),
                                         progress: null,
                                         cancellationToken: CancellationToken.None);
 
@@ -119,7 +119,7 @@ internal class ImportResourceCommand : ICommand
     public ImportResourceCommand(
         IPathProvider pathProvider,
         ImportResourceOperation importOperation,
-        SaveResourceOperation saveOperation)
+        IOperation<SaveResourceRequest, SaveResourceResult> saveOperation)
     {
         this.pathProvider = pathProvider;
         this.importOperation = importOperation;

@@ -89,14 +89,8 @@ internal class CreateResourceCommand : ICommand
         }
 
         CreateResourceResult result = createResult.Value;
-        if (pathProvider.FileExists(result.ResourcePath) && !Overwrite)
-        {
-            CLIMessageUtilities.Error<CreateResourceCommand>($"Error: Output file already exists ({result.ResourcePath}). Use --overwrite to replace it.");
-            return;
-        }
-
         OperationResult<SaveResourceResult> saveResult = await saveOperation.ExecuteAsync(
-            new SaveResourceRequest(result.Resource, result.ResourcePath),
+            new SaveResourceRequest(result.Resource, result.ResourcePath, Overwrite),
             progress: null,
             cancellationToken: CancellationToken.None);
         CLIMessageUtilities.PublishIssues(saveResult.Issues, MessageCategory.Resource);
