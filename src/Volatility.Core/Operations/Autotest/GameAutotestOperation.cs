@@ -1279,6 +1279,11 @@ internal sealed class GameAutotestOperation
         if (pathProvider.FileExists(Path.Combine(fullPath, "BurnoutPR.exe")) ||
             pathProvider.FileExists(Path.Combine(fullPath, "BurnoutPR_trial.exe")))
         {
+            return new GameInstall(Path.GetFileName(fullPath), fullPath, Platform.BPR);
+        }
+
+        if (pathProvider.FileExists(Path.Combine(fullPath, "BurnoutParadise.exe")))
+        {
             return new GameInstall(Path.GetFileName(fullPath), fullPath, Platform.TUB);
         }
 
