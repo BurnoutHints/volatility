@@ -4,27 +4,35 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 
-Volatility is a platform-agnostic interface for *Burnout Paradise* resource files (textures, renderables, environment data, GUI popups, shaders, etc.). It imports binary resources from any supported platform (TUB/PC, BPR, X360, PS3) into a standardized YAML representation and exports YAML back to any target platform's binary format. Single .NET 9.0 console project.
+Volatility is a platform-agnostic interface for *Burnout Paradise* resource files (textures, renderables, environment data, GUI popups, shaders, etc.). It imports binary resources from any supported platform (TUB/PC, BPR, X360, PS3) into a standardized YAML representation and exports YAML back to any target platform's binary format.
+
+The codebase is split into three main projects:
+- `src/Volatility.Core`: A .NET 9.0 class library implementing the backend resource model, binary serialization, operations layer, and DI services.
+- `src/Volatility.Cli`: A .NET 9.0 console project containing the CLI command routing and dependency injection setup.
+- `tests/Volatility.Core.Tests`: An xUnit integration test project.
 
 The submodule `tools/libbndl-extractor` is required for the game-path autotest workflow — it pins `Bo98/libbndl` as a nested submodule, so clones must use `git submodule update --init --recursive`.
 
 ## Build / Run
 
 ```bash
-dotnet build Volatility/Volatility.csproj
-dotnet run --project Volatility/Volatility.csproj                # interactive REPL
-dotnet run --project Volatility/Volatility.csproj -- <command>   # one-shot
+dotnet build Volatility.sln
+dotnet run --project src/Volatility.Cli/Volatility.Cli.csproj                # interactive REPL
+dotnet run --project src/Volatility.Cli/Volatility.Cli.csproj -- <command>   # one-shot
 ```
 
 Release publish mirrors CI (`.github/workflows/dotnet.yml`):
 ```bash
-dotnet publish --configuration Release --runtime win-x64 --self-contained true Volatility/Volatility.csproj
+dotnet publish --configuration Release --runtime win-x64 --self-contained true src/Volatility.Cli/Volatility.Cli.csproj
 ```
-The csproj sets `PublishSingleFile`, `PublishTrimmed`, and copies `tools/dxc/**` to the output — the DXC tree must be present for shader operations after publish.
+The CLI csproj sets `PublishSingleFile`, `PublishTrimmed`, and roots `Volatility.Core` to ensure safe reflection. It also copies `tools/dxc/**` to the output — the DXC tree must be present for shader operations after publish.
 
 ## Testing
 
-There is no unit-test framework in this repo. Correctness is verified by the built-in `autotest` command, which has two modes:
+Correctness is verified by:
+
+1. **xUnit Tests** (`dotnet test Volatility.sln`): Unit and integration tests in `tests/Volatility.Core.Tests/` validating operation round-trips, DDS conversions, and other core behaviors.
+2. **Built-in Autotest Command** (`autotest`): The command has two modes:
 
 1. **Synthetic / path mode** (`autotest --format=<TUB|BPR|X360|PS3> [--path=<file>]`): constructs or loads a texture header, writes it out, re-imports the result, and reflects over every public property/field to compare exported vs. re-imported values. Mismatches print in red.
 2. **Game mode** (`autotest --game=<dir>` or `--games=a|b|c`): drives [GameAutotestOperation.cs](Volatility/Operations/Autotest/GameAutotestOperation.cs) — extracts real bundles via `tools/libbndl-extractor` (or YAP with `--bundletool=YAP`), runs import/export per supported `ResourceType`, and for the types in `RoundTripTypes` performs **exact binary parity** checks against the original bundle-extracted files. Useful flags: `--resourcelimit`, `--bundlelimit`, `--keepartifacts`, `--recap=<file|dir>` (writes a markdown recap).
@@ -33,8 +41,8 @@ When changing a resource's read/write path, the game-mode autotest on a real Bur
 
 ## Architecture
 
-### Command dispatch ([Frontend.cs](Volatility/Frontend.cs))
-`Main` either enters a REPL or runs one tokenized command. The command registry is the static dictionary `Frontend.Commands` mapping lowercase name → `ICommand` type; commands are instantiated via `Activator.CreateInstance`. Args are parsed as `--key=value` or bare `--flag` (defaulted to `true`) into a `Dictionary<string, object>` passed to `ICommand.SetArgs`. Every command implements static `CommandToken`/`CommandDescription`/`CommandParameters` used by `HelpCommand` via reflection in [TypeUtilities](Volatility/Utilities/TypeUtilities.cs). **Adding a new command requires registering it in `Frontend.Commands` — there is no auto-discovery.**
+### Command dispatch ([Program.cs](src/Volatility.Cli/Program.cs))
+`Main` either enters a REPL or runs one tokenized command. The command registry is the static dictionary `Frontend.Commands` mapping lowercase name → `ICommand` type; commands are instantiated via `Activator.CreateInstance`. Args are parsed as `--key=value` or bare `--flag` (defaulted to `true`) into a `Dictionary<string, object>` passed to `ICommand.SetArgs`. Every command implements static `CommandToken`/`CommandDescription`/`CommandParameters` used by `HelpCommand` via reflection. **Adding a new command requires registering it in `Frontend.Commands` — there is no auto-discovery.**
 
 ### Resource model ([Resources/](Volatility/Resources/))
 `Resource` (abstract base) → per-type abstract class (e.g. `TextureBase`, `RenderableBase`) → per-platform concrete class (e.g. `TexturePC`, `TextureBPR`, `TextureX360`, `TexturePS3`). Concrete classes override `ResourceEndian`, `ResourcePlatform`, and implement `ParseFromStream`/`WriteToStream`. Many also implement `PushAll`/`PullAll` to sync between a platform-specific struct and the portable fields inherited from the base.

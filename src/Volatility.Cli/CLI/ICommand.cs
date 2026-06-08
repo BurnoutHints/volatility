@@ -11,7 +11,7 @@ internal interface ICommand
 
     Task Execute() => Task.CompletedTask;
     void SetArgs(Dictionary<string, object> args);
-    public void ShowUsage() 
+    public void ShowUsage()
     {
         Type thisType = GetType();
 

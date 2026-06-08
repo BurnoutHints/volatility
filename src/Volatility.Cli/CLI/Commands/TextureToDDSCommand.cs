@@ -1,6 +1,7 @@
 using Volatility.Abstractions.Messaging;
 using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
+using Volatility.Operations;
 using Volatility.Operations.Resources;
 using Volatility.Resources;
 using Volatility.Utilities;
@@ -65,6 +66,10 @@ internal class TextureToDDSCommand : ICommand
             progress: null,
             cancellationToken: CancellationToken.None);
         CLIMessageUtilities.PublishIssues(result.Issues, MessageCategory.Texture);
+        if (!result.Success)
+        {
+            throw OperationResultFactory.CreateException(result, "Failed to convert texture to DDS.");
+        }
     }
 
     public void SetArgs(Dictionary<string, object> args)

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <TrimmerRootAssembly Include="Volatility.Cli" />
+    <TrimmerRootAssembly Include="Volatility.Core" />
   </ItemGroup>
 
   <ItemGroup>

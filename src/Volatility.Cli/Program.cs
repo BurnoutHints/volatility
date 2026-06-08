@@ -185,6 +185,7 @@ internal class Frontend
         catch (Exception ex)
         {
             VolatilityMessageHost.Sink.Error($"Error: {ex.Message}", MessageCategory.CLI, nameof(Frontend));
+            Environment.ExitCode = 1;
 #if DEBUG
             throw;
 #endif

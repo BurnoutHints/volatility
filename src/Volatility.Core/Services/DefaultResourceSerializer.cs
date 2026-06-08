@@ -19,7 +19,7 @@ public sealed class DefaultResourceSerializer : IResourceSerializer
         ResourceSerializationOptions options)
     {
         Resource resource = _resourceFactory.CreateResource(resourceType, platform, options.x64);
-        
+
         if (options.AssetName != null)
         {
             resource.AssetName = options.AssetName;
@@ -32,10 +32,10 @@ public sealed class DefaultResourceSerializer : IResourceSerializer
         {
             resource.Unpacker = options.Unpacker.Value;
         }
-        
+
         Endian defaultEndian = ResolveLoadEndianness(resource, platform);
         Endian finalEndian = options.Endianness ?? defaultEndian;
-        
+
         resource.LoadFromStream(stream, finalEndian, options.FileName, options.ResourceDBLookup);
 
         resource.PullAll();

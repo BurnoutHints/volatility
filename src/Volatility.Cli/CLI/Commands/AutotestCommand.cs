@@ -61,7 +61,7 @@ internal class AutotestCommand : ICommand
             CLIMessageUtilities.PublishIssues(result.Issues);
             if (!result.Success || result.Value == null)
             {
-                throw OperationResultFactory.CreateException(result, "Game autotest failed.");
+                throw OperationResultFactory.CreateException(result, "Game autotest failed to execute.");
             }
 
             GameAutotestSummary summary = result.Value;
@@ -76,6 +76,11 @@ internal class AutotestCommand : ICommand
                 CLIMessageUtilities.Success<AutotestCommand>(
                     $"AUTOTEST - Detailed recap written to: {recapFilePath}",
                     MessageCategory.Autotest);
+            }
+
+            if (summary.Failed > 0)
+            {
+                throw new InvalidOperationException($"Game autotest completed with {summary.Failed} failed cases.");
             }
             return;
         }
@@ -101,7 +106,15 @@ internal class AutotestCommand : ICommand
                     });
             }
 
-            await TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
+            (bool Success, int MismatchCount) result = await TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
+            if (!result.Success)
+            {
+                throw new InvalidOperationException("Path autotest failed to execute successfully.");
+            }
+            if (result.MismatchCount > 0)
+            {
+                throw new InvalidOperationException($"Path autotest failed: {result.MismatchCount} mismatches detected.");
+            }
 
             return;
         }
@@ -112,7 +125,9 @@ internal class AutotestCommand : ICommand
          * will interpret from an input format, then write
          * them out to various platform formatted header files.
          */
-            
+        int totalMismatches = 0;
+        bool allSuccessful = true;
+
         // TUB Texture data test case
         TexturePC textureHeaderPC = new()
         {
@@ -125,7 +140,9 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
 
-        await TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
+        (bool Success, int MismatchCount) pcResult = await TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
+        if (!pcResult.Success) allSuccessful = false;
+        totalMismatches += pcResult.MismatchCount;
 
         // BPR Texture data test case
         TextureBPR textureHeaderBPR = new()
@@ -142,14 +159,18 @@ internal class AutotestCommand : ICommand
         // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
 
         // Write 32 bit test BPR header
-        await TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
+        (bool Success, int MismatchCount) bprResult = await TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
+        if (!bprResult.Success) allSuccessful = false;
+        totalMismatches += bprResult.MismatchCount;
 
         textureHeaderBPR.SetResourceArch(Arch.x64);
         textureHeaderBPR.AssetName = "autotest_header_BPRx64";
         textureHeaderBPR.ResourceID = ResourceID.HashFromString(textureHeaderBPR.AssetName);
 
         // Write 64 bit test BPR header
-        await TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
+        (bool Success, int MismatchCount) bprX64Result = await TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
+        if (!bprX64Result.Success) allSuccessful = false;
+        totalMismatches += bprX64Result.MismatchCount;
 
         // PS3 Texture data test case
         TexturePS3 textureHeaderPS3 = new()
@@ -163,7 +184,9 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderPS3.PushAll();
-        await TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
+        (bool Success, int MismatchCount) ps3Result = await TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
+        if (!ps3Result.Success) allSuccessful = false;
+        totalMismatches += ps3Result.MismatchCount;
 
         // X360 Texture data test case
         TextureX360 textureHeaderX360 = new()
@@ -185,13 +208,24 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderX360.PushAll();
-        await TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
+        (bool Success, int MismatchCount) x360Result = await TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
+        if (!x360Result.Success) allSuccessful = false;
+        totalMismatches += x360Result.MismatchCount;
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
         CLIMessageUtilities.Info<AutotestCommand>(
             $"AUTOTEST - Endian Test: Flipped endian {endianFlipTestName} to {FlipPathResourceIDEndian(endianFlipTestName)}",
             MessageCategory.Autotest);
+
+        if (!allSuccessful)
+        {
+            throw new InvalidOperationException("One or more synthetic autotests failed to execute successfully.");
+        }
+        if (totalMismatches > 0)
+        {
+            throw new InvalidOperationException($"Synthetic autotest failed: {totalMismatches} mismatches detected.");
+        }
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -218,7 +252,7 @@ internal class AutotestCommand : ICommand
         }
     }
 
-    public async Task TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
+    public async Task<(bool Success, int MismatchCount)> TestHeaderRW(string name, TextureBase header, bool skipImport = false)
     {
         OperationResult<TextureRoundTripResult> opResult = await textureRoundTripOperation.ExecuteAsync(
             new TextureRoundTripRequest(name, header, skipImport),
@@ -228,7 +262,7 @@ internal class AutotestCommand : ICommand
         if (!opResult.Success || opResult.Value == null)
         {
             CLIMessageUtilities.Error<AutotestCommand>($"Failed to roundtrip header: {name}");
-            return;
+            return (false, 0);
         }
 
         TextureRoundTripResult result = opResult.Value;
@@ -240,7 +274,7 @@ internal class AutotestCommand : ICommand
         }
 
         if (skipImport)
-            return;
+            return (true, 0);
 
         Console.WriteLine(">> Comparing properties and fields of " + header.GetType().Name + ":");
         foreach (PropertyMismatch mismatch in result.Mismatches)
@@ -253,6 +287,8 @@ internal class AutotestCommand : ICommand
         Console.ForegroundColor = result.Mismatches.Count == 0 ? ConsoleColor.Green : ConsoleColor.Red;
         Console.WriteLine(">> Finished Comparing properties and fields of " + header.GetType().Name + $" - {result.Mismatches.Count} mismatches");
         Console.ResetColor();
+
+        return (true, result.Mismatches.Count);
     }
 
     private IReadOnlyList<string> ParseGamePaths()

@@ -26,15 +26,14 @@ internal class HelpCommand : ICommand
         }
 
         CLIMessageUtilities.Info<HelpCommand>("Available commands:");
-        foreach (var command in GetDerivedTypes(typeof(ICommand)))
+        foreach (var command in Frontend.Commands.Values.Distinct())
         {
-            string? commandName = GetStaticPropertyValue(command, nameof(CommandToken));
+            string? commandName = GetStaticPropertyValue(command, "CommandToken");
             
             if (string.IsNullOrEmpty(commandName))
                 continue;
             
-            CLIMessageUtilities.Info<HelpCommand>($"    {commandName} - {GetStaticPropertyValue(command, nameof(CommandDescription))}");
-            
+            CLIMessageUtilities.Info<HelpCommand>($"    {commandName} - {GetStaticPropertyValue(command, "CommandDescription")}");
         }
         CLIMessageUtilities.Info<HelpCommand>("For information on command arguments, run: help <command name>.");
         return Task.CompletedTask;

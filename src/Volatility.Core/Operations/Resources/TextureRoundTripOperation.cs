@@ -50,7 +50,6 @@ internal sealed class TextureRoundTripOperation(
                         $"AUTOTEST - Writing autotest {request.Filename} to working directory...",
                         MessageCategory.Autotest,
                         nameof(TextureRoundTripOperation));
-                    
                     request.Header.WriteToStream(writer);
                     writer.Close();
                 }

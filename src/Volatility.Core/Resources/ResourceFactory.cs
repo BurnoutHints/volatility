@@ -72,25 +72,7 @@ public static class ResourceFactory
         }
     }
 
-    private static Endian ResolveLoadEndianness(Resource resource, Platform platform, bool endianMapped)
-    {
-        if (resource.ResourceEndian != Endian.Agnostic)
-        {
-            return resource.ResourceEndian;
-        }
 
-        if (!endianMapped)
-        {
-            return Endian.Agnostic;
-        }
-
-        return platform switch
-        {
-            Platform.BPR or Platform.TUB => Endian.LE,
-            Platform.X360 or Platform.PS3 => Endian.BE,
-            _ => throw new InvalidOperationException($"No default endianness mapping exists for platform '{platform}'.")
-        };
-    }
 
     private static void AddRegisteredResource<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TResource>(
         ResourceCreatorRegistry registry)

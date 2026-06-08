@@ -30,7 +30,7 @@ public static class ResourcePropertyComparer
         foreach (PropertyInfo property in properties)
         {
             if (property.GetIndexParameters().Length > 0) continue;
-            
+
             object? value1 = property.GetValue(exported, null);
             object? value2 = property.GetValue(imported, null);
             string propPath = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";

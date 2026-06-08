@@ -16,13 +16,7 @@ public static class TypeUtilities
         return null;
     }
 
-    public static Type[] GetDerivedTypes(Type baseType)
-    {
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => baseType.IsAssignableFrom(type) && type.IsClass && !type.IsAbstract)
-            .ToArray();
-    }
+
 
     public static T? GetAttribute<T>(MemberInfo member) where T : Attribute
     {
