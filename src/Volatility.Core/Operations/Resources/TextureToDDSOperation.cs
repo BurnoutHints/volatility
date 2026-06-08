@@ -8,7 +8,7 @@ using Volatility.Utilities;
 namespace Volatility.Operations.Resources;
 
 internal sealed class TextureToDDSOperation(
-    IResourceFactory resourceFactory,
+    IResourceSerializer resourceSerializer,
     IResourceDBLookup resourceDBLookup,
     ITextureBitmapStore textureBitmapStore,
     IMessageSink messageSink)
@@ -62,12 +62,17 @@ internal sealed class TextureToDDSOperation(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        TextureBase texture = (TextureBase)resourceFactory.LoadResource(
+        using FileStream stream = File.OpenRead(sourceFile);
+        TextureBase texture = (TextureBase)resourceSerializer.Deserialize(
+            stream,
             ResourceType.Texture,
             request.Platform,
-            sourceFile,
-            resourceDBLookup,
-            request.IsX64);
+            new ResourceSerializationOptions
+            {
+                FileName = sourceFile,
+                ResourceDBLookup = resourceDBLookup,
+                x64 = request.IsX64
+            });
 
         string sourceBitmapPath = textureBitmapStore.GetSecondaryBitmapPath(sourceFile, texture.Unpacker);
 

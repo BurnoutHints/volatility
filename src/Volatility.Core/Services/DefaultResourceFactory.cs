@@ -9,14 +9,4 @@ public sealed class DefaultResourceFactory : IResourceFactory
     {
         return ResourceFactory.CreateResource(resourceType, platform, x64);
     }
-
-    public Resource LoadResource(
-        ResourceType resourceType,
-        Platform platform,
-        string filePath,
-        IResourceDBLookup? resourceDBLookup,
-        bool x64 = false)
-    {
-        return ResourceFactory.LoadResource(resourceType, platform, filePath, resourceDBLookup, x64);
-    }
 }

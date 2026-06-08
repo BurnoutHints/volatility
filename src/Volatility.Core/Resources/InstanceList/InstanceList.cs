@@ -25,8 +25,6 @@ public class InstanceList : Resource
 
     public InstanceList() : base() { }
 
-    public InstanceList(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
-
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {
         base.WriteToStream(writer, endianness);

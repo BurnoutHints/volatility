@@ -1,4 +1,4 @@
-﻿using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.DataUtilities;
 
 using System.Text;
 
@@ -137,8 +137,6 @@ public class ShaderProgramBufferBPR : ShaderProgramBufferBase
     }
 
     public ShaderProgramBufferBPR() : base() { }
-
-    public ShaderProgramBufferBPR(string path) : base(path) { }
 
     public static ShaderProgramBufferBPR FromCSO(byte[] csoBytes, ShaderStageType stage)
     {

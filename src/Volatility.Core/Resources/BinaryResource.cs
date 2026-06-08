@@ -25,13 +25,6 @@ public class BinaryResource : Resource
         DataOffset = 0x10;
     }
 
-    public BinaryResource(string path, Endian endianness = Endian.Agnostic) : base(path, endianness)
-    {
-        if (DataOffset == 0)
-        {
-            DataOffset = 0x10;
-        }
-    }
 
     public override void ParseFromStream(ResourceBinaryReader reader, Endian endianness = Endian.Agnostic)
     {

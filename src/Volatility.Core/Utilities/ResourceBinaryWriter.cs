@@ -1,9 +1,10 @@
-﻿using Volatility.Resources;
+using Volatility.Resources;
 using Volatility.Utilities;
 
 public class ResourceBinaryWriter : EndianAwareBinaryWriter
 {
     public ResourceBinaryWriter(Stream output, Endian endianness) : base(output, endianness) { }
+    public ResourceBinaryWriter(Stream output, Endian endianness, bool leaveOpen) : base(output, endianness, leaveOpen) { }
 
     public void Write(Vector2 value, bool intrinsic = false)
     {

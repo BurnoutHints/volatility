@@ -580,8 +580,6 @@ public class StreamedDeformationSpec : Resource
 
     public StreamedDeformationSpec() : base() { }
 
-    public StreamedDeformationSpec(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
-
     // Section writers
 
     private static void WriteLocatorPointSpecList(ResourceBinaryWriter writer, LocatorPointSpecList value, Arch arch)

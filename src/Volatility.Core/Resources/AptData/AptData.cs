@@ -1,4 +1,4 @@
-﻿using static Volatility.Utilities.DataUtilities;
+using static Volatility.Utilities.DataUtilities;
 
 namespace Volatility.Resources;
 
@@ -103,8 +103,6 @@ public class AptData : Resource
     }
 
     public AptData() : base() { }
-
-    public AptData(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 public struct GuiGeometryObject

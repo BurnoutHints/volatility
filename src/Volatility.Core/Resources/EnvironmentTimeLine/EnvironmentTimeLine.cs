@@ -104,8 +104,6 @@ public class EnvironmentTimeline : Resource
 
     public EnvironmentTimeline() : base() { }
 
-    public EnvironmentTimeline(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
-
     private static int GetLocationStructSize(Arch arch)
     {
         return arch == Arch.x64 ? 0x18 : 0x0C;

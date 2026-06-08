@@ -1,4 +1,4 @@
-﻿using Volatility.Utilities;
+using Volatility.Utilities;
 
 namespace Volatility.Resources;
 
@@ -32,8 +32,6 @@ public class TextureBPR : TextureBase
     }
 
     public TextureBPR() : base() { }
-
-    public TextureBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PushInternalFormat() { }
     public override void PullInternalFormat() { }

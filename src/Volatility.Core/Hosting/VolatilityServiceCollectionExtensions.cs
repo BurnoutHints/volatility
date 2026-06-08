@@ -23,6 +23,7 @@ public static class VolatilityServiceCollectionExtensions
         services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();
         services.TryAddSingleton<IShaderCompiler, DefaultShaderCompiler>();
         services.TryAddSingleton<IResourceFactory, DefaultResourceFactory>();
+        services.TryAddSingleton<IResourceSerializer, DefaultResourceSerializer>();
         services.TryAddSingleton<IResourceDBLookup, FileResourceDBLookup>();
         services.TryAddSingleton<IStringTableStore, FileStringTableStore>();
         services.TryAddSingleton<ITextureBitmapStore, FileTextureBitmapStore>();

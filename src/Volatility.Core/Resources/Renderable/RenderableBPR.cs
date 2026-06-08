@@ -1,4 +1,4 @@
-﻿namespace Volatility.Resources;
+namespace Volatility.Resources;
 
 [ResourceRegistration(RegistrationPlatforms.BPR)]
 public class RenderableBPR : RenderableBase
@@ -21,8 +21,6 @@ public class RenderableBPR : RenderableBase
     }
 
     public RenderableBPR() : base() { }
-
-    public RenderableBPR(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 public enum D3D11_PRIMITIVE_TOPOLOGY

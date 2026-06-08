@@ -50,8 +50,6 @@ public class SnapshotData : BinaryResource
 
     public SnapshotData() : base() { }
 
-    public SnapshotData(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
-
     private int GetSnapshotCountForWrite()
     {
         if (Channels.Count == 0)

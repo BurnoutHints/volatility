@@ -101,10 +101,6 @@ public class ShaderBase : Resource
     }
 
     public ShaderBase() : base() { }
-
-    public ShaderBase(string path) : base(path) { }
-
-    public ShaderBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 public enum ShaderStageType

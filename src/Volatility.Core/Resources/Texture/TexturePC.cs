@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Volatility.Resources;
 
@@ -30,8 +30,6 @@ public class TexturePC : TextureBase
     public byte Flags;                          // Flags
 
     public TexturePC() : base() { }
-
-    public TexturePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
     {

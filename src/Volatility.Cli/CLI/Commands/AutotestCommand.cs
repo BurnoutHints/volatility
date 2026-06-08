@@ -21,7 +21,7 @@ internal class AutotestCommand : ICommand
     private readonly IPathProvider pathProvider;
     private readonly IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation;
     private readonly IOperation<TextureRoundTripRequest, TextureRoundTripResult> textureRoundTripOperation;
-    private readonly IResourceFactory resourceFactory;
+    private readonly IResourceSerializer resourceSerializer;
 
     public static string CommandToken => "autotest";
     public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
@@ -88,11 +88,18 @@ internal class AutotestCommand : ICommand
             }
 
             string inputPath = pathProvider.GetFullPath(Path);
-            TextureBase header = (TextureBase)resourceFactory.LoadResource(
-                ResourceType.Texture,
-                platform,
-                inputPath,
-                resourceDBLookup: null);
+            TextureBase header;
+            using (FileStream fs = File.OpenRead(inputPath))
+            {
+                header = (TextureBase)resourceSerializer.Deserialize(
+                    fs,
+                    ResourceType.Texture,
+                    platform,
+                    new ResourceSerializationOptions
+                    {
+                        FileName = inputPath
+                    });
+            }
 
             await TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
 
@@ -412,11 +419,11 @@ internal class AutotestCommand : ICommand
         IPathProvider pathProvider,
         IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation,
         IOperation<TextureRoundTripRequest, TextureRoundTripResult> textureRoundTripOperation,
-        IResourceFactory resourceFactory)
+        IResourceSerializer resourceSerializer)
     {
         this.pathProvider = pathProvider;
         this.gameAutotestOperation = gameAutotestOperation;
         this.textureRoundTripOperation = textureRoundTripOperation;
-        this.resourceFactory = resourceFactory;
+        this.resourceSerializer = resourceSerializer;
     }
 }

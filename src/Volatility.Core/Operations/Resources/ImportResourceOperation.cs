@@ -8,7 +8,7 @@ using Volatility.Resources;
 namespace Volatility.Operations.Resources;
 
 internal sealed partial class ImportResourceOperation(
-    IResourceFactory resourceFactory,
+    IResourceSerializer resourceSerializer,
     IResourceDBLookup resourceDBLookup,
     ITextureBitmapStore textureBitmapStore,
     IProcessRunner processRunner,
@@ -25,12 +25,20 @@ internal sealed partial class ImportResourceOperation(
 
         try
         {
-            Resource resource = resourceFactory.LoadResource(
-                request.ResourceType,
-                request.Platform,
-                request.SourceFile,
-                resourceDBLookup,
-                request.IsX64);
+            Resource resource;
+            using (FileStream stream = File.OpenRead(request.SourceFile))
+            {
+                resource = resourceSerializer.Deserialize(
+                    stream,
+                    request.ResourceType,
+                    request.Platform,
+                    new ResourceSerializationOptions
+                    {
+                        FileName = request.SourceFile,
+                        ResourceDBLookup = resourceDBLookup,
+                        x64 = request.IsX64
+                    });
+            }
 
             string filePath = Path.Combine
             (

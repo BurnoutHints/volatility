@@ -1,4 +1,4 @@
-﻿namespace Volatility.Resources;
+namespace Volatility.Resources;
 
 // The Texture resource type contains in-game images, which are either displayed
 // through Apt UI, applied to models, or used as cubemaps. Textures vary by platform,
@@ -94,8 +94,6 @@ public abstract class TextureBase : Resource
     }
 
     protected TextureBase() : base() => Depth = 1;
-
-    protected TextureBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 // BPR formatted but converted for each platform
 public enum DIMENSION : int

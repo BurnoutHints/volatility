@@ -48,71 +48,64 @@ public abstract class Resource
 
     public Resource() { }
 
-    public Resource(string path, Endian endianness = Endian.Agnostic)
-    {
-        LoadFromPath(path, endianness);
-    }
-
-    internal void LoadFromPath(
-        string path,
+    internal void LoadFromStream(
+        Stream stream,
         Endian endianness = Endian.Agnostic,
+        string? filename = null,
         IResourceDBLookup? resourceDBLookup = null)
     {
-        if (string.IsNullOrEmpty(path))
-            return;
-
-        ImportedFileName = path;
-
-        if (new DirectoryInfo(path).Exists)
-            return;
-
-        string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
         Endian importEndianness = ResourceEndian != Endian.Agnostic ? ResourceEndian : endianness;
 
-        if (!string.IsNullOrEmpty(name))
+        if (!string.IsNullOrEmpty(filename))
         {
-            Unpacker = GetUnpackerFromFileName(Path.GetFileName(ImportedFileName));
-            if (Unpacker != Unpacker.Raw)
+            ImportedFileName = filename;
+            string? name = Path.GetFileNameWithoutExtension(ImportedFileName);
+
+            if (!string.IsNullOrEmpty(name))
             {
-                int idx = name.LastIndexOf('_');
-                name = Unpacker switch
+                Unpacker = GetUnpackerFromFileName(Path.GetFileName(ImportedFileName));
+                if (Unpacker != Unpacker.Raw)
                 {
-                    Unpacker.DGI => name.Replace("_", string.Empty, StringComparison.Ordinal),
-                    Unpacker.Bnd2Manager or Unpacker.YAP when idx > 0 => name[..idx],
-                    Unpacker.Bnd2Manager or Unpacker.YAP => name,
-                    _ => name
-                };
-            }
+                    int idx = name.LastIndexOf('_');
+                    name = Unpacker switch
+                    {
+                        Unpacker.DGI => name.Replace("_", string.Empty, StringComparison.Ordinal),
+                        Unpacker.Bnd2Manager or Unpacker.YAP when idx > 0 => name[..idx],
+                        Unpacker.Bnd2Manager or Unpacker.YAP => name,
+                        _ => name
+                    };
+                }
 
-            if (ValidateResourceID(name))
-            {
-                ResourceID = Convert.ToUInt64(
-                    importEndianness == Endian.LE && Unpacker != Unpacker.YAP
-                        ? FlipResourceIDEndian(name)
-                        : name,
-                    16);
-
-                string resolvedName = resourceDBLookup?.GetNameByResourceId(ResourceID) ?? string.Empty;
-                AssetName = !string.IsNullOrEmpty(resolvedName)
-                    ? resolvedName
-                    : ResourceID.ToString();
-            }
-            else
-            {
-                AssetName = name;
-
-                if (TryParseResourceID(name, out ResourceID parsedResourceId))
+                if (ValidateResourceID(name))
                 {
-                    ResourceID = parsedResourceId;
+                    ResourceID = Convert.ToUInt64(
+                        importEndianness == Endian.LE && Unpacker != Unpacker.YAP
+                            ? FlipResourceIDEndian(name)
+                            : name,
+                        16);
+
+                    string resolvedName = resourceDBLookup?.GetNameByResourceId(ResourceID) ?? string.Empty;
+                    AssetName = !string.IsNullOrEmpty(resolvedName)
+                        ? resolvedName
+                        : ResourceID.ToString();
                 }
                 else
                 {
-                    ResourceID = ResourceID.HashFromString(name);
+                    AssetName = name;
+
+                    if (TryParseResourceID(name, out ResourceID parsedResourceId))
+                    {
+                        ResourceID = parsedResourceId;
+                    }
+                    else
+                    {
+                        ResourceID = ResourceID.HashFromString(name);
+                    }
                 }
             }
         }
 
-        using ResourceBinaryReader reader = new(new FileStream(path, FileMode.Open), importEndianness);
+        using ResourceBinaryReader reader = new(stream, importEndianness);
         ParseFromStream(reader, importEndianness);
     }
 

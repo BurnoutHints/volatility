@@ -121,9 +121,6 @@ public class AttribSysVault : Resource
 
     public AttribSysVault() : base() { }
 
-    public AttribSysVault(string path, Endian endianness = Endian.Agnostic)
-        : base(path, endianness) { }
-
     private void ParseVlt(EndianAwareBinaryReader reader, List<PendingAttribute> pendingAttributes)
     {
         while (reader.BaseStream.Position < reader.BaseStream.Length)

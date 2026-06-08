@@ -15,7 +15,7 @@ public sealed record TextureRoundTripResult(
     List<PropertyMismatch> Mismatches);
 
 internal sealed class TextureRoundTripOperation(
-    IResourceFactory resourceFactory,
+    IResourceSerializer resourceSerializer,
     IMessageSink messageSink)
     : IOperation<TextureRoundTripRequest, TextureRoundTripResult>
 {
@@ -61,12 +61,19 @@ internal sealed class TextureRoundTripOperation(
                 return OperationResultFactory.Success(new TextureRoundTripResult(request.Filename, pushImplemented, []));
             }
 
-            TextureBase newHeader = (TextureBase)resourceFactory.LoadResource(
-                ResourceType.Texture,
-                request.Header.ResourcePlatform,
-                request.Filename,
-                resourceDBLookup: null,
-                x64: request.Header.ResourceArch == Arch.x64);
+            TextureBase newHeader;
+            using (FileStream fs = File.OpenRead(request.Filename))
+            {
+                newHeader = (TextureBase)resourceSerializer.Deserialize(
+                    fs,
+                    ResourceType.Texture,
+                    request.Header.ResourcePlatform,
+                    new ResourceSerializationOptions
+                    {
+                        FileName = request.Filename,
+                        x64 = request.Header.ResourceArch == Arch.x64
+                    });
+            }
 
             List<PropertyMismatch> mismatches = ResourcePropertyComparer.Compare(request.Header, newHeader);
 

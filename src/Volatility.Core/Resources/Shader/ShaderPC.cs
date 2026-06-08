@@ -66,6 +66,4 @@ public class ShaderPC : ShaderBase
     }
 
     public ShaderPC() : base() { }
-
-    public ShaderPC(string path) : base(path) { }
 }

@@ -22,25 +22,7 @@ public static class ResourceFactory
         return resource;
     }
 
-    public static Resource LoadResource(
-        ResourceType resourceType,
-        Platform platform,
-        string filePath,
-        IResourceDBLookup? resourceDBLookup,
-        bool x64 = false)
-    {
-        ResourceRegistrationInfo registration = ResolveRegistration(resourceType, platform);
-        Resource resource = registration.Activator();
-        ApplyArchOption(resource, x64);
-        resource.LoadFromPath(filePath, ResolveLoadEndianness(resource, platform, registration.EndianMapped), resourceDBLookup);
 
-        if (registration.PullAll)
-        {
-            resource.PullAll();
-        }
-
-        return resource;
-    }
 
     private static Dictionary<(ResourceType, Platform), ResourceRegistrationInfo> CreateResourceCreators()
     {

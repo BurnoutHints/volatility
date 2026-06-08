@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 
 using Volatility.Utilities;
 
@@ -41,8 +41,6 @@ public abstract class RenderableBase : Resource
     }
 
     protected RenderableBase() : base() { }
-
-    protected RenderableBase(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }
 
 

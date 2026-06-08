@@ -13,6 +13,7 @@ namespace Volatility.Operations.Resources;
 
 internal sealed class PortTextureOperation(
     IResourceFactory resourceFactory,
+    IResourceSerializer resourceSerializer,
     IResourceDBLookup resourceDBLookup,
     ITextureBitmapStore textureBitmapStore,
     IMessageSink messageSink)
@@ -202,7 +203,17 @@ internal sealed class PortTextureOperation(
     private TextureBase LoadSourceTexture(string path, TextureFormatSpec format, bool verbose)
     {
         LogVerbose(verbose, $"Loading {format.DisplayName} texture property data...");
-        return (TextureBase)resourceFactory.LoadResource(ResourceType.Texture, format.Platform, path, resourceDBLookup, format.IsX64);
+        using FileStream fs = File.OpenRead(path);
+        return (TextureBase)resourceSerializer.Deserialize(
+            fs,
+            ResourceType.Texture,
+            format.Platform,
+            new ResourceSerializationOptions
+            {
+                FileName = path,
+                ResourceDBLookup = resourceDBLookup,
+                x64 = format.IsX64
+            });
     }
 
     private TextureBase CreateDestinationTexture(TextureFormatSpec format, bool verbose)

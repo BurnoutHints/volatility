@@ -1,4 +1,4 @@
-﻿namespace Volatility.Resources;
+namespace Volatility.Resources;
 
 [ResourceRegistration(RegistrationPlatforms.TUB)]
 public class RenderablePC : RenderableBase
@@ -21,6 +21,4 @@ public class RenderablePC : RenderableBase
     }
 
     public RenderablePC() : base() { }
-
-    public RenderablePC(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 }

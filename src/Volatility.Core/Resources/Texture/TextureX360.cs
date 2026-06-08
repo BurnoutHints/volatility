@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Text;
 
 using Volatility.Utilities;
@@ -41,8 +41,6 @@ public class TextureX360 : TextureBase
     public GPUTEXTURE_FETCH_CONSTANT Format = new GPUTEXTURE_FETCH_CONSTANT();
 
     public TextureX360() : base() { }
-
-    public TextureX360(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {

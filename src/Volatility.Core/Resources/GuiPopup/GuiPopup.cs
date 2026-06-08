@@ -118,9 +118,6 @@ public class GuiPopup : Resource
 
     public GuiPopup() : base() { }
 
-    public GuiPopup(string path, Endian endianness)
-        : base(path, endianness) { }
-
     public enum PopupStyle : int
     {
         E_POPUPSTYLE_CRASHNAV_WAIT = 0,

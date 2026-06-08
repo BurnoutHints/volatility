@@ -148,9 +148,6 @@ public class Splicer : BinaryResource
 
     public Splicer() : base() { }
 
-    public Splicer(string path, Endian endianness = Endian.Agnostic)
-        : base(path, endianness) { }
-
     private static List<SpliceSample> ReadSamples(
         ResourceBinaryReader reader,
         List<int> samplePointers,

@@ -116,9 +116,6 @@ public class Model : Resource
 
     public Model() : base() { }
 
-    public Model(string path, Endian endianness = Endian.Agnostic)
-        : base(path, endianness) { }
-
     private static ModelData ReadModelData(
         ResourceBinaryReader reader,
         Arch arch,

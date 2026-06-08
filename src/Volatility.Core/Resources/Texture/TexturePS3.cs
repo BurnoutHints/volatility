@@ -1,4 +1,4 @@
-﻿using static Volatility.Utilities.PS3TextureUtilities;
+using static Volatility.Utilities.PS3TextureUtilities;
 
 namespace Volatility.Resources;
 
@@ -20,8 +20,6 @@ public class TexturePS3 : TextureBase
     public uint StoreFlags;            // Seems to be unused
 
     public TexturePS3() : base() { }
-
-    public TexturePS3(string path, Endian endianness = Endian.Agnostic) : base(path, endianness) { }
 
     public override void PullInternalDimension()
     {
