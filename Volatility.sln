@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volatility.Core", "src\Vola
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volatility.Cli", "src\Volatility.Cli\Volatility.Cli.csproj", "{4111E0A2-78F4-4AFD-9EED-056B8FF9160B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volatility.Core.Tests", "tests\Volatility.Core.Tests\Volatility.Core.Tests.csproj", "{B8B3EFAD-E182-4C67-AF2B-2A8B3D963F9E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,10 @@ Global
 		{4111E0A2-78F4-4AFD-9EED-056B8FF9160B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4111E0A2-78F4-4AFD-9EED-056B8FF9160B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4111E0A2-78F4-4AFD-9EED-056B8FF9160B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8B3EFAD-E182-4C67-AF2B-2A8B3D963F9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8B3EFAD-E182-4C67-AF2B-2A8B3D963F9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8B3EFAD-E182-4C67-AF2B-2A8B3D963F9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8B3EFAD-E182-4C67-AF2B-2A8B3D963F9E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

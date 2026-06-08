@@ -41,6 +41,7 @@ public static class VolatilityServiceCollectionExtensions
         services.AddTransient<IOperation<TextureToDDSRequest, TextureToDDSResult>, TextureToDDSOperation>();
         services.AddTransient<IOperation<PortTextureRequest, PortTextureResult>, PortTextureOperation>();
         services.AddTransient<IOperation<GameAutotestRequest, GameAutotestSummary>, GameAutotestOperation>();
+        services.AddTransient<IOperation<TextureRoundTripRequest, TextureRoundTripResult>, TextureRoundTripOperation>();
 
         return services;
     }

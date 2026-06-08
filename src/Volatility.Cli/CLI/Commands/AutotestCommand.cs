@@ -5,8 +5,10 @@ using Volatility.Abstractions.Messaging;
 using Volatility.Abstractions.Operations;
 using Volatility.Abstractions.Services;
 using Volatility.CLI;
+using Volatility.Core.Utilities;
 using Volatility.Operations;
 using Volatility.Operations.Autotest;
+using Volatility.Operations.Resources;
 using Volatility.Resources;
 
 using static Volatility.Utilities.TypeUtilities;
@@ -18,6 +20,8 @@ internal class AutotestCommand : ICommand
 {
     private readonly IPathProvider pathProvider;
     private readonly IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation;
+    private readonly IOperation<TextureRoundTripRequest, TextureRoundTripResult> textureRoundTripOperation;
+    private readonly IResourceFactory resourceFactory;
 
     public static string CommandToken => "autotest";
     public static string CommandDescription => "Runs automatic tests to ensure the application is working." +
@@ -84,13 +88,13 @@ internal class AutotestCommand : ICommand
             }
 
             string inputPath = pathProvider.GetFullPath(Path);
-            TextureBase header = (TextureBase)ResourceFactory.LoadResource(
+            TextureBase header = (TextureBase)resourceFactory.LoadResource(
                 ResourceType.Texture,
                 platform,
                 inputPath,
                 resourceDBLookup: null);
 
-            TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
+            await TestHeaderRW($"autotest_{System.IO.Path.GetFileName(inputPath)}", header);
 
             return;
         }
@@ -114,7 +118,7 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
 
-        TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
+        await TestHeaderRW("autotest_header_PC.dat", textureHeaderPC);
 
         // BPR Texture data test case
         TextureBPR textureHeaderBPR = new()
@@ -131,14 +135,14 @@ internal class AutotestCommand : ICommand
         // SKIPPING BPR IMPORT AS IT'S NOT SUPPORTED YET
 
         // Write 32 bit test BPR header
-        TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
+        await TestHeaderRW("autotest_header_BPR.dat", textureHeaderBPR);
 
         textureHeaderBPR.SetResourceArch(Arch.x64);
         textureHeaderBPR.AssetName = "autotest_header_BPRx64";
         textureHeaderBPR.ResourceID = ResourceID.HashFromString(textureHeaderBPR.AssetName);
 
         // Write 64 bit test BPR header
-        TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
+        await TestHeaderRW("autotest_header_BPRx64.dat", textureHeaderBPR);
 
         // PS3 Texture data test case
         TexturePS3 textureHeaderPS3 = new()
@@ -152,7 +156,7 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderPS3.PushAll();
-        TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
+        await TestHeaderRW("autotest_header_PS3.dat", textureHeaderPS3);
 
         // X360 Texture data test case
         TextureX360 textureHeaderX360 = new()
@@ -174,7 +178,7 @@ internal class AutotestCommand : ICommand
             UsageFlags = TextureBaseUsageFlags.GRTexture
         };
         textureHeaderX360.PushAll();
-        TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
+        await TestHeaderRW("autotest_header_X360.dat", textureHeaderX360);
 
         // File name endian flip test case
         string endianFlipTestName = "12_34_56_78_texture.dat";
@@ -207,98 +211,40 @@ internal class AutotestCommand : ICommand
         }
     }
 
-    public void TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
+    public async Task TestHeaderRW(string name, TextureBase header, bool skipImport = false) 
     {
-        using (FileStream fs = new(name, FileMode.Create))
+        OperationResult<TextureRoundTripResult> opResult = await textureRoundTripOperation.ExecuteAsync(
+            new TextureRoundTripRequest(name, header, skipImport),
+            progress: null,
+            cancellationToken: CancellationToken.None);
+
+        if (!opResult.Success || opResult.Value == null)
         {
-            // We don't want the command runner to catch the error
-            try
-            {
-                header.PushAll();
-            }
-            catch (NotImplementedException)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"A push isn't implemented for {header.GetType().Name}!");
-                Console.ResetColor();
-            }
-
-            using (ResourceBinaryWriter writer = new(fs, header.ResourceEndian))
-            {
-                Console.WriteLine($"AUTOTEST - Writing autotest {name} to working directory...");
-                header.WriteToStream(writer);
-                writer.Close();
-            }
-
-            if (skipImport)
-                return;
-            
-            TextureBase newHeader = (TextureBase)ResourceFactory.LoadResource(
-                ResourceType.Texture,
-                header.ResourcePlatform,
-                fs.Name,
-                resourceDBLookup: null,
-                x64: header.ResourceArch == Arch.x64);
-
-            TestCompareHeaders(header, newHeader);
-        }
-    }
-
-    public static void TestCompareHeaders(object exported, object imported)
-    {
-        Type type = exported.GetType();
-
-        Console.WriteLine(">> Comparing properties and fields of " + type.Name + ":");
-    
-        PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-        int mismatches = 0;
-        foreach (PropertyInfo property in properties)
-        {
-            
-            object value1 = property.GetValue(exported, null);
-            object value2 = property.GetValue(imported, null);
-    
-            if (IsComplexType(property.PropertyType))
-            {
-                Console.WriteLine($" >  Inspecting nested type {property.Name}:");
-                TestCompareHeaders(value1, value2);
-                Console.WriteLine($" >  Finished inspecting nested type {property.Name}");
-            }
-            else if (!Equals(value1, value2))
-            {
-                mismatches++;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Mismatch - {property.Name}: Exported = {value1}, Imported = {value2}");
-                Console.ResetColor();
-            }
-        }
-    
-        FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-        foreach (FieldInfo field in fields)
-        {
-            object value1 = field.GetValue(exported);
-            object value2 = field.GetValue(imported);
-    
-            if (IsComplexType(field.FieldType))
-            {
-                Console.WriteLine($" >  Inspecting nested type {field.Name}:");
-                TestCompareHeaders(value1, value2);
-                Console.WriteLine($" >  Finished inspecting nested type {field.Name}");
-            }
-            else if (!Equals(value1, value2))
-            {
-                mismatches++;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Mismatch - {field.Name}: Exported = {value1}, Imported = {value2}");
-                Console.ResetColor();
-            }
+            CLIMessageUtilities.Error<AutotestCommand>($"Failed to roundtrip header: {name}");
+            return;
         }
 
-        if (mismatches == 0) 
-            Console.ForegroundColor = ConsoleColor.Green;
+        TextureRoundTripResult result = opResult.Value;
+        if (!result.PushImplemented)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"A push isn't implemented for {header.GetType().Name}!");
+            Console.ResetColor();
+        }
 
-        Console.WriteLine(">> Finished Comparing properties and fields of " + type.Name + $" - {mismatches} mismatches");
+        if (skipImport)
+            return;
+
+        Console.WriteLine(">> Comparing properties and fields of " + header.GetType().Name + ":");
+        foreach (PropertyMismatch mismatch in result.Mismatches)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Mismatch - {mismatch.Path}: Exported = {mismatch.Exported}, Imported = {mismatch.Imported}");
+            Console.ResetColor();
+        }
+
+        Console.ForegroundColor = result.Mismatches.Count == 0 ? ConsoleColor.Green : ConsoleColor.Red;
+        Console.WriteLine(">> Finished Comparing properties and fields of " + header.GetType().Name + $" - {result.Mismatches.Count} mismatches");
         Console.ResetColor();
     }
 
@@ -464,9 +410,13 @@ internal class AutotestCommand : ICommand
 
     public AutotestCommand(
         IPathProvider pathProvider,
-        IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation)
+        IOperation<GameAutotestRequest, GameAutotestSummary> gameAutotestOperation,
+        IOperation<TextureRoundTripRequest, TextureRoundTripResult> textureRoundTripOperation,
+        IResourceFactory resourceFactory)
     {
         this.pathProvider = pathProvider;
         this.gameAutotestOperation = gameAutotestOperation;
+        this.textureRoundTripOperation = textureRoundTripOperation;
+        this.resourceFactory = resourceFactory;
     }
 }
