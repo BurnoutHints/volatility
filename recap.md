@@ -1,22 +1,22 @@
 # Volatility Autotest Recap
 
-Generated (UTC+02:00): 2026-06-09 00:35:31
+Generated (UTC+02:00): 2026-06-09 00:40:15
 Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `C:\Program Files (x86)\Steam\steamapps\common\BurnoutPR`
-* Failed: 12
-* Passed with binary parity: 2
-* Semi-passed (without binary parity): 22
+* Failed: 5
+* Passed with binary parity: 8
+* Semi-passed (without binary parity): 23
 * Skipped: 68
 
 ## Test Operation Summary
 
 | Operation | Passed | Failed | Skipped |
 | --- | ---: | ---: | ---: |
-| binaryparity | 2 | 10 | 0 |
+| binaryparity | 8 | 4 | 0 |
 | bundleextract | 0 | 0 | 1 |
 | candidate | 0 | 0 | 1 |
 | import | 4 | 0 | 0 |
 | porttexture | 4 | 0 | 0 |
-| roundtrip | 10 | 2 | 0 |
+| roundtrip | 11 | 1 | 0 |
 | texturetodds | 4 | 0 | 0 |
 | unsupported | 0 | 0 | 66 |
 
@@ -34,7 +34,7 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | HudMessageSequenceDictionary | 0 | 0 | 2 | SKIP |
 | ICETakeDictionary | 0 | 0 | 2 | SKIP |
 | IdList | 0 | 0 | 2 | SKIP |
-| InstanceList | 1 | 3 | 1 | FAIL |
+| InstanceList | 4 | 0 | 1 | PASS |
 | MassiveLookupTable | 0 | 0 | 2 | SKIP |
 | Material | 0 | 0 | 2 | SKIP |
 | MaterialState | 0 | 0 | 2 | SKIP |
@@ -49,7 +49,7 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | Registry | 0 | 0 | 2 | SKIP |
 | Renderable | 4 | 0 | 0 | PASS |
 | RwShaderProgramBuffer | 0 | 0 | 2 | SKIP |
-| Scene | 4 | 4 | 0 | FAIL |
+| Scene | 8 | 0 | 0 | PASS |
 | ShaderTechnique | 0 | 0 | 2 | SKIP |
 | StaticSoundMap | 0 | 0 | 2 | SKIP |
 | StreetData | 0 | 0 | 2 | SKIP |
@@ -105,7 +105,7 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | Burnout_tcartwright | GuiPopup | binaryparity | GuiPopup:2718168B | FAIL | Binary mismatch at offset 0x195. Original=0x48, Exported=0x00. |
 | Burnout_tcartwright | GuiPopup | roundtrip | GuiPopup:2718168B | PASS |  |
 | Burnout_tcartwright | Renderable | import | Renderable:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone272.BackDropScene?ID=409963_LOD0 | PASS |  |
-| Burnout_tcartwright | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | FAIL | Binary size mismatch. Original=32 bytes, Exported=48 bytes. |
+| Burnout_tcartwright | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | PASS | Binary files are identical. |
 | Burnout_tcartwright | Scene | roundtrip | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | PASS |  |
 | Burnout_tcartwright | Renderable | import | Renderable:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone136.BackDropScene?ID=558369_LOD0 | PASS |  |
 | Burnout_tcartwright | Texture | binaryparity | Texture:gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298 | FAIL | Binary mismatch at offset 0x34. Original=0x5D, Exported=0x56. |
@@ -113,15 +113,15 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | Burnout_tcartwright | Texture | texturetodds | gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298:dds | PASS |  |
 | Burnout_tcartwright | Texture | porttexture | gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298:X360->TUB | PASS |  |
 | Burnout_tcartwright | Texture | binaryparity | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | Binary mismatch at offset 0x32. Original=0x2A, Exported=0x4A. |
-| Burnout_tcartwright | Texture | roundtrip | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | YAML mismatch after reimport. Pass1=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\Burnout_tcartwright_X360\\import_pass1\\Resources\\03D5700E.Texture, Pass2=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\Burnout_tcartwright_X360\\import_pass2\\Resources\\03D5700E.Texture |
+| Burnout_tcartwright | Texture | roundtrip | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | YAML mismatch after reimport. Pass1=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\Burnout_tcartwright_X360\\import_pass1\\Resources\\03D5700E.Texture, Pass2=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\Burnout_tcartwright_X360\\import_pass2\\Resources\\03D5700E.Texture |
 | Burnout_tcartwright | Texture | texturetodds | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:dds | PASS |  |
 | Burnout_tcartwright | Texture | porttexture | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:X360->TUB | PASS |  |
-| Burnout_tcartwright | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | FAIL | Binary size mismatch. Original=32 bytes, Exported=48 bytes. |
+| Burnout_tcartwright | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | PASS | Binary files are identical. |
 | Burnout_tcartwright | Scene | roundtrip | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | PASS |  |
-| Burnout_tcartwright | InstanceList | binaryparity | InstanceList:TRK_UNIT0_list | FAIL | Binary size mismatch. Original=96 bytes, Exported=112 bytes. |
+| Burnout_tcartwright | InstanceList | binaryparity | InstanceList:TRK_UNIT0_list | PASS | Binary files are identical. |
 | Burnout_tcartwright | InstanceList | roundtrip | InstanceList:TRK_UNIT0_list | PASS |  |
-| Burnout_tcartwright | InstanceList | binaryparity | InstanceList:TRK_UNIT100_list | FAIL | Binary size mismatch. Original=9936 bytes, Exported=11920 bytes. |
-| Burnout_tcartwright | InstanceList | roundtrip | InstanceList:TRK_UNIT100_list | FAIL | YAML mismatch after reimport. Pass1=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\Burnout_tcartwright_X360\\import_pass1\\Resources\\A06EF1CD.InstanceList, Pass2=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\Burnout_tcartwright_X360\\import_pass2\\Resources\\A06EF1CD.InstanceList |
+| Burnout_tcartwright | InstanceList | binaryparity | InstanceList:TRK_UNIT100_list | PASS | Binary files are identical. |
+| Burnout_tcartwright | InstanceList | roundtrip | InstanceList:TRK_UNIT100_list | PASS |  |
 | BurnoutPR | AISections | unsupported | AISections | SKIP | Discovered in AI.DAT. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | ProgressionData | unsupported | ProgressionData | SKIP | Discovered in PROGRESSION.DAT. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | StreetData | unsupported | StreetData | SKIP | Discovered in STREETDATA.DAT. No Volatility autotest handler exists for this resource type. |
@@ -154,12 +154,12 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | BurnoutPR | WorldPainter2D | unsupported | WorldPainter2D | SKIP | Discovered in DISTRICTS.DAT. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | PolygonSoupList | unsupported | PolygonSoupList | SKIP | Discovered in WORLDCOL.BIN. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | IdList | unsupported | IdList | SKIP | Discovered in WORLDCOL.BIN. No Volatility autotest handler exists for this resource type. |
-| BurnoutPR | - | bundleextract | TRK_UNIT0_GR.BNDL | SKIP | Process 'C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\build\\volatility_libbndl_extract.exe --bundle "C:\\Program Files (x86)\\Steam\\steamapps\\common\\BurnoutPR\\TRK_UNIT0_GR.BNDL" --output "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL" --manifest "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223354\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL\\manifest.tsv"' failed with exit code 3. <br>Assertion failed: m_flags & Compressed, file C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\third_party\\libbndl\\src\\bundle.cpp, line 892 <br> |
+| BurnoutPR | - | bundleextract | TRK_UNIT0_GR.BNDL | SKIP | Process 'C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\build\\volatility_libbndl_extract.exe --bundle "C:\\Program Files (x86)\\Steam\\steamapps\\common\\BurnoutPR\\TRK_UNIT0_GR.BNDL" --output "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL" --manifest "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL\\manifest.tsv"' failed with exit code 3. <br>Assertion failed: m_flags & Compressed, file C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\third_party\\libbndl\\src\\bundle.cpp, line 892 <br> |
 | BurnoutPR | InstanceList | candidate | InstanceList | SKIP | No fully extractable bundle candidate was available for this supported resource type. |
 | BurnoutPR | GuiPopup | binaryparity | GuiPopup:POPUPS.pup | FAIL | Binary mismatch at offset 0x2B1. Original=0xF9, Exported=0x00. |
 | BurnoutPR | GuiPopup | roundtrip | GuiPopup:POPUPS.pup | PASS |  |
 | BurnoutPR | Renderable | import | Renderable:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone272.BackDropScene?ID=409963_LOD0 | PASS |  |
-| BurnoutPR | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | FAIL | Binary size mismatch. Original=32 bytes, Exported=48 bytes. |
+| BurnoutPR | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | PASS | Binary files are identical. |
 | BurnoutPR | Scene | roundtrip | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone99.BackDropScene?ID=508161 | PASS |  |
 | BurnoutPR | Renderable | import | Renderable:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/PvsZone/BdZone136.BackDropScene?ID=558369_LOD0 | PASS |  |
 | BurnoutPR | Texture | binaryparity | Texture:gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298 | PASS | Binary files are identical. |
@@ -170,5 +170,5 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | BurnoutPR | Texture | roundtrip | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | PASS |  |
 | BurnoutPR | Texture | texturetodds | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:dds | PASS |  |
 | BurnoutPR | Texture | porttexture | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:BPR->TUB | PASS |  |
-| BurnoutPR | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | FAIL | Binary size mismatch. Original=32 bytes, Exported=48 bytes. |
+| BurnoutPR | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | PASS | Binary files are identical. |
 | BurnoutPR | Scene | roundtrip | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | PASS |  |

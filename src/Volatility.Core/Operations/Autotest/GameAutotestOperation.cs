@@ -294,6 +294,7 @@ internal sealed class GameAutotestOperation
                 loaded,
                 exportPath,
                 game.Platform,
+                WriteImportsToSeparateFile: true,
                 Overwrite: true,
                 SplicerDirectory: splicerPass1), cancellationToken);
 
