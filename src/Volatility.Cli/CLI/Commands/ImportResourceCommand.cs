@@ -63,7 +63,7 @@ internal class ImportResourceCommand : ICommand
                         throw new InvalidPlatformException("Error: Invalid file format specified!");
                 }
 
-                if (!TypeUtilities.TryParseEnum(ResType, out ResourceType resType))
+                if (string.IsNullOrEmpty(ResType) || !TypeUtilities.TryParseEnum(ResType, out ResourceType resType))
                 {
                         CLIMessageUtilities.Error<ImportResourceCommand>("Error: Invalid resource type specified!");
                         return;

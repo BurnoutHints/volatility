@@ -8,10 +8,11 @@ internal class ExitCommand : ICommand
     public static string CommandDescription => "Exits the application.";
     public static string CommandParameters => "";
 
-    public async Task Execute()
+    public Task Execute()
     {
         CLIMessageUtilities.Info<ExitCommand>("Exiting Volatility...");
         Environment.Exit(0);
+        return Task.CompletedTask;
     }
 
     public void SetArgs(Dictionary<string, object> args) { }

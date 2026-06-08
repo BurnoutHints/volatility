@@ -19,7 +19,7 @@ internal sealed class TextureRoundTripOperation(
     IMessageSink messageSink)
     : IOperation<TextureRoundTripRequest, TextureRoundTripResult>
 {
-    public async Task<OperationResult<TextureRoundTripResult>> ExecuteAsync(
+    public Task<OperationResult<TextureRoundTripResult>> ExecuteAsync(
         TextureRoundTripRequest request,
         IProgress<OperationProgress>? progress,
         CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ internal sealed class TextureRoundTripOperation(
 
             if (request.SkipImport)
             {
-                return OperationResultFactory.Success(new TextureRoundTripResult(request.Filename, pushImplemented, []));
+                return Task.FromResult(OperationResultFactory.Success(new TextureRoundTripResult(request.Filename, pushImplemented, [])));
             }
 
             TextureBase newHeader;
@@ -78,14 +78,14 @@ internal sealed class TextureRoundTripOperation(
             List<PropertyMismatch> mismatches = ResourcePropertyComparer.Compare(request.Header, newHeader);
 
             progress?.Report(new OperationProgress("texture-roundtrip", 1.0, request.Filename));
-            return OperationResultFactory.Success(new TextureRoundTripResult(request.Filename, pushImplemented, mismatches));
+            return Task.FromResult(OperationResultFactory.Success(new TextureRoundTripResult(request.Filename, pushImplemented, mismatches)));
         }
         catch (Exception ex)
         {
-            return OperationResultFactory.Failure<TextureRoundTripResult>(
+            return Task.FromResult(OperationResultFactory.Failure<TextureRoundTripResult>(
                 "texture_roundtrip_failed",
                 ex.Message,
-                nameof(TextureRoundTripOperation));
+                nameof(TextureRoundTripOperation)));
         }
     }
 }

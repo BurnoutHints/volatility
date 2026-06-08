@@ -17,7 +17,7 @@ public class IncludeFieldsTypeInspector : TypeInspectorSkeleton
         this.innerTypeInspector = innerTypeInspector;
     }
 
-    public override IEnumerable<IPropertyDescriptor> GetProperties(Type type, object container)
+    public override IEnumerable<IPropertyDescriptor> GetProperties(Type type, object? container)
     {
         var descriptors = innerTypeInspector.GetProperties(type, container).ToList();
         var existingNames = new HashSet<string>(descriptors.Select(d => d.Name));
@@ -34,7 +34,7 @@ public class IncludeFieldsTypeInspector : TypeInspectorSkeleton
 
     public override string GetEnumValue(object value)
     {
-        return value.ToString();
+        return value.ToString() ?? string.Empty;
     }
 
     public override string GetEnumName(Type enumType, string value)

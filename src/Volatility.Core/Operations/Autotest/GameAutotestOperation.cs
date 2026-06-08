@@ -952,7 +952,7 @@ internal sealed class GameAutotestOperation
             .ToList();
 
         List<BundleManifestEntry> entries = [];
-        foreach ((object rawResourceId, object rawResourceData) in resources)
+        foreach ((object rawResourceId, object rawResourceData) in resources!)
         {
             string? resourceIdHex = Convert.ToString(rawResourceId, CultureInfo.InvariantCulture)?.Trim();
             if (string.IsNullOrWhiteSpace(resourceIdHex) ||

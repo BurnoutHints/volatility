@@ -2,7 +2,6 @@ using System.Runtime.Serialization;
 
 namespace Volatility;
 
-[Serializable]
 class InvalidPlatformException : Exception
 {
     public InvalidPlatformException()
@@ -14,10 +13,6 @@ class InvalidPlatformException : Exception
     }
 
     public InvalidPlatformException(string? message, Exception? innerException) : base(message, innerException)
-    {
-    }
-
-    protected InvalidPlatformException(SerializationInfo info, StreamingContext context) : base(info, context)
     {
     }
 

@@ -56,7 +56,7 @@ public static class ResourceFactory
 
     private static ResourceRegistrationInfo ResolveRegistration(ResourceType resourceType, Platform platform)
     {
-        if (resourceCreators.TryGetValue((resourceType, platform), out ResourceRegistrationInfo registration))
+        if (resourceCreators.TryGetValue((resourceType, platform), out ResourceRegistrationInfo? registration))
         {
             return registration;
         }

@@ -1,4 +1,4 @@
-﻿using YamlDotNet.Core;
+using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
@@ -28,9 +28,9 @@ namespace Volatility.Utilities
             return ctor.Invoke(new object[] { value })!;
         }
 
-        public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer nestedObjectSerializer)
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nestedObjectSerializer)
         {
-            var text = value.ToString()!;
+            var text = value?.ToString() ?? string.Empty;
             emitter.Emit(new Scalar(
                 anchor: null,
                 tag: null,

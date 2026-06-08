@@ -82,7 +82,7 @@ internal class AutotestCommand : ICommand
 
         if (!string.IsNullOrEmpty(Path))
         {
-            if (!TryParseEnum(Format, out Platform platform))
+            if (string.IsNullOrEmpty(Format) || !TryParseEnum(Format, out Platform platform))
             {
                 throw new InvalidPlatformException();
             }
@@ -196,7 +196,7 @@ internal class AutotestCommand : ICommand
 
     public void SetArgs(Dictionary<string, object> args)
     {
-        Format = (args.TryGetValue("format", out object? format) ? format as string : "auto").ToUpper();
+        Format = (args.TryGetValue("format", out object? format) ? format as string : "auto")?.ToUpper() ?? "AUTO";
         Path = args.TryGetValue("path", out object? path) ? path as string : "";
         GamePath = args.TryGetValue("game", out object? game) ? game as string : "";
         GamePaths = args.TryGetValue("games", out object? games) ? games as string : "";

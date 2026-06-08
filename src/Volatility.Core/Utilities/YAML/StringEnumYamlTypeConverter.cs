@@ -16,8 +16,8 @@ public class StringEnumYamlTypeConverter : IYamlTypeConverter
         return Enum.Parse(type, scalar.Value);
     }   
 
-    public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer nestedObjectSerializer)
+    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nestedObjectSerializer)
     {
-        emitter.Emit(new Scalar(value.ToString()));
+        emitter.Emit(new Scalar(value?.ToString() ?? string.Empty));
     }
 }

@@ -8,7 +8,7 @@ public class ShaderPC : ShaderBase
     public override Endian ResourceEndian => Endian.LE;
     public override Platform ResourcePlatform => Platform.TUB;
 
-    public string Name;
+    public string Name = string.Empty;
 
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness)
     {
@@ -25,7 +25,7 @@ public class ShaderPC : ShaderBase
         reader.BaseStream.Seek(baseOffset + 0x8, SeekOrigin.Begin);
         Name = reader.ReadString();
 
-        string shaderSourceText = string.Empty;
+        string? shaderSourceText = string.Empty;
 
         long pointerOffset = baseOffset + 0x24;
         if (pointerOffset + sizeof(uint) <= reader.BaseStream.Length)

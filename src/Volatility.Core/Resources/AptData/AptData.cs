@@ -6,8 +6,8 @@ namespace Volatility.Resources;
 [ResourceRegistration(RegistrationPlatforms.All, EndianMapped = true)]
 public class AptData : Resource
 {
-    public string MovieName;
-    public string BaseComponentName;
+    public string MovieName = string.Empty;
+    public string BaseComponentName = string.Empty;
     public GuiGeometryObject GuiGeometry;
 
     public override void WriteToStream(ResourceBinaryWriter writer, Endian endianness = Endian.Agnostic)
@@ -49,9 +49,9 @@ public class AptData : Resource
             List<GuiGeometryMesh> geometryMeshes = [];
 
             // GuiGeometryMesh
-            for (int j = 0; i < numMeshes; i++)
+            for (int j = 0; j < numMeshes; j++)
             {
-                reader.BaseStream.Seek(geometryMeshesPtr + (0x4 * i), SeekOrigin.Begin);
+                reader.BaseStream.Seek(geometryMeshesPtr + (0x4 * j), SeekOrigin.Begin);
                 reader.BaseStream.Seek(reader.ReadUInt32(), SeekOrigin.Begin);
 
                 // GuiGeometryMeshHeader
@@ -67,9 +67,9 @@ public class AptData : Resource
                 List<GuiVertex> vertices = [];
 
                 // GuiVertex
-                for (int k = 0; i < numVerts; i++)
+                for (int k = 0; k < numVerts; k++)
                 {
-                    reader.BaseStream.Seek(vertsPtr + (0x4 * i), SeekOrigin.Begin);
+                    reader.BaseStream.Seek(vertsPtr + (0x4 * k), SeekOrigin.Begin);
                     reader.BaseStream.Seek(reader.ReadUInt32(), SeekOrigin.Begin);
 
                     vertices.Add(new()

@@ -35,18 +35,18 @@ public class FieldDescriptor : IPropertyDescriptor
     
     public bool AllowNulls => true;
     
-    public Type TypeOverride { get; set; }
+    public Type? TypeOverride { get; set; }
     
     public bool Required { get; set; }
     
-    public Type ConverterType { get; set; }
+    public Type? ConverterType { get; set; }
     
-    public T GetCustomAttribute<T>() where T : Attribute
+    public T? GetCustomAttribute<T>() where T : Attribute
     {
         return field.GetCustomAttribute<T>();
     }
     
-    public void Write(object target, object value)
+    public void Write(object target, object? value)
     {
         field.SetValue(target, value);
     }

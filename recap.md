@@ -1,6 +1,6 @@
 # Volatility Autotest Recap
 
-Generated (UTC+02:00): 2026-06-09 00:40:15
+Generated (UTC+02:00): 2026-06-09 00:49:31
 Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `C:\Program Files (x86)\Steam\steamapps\common\BurnoutPR`
 * Failed: 5
 * Passed with binary parity: 8
@@ -113,7 +113,7 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | Burnout_tcartwright | Texture | texturetodds | gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298:dds | PASS |  |
 | Burnout_tcartwright | Texture | porttexture | gamedb://burnout5/Burnout/Content_World/Images/Backdrops/Striped_Glass_Building.TextureConfig2d?ID=388298:X360->TUB | PASS |  |
 | Burnout_tcartwright | Texture | binaryparity | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | Binary mismatch at offset 0x32. Original=0x2A, Exported=0x4A. |
-| Burnout_tcartwright | Texture | roundtrip | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | YAML mismatch after reimport. Pass1=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\Burnout_tcartwright_X360\\import_pass1\\Resources\\03D5700E.Texture, Pass2=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\Burnout_tcartwright_X360\\import_pass2\\Resources\\03D5700E.Texture |
+| Burnout_tcartwright | Texture | roundtrip | Texture:gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076 | FAIL | YAML mismatch after reimport. Pass1=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_224803\\Burnout_tcartwright_X360\\import_pass1\\Resources\\03D5700E.Texture, Pass2=C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_224803\\Burnout_tcartwright_X360\\import_pass2\\Resources\\03D5700E.Texture |
 | Burnout_tcartwright | Texture | texturetodds | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:dds | PASS |  |
 | Burnout_tcartwright | Texture | porttexture | gamedb://burnout5/Burnout/Content_World/Images_Final/cladding08_window03.TextureConfig2d?ID=331076:X360->TUB | PASS |  |
 | Burnout_tcartwright | Scene | binaryparity | Scene:gamedb://burnout5/Burnout/Content_World/Scenes/Backdrops/BD_Mountains_03.RoadScene?ID=197487 | PASS | Binary files are identical. |
@@ -154,7 +154,7 @@ Games: `D:\Emulation\Emulators\Xenia\Xenia Burnout 5 v6\Burnout_tcartwright` | `
 | BurnoutPR | WorldPainter2D | unsupported | WorldPainter2D | SKIP | Discovered in DISTRICTS.DAT. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | PolygonSoupList | unsupported | PolygonSoupList | SKIP | Discovered in WORLDCOL.BIN. No Volatility autotest handler exists for this resource type. |
 | BurnoutPR | IdList | unsupported | IdList | SKIP | Discovered in WORLDCOL.BIN. No Volatility autotest handler exists for this resource type. |
-| BurnoutPR | - | bundleextract | TRK_UNIT0_GR.BNDL | SKIP | Process 'C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\build\\volatility_libbndl_extract.exe --bundle "C:\\Program Files (x86)\\Steam\\steamapps\\common\\BurnoutPR\\TRK_UNIT0_GR.BNDL" --output "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL" --manifest "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_223817\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL\\manifest.tsv"' failed with exit code 3. <br>Assertion failed: m_flags & Compressed, file C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\third_party\\libbndl\\src\\bundle.cpp, line 892 <br> |
+| BurnoutPR | - | bundleextract | TRK_UNIT0_GR.BNDL | SKIP | Process 'C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\build\\volatility_libbndl_extract.exe --bundle "C:\\Program Files (x86)\\Steam\\steamapps\\common\\BurnoutPR\\TRK_UNIT0_GR.BNDL" --output "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_224803\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL" --manifest "C:\\Users\\adri1\\Documents\\Github\\volatility\\.tmp\\game-autotest\\20260608_224803\\BurnoutPR_BPR\\bundles\\TRK_UNIT0_GR.BNDL\\manifest.tsv"' failed with exit code 3. <br>Assertion failed: m_flags & Compressed, file C:\\Users\\adri1\\Documents\\Github\\volatility\\tools\\libbndl-extractor\\third_party\\libbndl\\src\\bundle.cpp, line 892 <br> |
 | BurnoutPR | InstanceList | candidate | InstanceList | SKIP | No fully extractable bundle candidate was available for this supported resource type. |
 | BurnoutPR | GuiPopup | binaryparity | GuiPopup:POPUPS.pup | FAIL | Binary mismatch at offset 0x2B1. Original=0xF9, Exported=0x00. |
 | BurnoutPR | GuiPopup | roundtrip | GuiPopup:POPUPS.pup | PASS |  |

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -6,12 +6,12 @@ namespace Volatility.Utilities;
 
 public static class TypeUtilities
 {
-    public static string GetStaticPropertyValue(Type type, string propertyName)
+    public static string? GetStaticPropertyValue(Type type, string propertyName)
     {
-        PropertyInfo property = type.GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public);
+        PropertyInfo? property = type.GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public);
         if (property != null && property.PropertyType == typeof(string))
         {
-            return (string)property.GetValue(null);
+            return (string?)property.GetValue(null);
         }
         return null;
     }

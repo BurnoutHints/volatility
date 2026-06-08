@@ -13,7 +13,7 @@ internal class HelpCommand : ICommand
     public string? WantedCommand { get; set; }
 
 
-    public async Task Execute()
+    public Task Execute()
     {
         if (!string.IsNullOrEmpty(WantedCommand))
         {
@@ -21,14 +21,14 @@ internal class HelpCommand : ICommand
             if (command != null)
             {
                 ShowUsage(command);
-                return;
+                return Task.CompletedTask;
             }
         }
 
         CLIMessageUtilities.Info<HelpCommand>("Available commands:");
         foreach (var command in GetDerivedTypes(typeof(ICommand)))
         {
-            string commandName = GetStaticPropertyValue(command, nameof(CommandToken));
+            string? commandName = GetStaticPropertyValue(command, nameof(CommandToken));
             
             if (string.IsNullOrEmpty(commandName))
                 continue;
@@ -37,6 +37,7 @@ internal class HelpCommand : ICommand
             
         }
         CLIMessageUtilities.Info<HelpCommand>("For information on command arguments, run: help <command name>.");
+        return Task.CompletedTask;
     }
 
     public void SetArgs(Dictionary<string, object> args)
@@ -46,11 +47,11 @@ internal class HelpCommand : ICommand
 
     private static void ShowUsage(Type commandType)
     {
-        string token = GetStaticPropertyValue(commandType, nameof(CommandToken));
-        string parameters = GetStaticPropertyValue(commandType, nameof(CommandParameters));
-        string description = GetStaticPropertyValue(commandType, nameof(CommandDescription));
+        string? token = GetStaticPropertyValue(commandType, nameof(CommandToken));
+        string? parameters = GetStaticPropertyValue(commandType, nameof(CommandParameters));
+        string? description = GetStaticPropertyValue(commandType, nameof(CommandDescription));
 
-        CLIMessageUtilities.Info(nameof(HelpCommand), $"Usage:\n   {token} {parameters}\n{description}");
+        CLIMessageUtilities.Info(nameof(HelpCommand), $"Usage:\n   {token ?? ""} {parameters ?? ""}\n{description ?? ""}");
     }
 
     public HelpCommand() { }

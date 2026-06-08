@@ -1,4 +1,4 @@
-﻿using Volatility.Resources;
+using Volatility.Resources;
 
 namespace Volatility.Utilities;
 
@@ -47,10 +47,10 @@ internal class X360TextureUtilities
         }
     }
 
-    private static byte[][] AlignAndPackMipmaps(byte[][] mipmaps, TextureBase textureInfo, GPUTEXTUREFORMAT format)
+    private static byte[]?[] AlignAndPackMipmaps(byte[][] mipmaps, TextureBase textureInfo, GPUTEXTUREFORMAT format)
     {
         const int alignment = 4096;
-        var alignedMipmaps = new byte[mipmaps.Length][];
+        byte[]?[] alignedMipmaps = new byte[mipmaps.Length][];
         int totalSize = 0;
 
         for (int i = 0; i < mipmaps.Length; i++)
@@ -59,7 +59,7 @@ internal class X360TextureUtilities
             int paddedSize = ((mipSize + alignment - 1) / alignment) * alignment;
 
             alignedMipmaps[i] = new byte[paddedSize];
-            Array.Copy(mipmaps[i], alignedMipmaps[i], mipSize);
+            Array.Copy(mipmaps[i], alignedMipmaps[i]!, mipSize);
 
             totalSize += paddedSize;
 

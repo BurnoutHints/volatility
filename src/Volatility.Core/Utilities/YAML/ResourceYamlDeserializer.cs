@@ -10,13 +10,13 @@ namespace Volatility.Utilities;
 
 public static class ResourceYamlDeserializer
 {
-    public static object DeserializeResource(Type resourceClass, string yaml)
+    public static object? DeserializeResource(Type resourceClass, string yaml)
     {
         var deserializer = new DeserializerBuilder().Build();
-        var root = deserializer.Deserialize<Dictionary<string, object>>(yaml);
+        var root = deserializer.Deserialize<Dictionary<string, object?>>(yaml);
 
         var hierarchyTypes = new List<Type>();
-        Type currentType = resourceClass;
+        Type? currentType = resourceClass;
         while (currentType != null && currentType != typeof(object))
         {
             hierarchyTypes.Insert(0, currentType);
@@ -24,7 +24,7 @@ public static class ResourceYamlDeserializer
         }
 
         string baseKey = hierarchyTypes[0].Name + ".Properties";
-        Dictionary<string, object> mergedProperties = new Dictionary<string, object>();
+        Dictionary<string, object?> mergedProperties = new Dictionary<string, object?>();
         if (root != null && root.ContainsKey(baseKey))
         {
             mergedProperties = TryConvertToDictionary(root[baseKey]);
@@ -53,20 +53,24 @@ public static class ResourceYamlDeserializer
         }
     }
 
-    private static Dictionary<string, object> TryConvertToDictionary(object obj)
+    private static Dictionary<string, object?> TryConvertToDictionary(object? obj)
     {
         if (obj is IDictionary<object, object> genericDict)
         {
-            return genericDict.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
+            return genericDict.ToDictionary(kvp => kvp.Key?.ToString() ?? string.Empty, kvp => (object?)kvp.Value);
         }
         else if (obj is Dictionary<string, object> dict)
         {
-            return dict;
+            return dict.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value);
         }
-        return new Dictionary<string, object>();
+        else if (obj is Dictionary<string, object?> dictNullable)
+        {
+            return dictNullable;
+        }
+        return new Dictionary<string, object?>();
     }
 
-    private static Dictionary<string, object> DeepMerge(Dictionary<string, object> target, Dictionary<string, object> source)
+    private static Dictionary<string, object?> DeepMerge(Dictionary<string, object?> target, Dictionary<string, object?> source)
     {
         foreach (var kv in source)
         {
@@ -84,7 +88,7 @@ public static class ResourceYamlDeserializer
         return target;
     }
 
-    private static Dictionary<string, object> MergeProperties(Dictionary<string, object> baseDict, List<string> derivedKeys)
+    private static Dictionary<string, object?> MergeProperties(Dictionary<string, object?> baseDict, List<string> derivedKeys)
     {
         foreach (var key in derivedKeys)
         {
@@ -98,7 +102,7 @@ public static class ResourceYamlDeserializer
         return baseDict;
     }
 
-    private static Dictionary<string, object> RemovePropertiesKeys(Dictionary<string, object> dict)
+    private static Dictionary<string, object?> RemovePropertiesKeys(Dictionary<string, object?> dict)
     {
         return dict.Where(kvp => !kvp.Key.EndsWith(".Properties"))
                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);

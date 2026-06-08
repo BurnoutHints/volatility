@@ -5,11 +5,11 @@ namespace Volatility;
 
 internal interface ICommand
 {
-    static string CommandToken { get; }
-    static string CommandDescription { get; }
-    static string CommandParameters { get; }
+    static abstract string CommandToken { get; }
+    static abstract string CommandDescription { get; }
+    static abstract string CommandParameters { get; }
 
-    async Task Execute() { }
+    Task Execute() => Task.CompletedTask;
     void SetArgs(Dictionary<string, object> args);
     public void ShowUsage() 
     {
