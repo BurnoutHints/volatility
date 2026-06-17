@@ -8,11 +8,11 @@ namespace Volatility.Utilities;
 
 public class FieldDescriptor : IPropertyDescriptor
 {
-    private readonly FieldInfo field;
+    private readonly FieldInfo fieldInfo;
     
     public FieldDescriptor(FieldInfo field)
     {
-        this.field = field;
+        fieldInfo = field;
         // Set defaults
         Required = false;
         TypeOverride = null;
@@ -21,11 +21,11 @@ public class FieldDescriptor : IPropertyDescriptor
     
     public string Name
     {
-        get => field.Name;
+        get => fieldInfo.Name;
         set { }
     }
     
-    public Type Type => field.FieldType;
+    public Type Type => fieldInfo.FieldType;
     
     public int Order { get; set; }
     
@@ -43,17 +43,17 @@ public class FieldDescriptor : IPropertyDescriptor
     
     public T? GetCustomAttribute<T>() where T : Attribute
     {
-        return field.GetCustomAttribute<T>();
+        return fieldInfo.GetCustomAttribute<T>();
     }
     
     public void Write(object target, object? value)
     {
-        field.SetValue(target, value);
+        fieldInfo.SetValue(target, value);
     }
     
     public IObjectDescriptor Read(object target)
     {
-        var value = field.GetValue(target);
-        return new ObjectDescriptor(value, field.FieldType, typeof(object));
+        var value = fieldInfo.GetValue(target);
+        return new ObjectDescriptor(value, fieldInfo.FieldType, typeof(object));
     }
 }
