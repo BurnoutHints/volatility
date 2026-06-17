@@ -51,14 +51,14 @@ jobs:
           dotnet-version: '9.x'
 
       - name: Restore dependencies
-        run: dotnet restore Volatility/Volatility.csproj
+        run: dotnet restore src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Fetch latest DXC
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $rid = '${{ matrix.rid }}'
-          $projectDir = Join-Path $PWD 'Volatility'
+          $projectDir = Join-Path $PWD 'src/Volatility.Cli'
           $toolsDir = Join-Path $projectDir 'tools'
           $dxcDir = Join-Path $toolsDir 'dxc'
           New-Item -ItemType Directory -Force -Path $dxcDir | Out-Null
@@ -109,7 +109,7 @@ jobs:
 
       - name: Publish for ${{ matrix.rid }}
         shell: pwsh
-        run: dotnet publish --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:ApplicationIcon=volatility_icon.ico --output ${{ matrix.output }} Volatility/Volatility.csproj
+        run: dotnet publish --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ${{ matrix.output }} src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Zip artifact
         shell: pwsh
@@ -138,13 +138,13 @@ jobs:
           dotnet-version: '9.x'
 
       - name: Restore dependencies
-        run: dotnet restore Volatility/Volatility.csproj
+        run: dotnet restore src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Publish macOS x64
-        run: dotnet publish --configuration Release --runtime osx-x64 --self-contained true -p:ApplicationIcon=volatility_icon.ico --output ./volatility_macos-x64_release Volatility/Volatility.csproj
+        run: dotnet publish --configuration Release --runtime osx-x64 --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ./volatility_macos-x64_release src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Publish macOS arm64
-        run: dotnet publish --configuration Release --runtime osx-arm64 --self-contained true -p:ApplicationIcon=volatility_icon.ico --output ./volatility_macos-arm64_release Volatility/Volatility.csproj
+        run: dotnet publish --configuration Release --runtime osx-arm64 --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ./volatility_macos-arm64_release src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Zip macOS universal bundle
         run: zip -r Volatility_macos-universal_Release.zip volatility_macos-x64_release volatility_macos-arm64_release
