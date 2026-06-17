@@ -109,7 +109,7 @@ jobs:
 
       - name: Publish for ${{ matrix.rid }}
         shell: pwsh
-        run: dotnet publish --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ${{ matrix.output }} src/Volatility.Cli/Volatility.Cli.csproj
+        run: dotnet publish --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:ApplicationIcon=../Volatility.Cli/volatility_icon.ico --output ${{ matrix.output }} src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Zip artifact
         shell: pwsh
@@ -141,10 +141,10 @@ jobs:
         run: dotnet restore src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Publish macOS x64
-        run: dotnet publish --configuration Release --runtime osx-x64 --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ./volatility_macos-x64_release src/Volatility.Cli/Volatility.Cli.csproj
+        run: dotnet publish --configuration Release --runtime osx-x64 --self-contained true -p:ApplicationIcon=../Volatility.Cli/volatility_icon.ico --output ./volatility_macos-x64_release src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Publish macOS arm64
-        run: dotnet publish --configuration Release --runtime osx-arm64 --self-contained true -p:ApplicationIcon=src/Volatility.Cli/volatility_icon.ico --output ./volatility_macos-arm64_release src/Volatility.Cli/Volatility.Cli.csproj
+        run: dotnet publish --configuration Release --runtime osx-arm64 --self-contained true -p:ApplicationIcon=../Volatility.Cli/volatility_icon.ico --output ./volatility_macos-arm64_release src/Volatility.Cli/Volatility.Cli.csproj
 
       - name: Zip macOS universal bundle
         run: zip -r Volatility_macos-universal_Release.zip volatility_macos-x64_release volatility_macos-arm64_release
