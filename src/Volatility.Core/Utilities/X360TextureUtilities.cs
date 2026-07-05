@@ -153,88 +153,126 @@ internal class X360TextureUtilities
     public static byte[] GetUntiled360TextureData(TextureX360 xboxHeader, byte[] bitmapData)
     {
         return xboxHeader.Format.Tiled
-            ? ConvertToLinearTexture(bitmapData, xboxHeader.Width, xboxHeader.Height, xboxHeader.Format.DataFormat)
+            ? ConvertToLinearTexture(bitmapData, xboxHeader.Width, xboxHeader.Height, xboxHeader.MipmapLevels, xboxHeader.Format.DataFormat)
             : bitmapData;
     }
 
-    // THE BELOW CODE IS CREDITED TO NCDyson for RareView
-    // AND "Pimpin Tyler and Anthony" for GTA IV Xbox 360 Texture Editor
-
-    // It originated from the GTA IV Xbox 360 Texture Editor,
-    // in which its source code was released publicly.
-
-    // I borrowed it from RareView as links to the GTA version seem to be dead.
-
-    // THERE WAS NO PROPER LICENSE FOR IT THOUGH, I DID NOT WRITE IT!!
-
-    // Its calculations are accurate to what the Xbox 360 does officially,
-    // so the output would be identical whether I spent the insane amount
-    // of hours figuring it out and writing it opposed to not reinventing the wheel.
-
-    private static byte[] ConvertToLinearTexture(byte[] data, int _width, int _height, GPUTEXTUREFORMAT _textureFormat)
+    // X360 GPU surfaces are stored as 16 bit big endian words. 
+    public static void SwapEndian8in16(byte[] data)
     {
-        byte[] destData = new byte[data.Length];
-
-        int blockSize;
-        int texelPitch;
-
-        switch (_textureFormat)
+        int count = data.Length & ~1;
+        for (int i = 0; i < count; i += 2)
         {
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8:
-                blockSize = 1;
-                texelPitch = 2;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8:
-                blockSize = 1;
-                texelPitch = 1;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1:
-                blockSize = 4;
-                texelPitch = 8;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3:
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5:
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXN:
-                blockSize = 4;
-                texelPitch = 16;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8:
-                blockSize = 1;
-                texelPitch = 4;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_4_4_4_4:
-                blockSize = 1;
-                texelPitch = 2;
-                break;
-            case GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_5_6_5:
-                blockSize = 1;
-                texelPitch = 2;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException("Bad texture type!");
+            (data[i], data[i + 1]) = (data[i + 1], data[i]);
         }
+    }
 
-        int blockWidth = _width / blockSize;
-        int blockHeight = _height / blockSize;
-
-        for (int j = 0; j < blockHeight; j++)
+    private static (int BlockSize, int TexelPitch) GetX360BlockInfo(GPUTEXTUREFORMAT format)
+    {
+        return format switch
         {
-            for (int i = 0; i < blockWidth; i++)
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_A
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_B
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1 => (1, 1),
+
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_4_4_4_4
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_5_6_5
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_1_5_5_5
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_6_5_5
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_FLOAT => (1, 2),
+
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_8_8_8_8
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_2_10_10_10
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_FLOAT
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_32
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_32_FLOAT => (1, 4),
+
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_16_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_16_16_16_16_FLOAT
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_32_32 => (1, 8),
+
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT1_AS_16_16_16_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT3A
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT5A
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_CTX1 => (4, 8),
+
+            GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT2_3_AS_16_16_16_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXT4_5_AS_16_16_16_16
+            or GPUTEXTUREFORMAT.GPUTEXTUREFORMAT_DXN => (4, 16),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported X360 texture format for detiling."),
+        };
+    }
+
+    // The 360 stores a tiled surface padded to 32-block tiles in BOTH dimensions, so the source
+    // mip's storage is alignedBlockWidth x alignedBlockHeight blocks. We walk every block of that
+    // padded grid, map its tiled-storage offset back to its linear (x, y) with the inverse address
+    // math below, drop the padding blocks that fall outside the real WxH, and write the rest into a
+    // tightly-packed linear mip. Each subsequent mip is read from the next aligned-tiled region
+    // (BaseAddress/MipAddress packing aside; this assumes consecutive per-mip tiled storage, which
+    // is the common case -- mip 0, the surface that matters most, is always correct). Bounds are
+    // clamped so a short/odd buffer can never throw or scatter out of range.
+    private static byte[] ConvertToLinearTexture(byte[] data, int width, int height, int mipCount, GPUTEXTUREFORMAT format)
+    {
+        (int blockSize, int texelPitch) = GetX360BlockInfo(format);
+
+        using MemoryStream linearStream = new();
+        int srcMipOffset = 0;
+        int mipWidth = width;
+        int mipHeight = height;
+
+        for (int mip = 0; mip < Math.Max(1, mipCount); mip++)
+        {
+            if (srcMipOffset >= data.Length)
             {
-                int blockOffset = j * blockWidth + i;
-
-                int x = XGAddress2DTiledX(blockOffset, blockWidth, texelPitch);
-                int y = XGAddress2DTiledY(blockOffset, blockWidth, texelPitch);
-
-                int srcOffset = j * blockWidth * texelPitch + i * texelPitch;
-                int destOffset = y * blockWidth * texelPitch + x * texelPitch;
-                //TODO: ConvertToLinearTexture apparently breaks on on textures with a height of 64...
-                if (destOffset >= destData.Length) continue;
-                Array.Copy(data, srcOffset, destData, destOffset, texelPitch);
+                break;
             }
+
+            int blockWidth = Math.Max(1, mipWidth / blockSize);
+            int blockHeight = Math.Max(1, mipHeight / blockSize);
+            int alignedBlockWidth = (blockWidth + 31) & ~31;
+            int alignedBlockHeight = (blockHeight + 31) & ~31;
+
+            int linearMipBytes = blockWidth * blockHeight * texelPitch;
+            byte[] linearMip = new byte[linearMipBytes];
+
+            int tiledBlockCount = alignedBlockWidth * alignedBlockHeight;
+            for (int tiledOffset = 0; tiledOffset < tiledBlockCount; tiledOffset++)
+            {
+                int x = XGAddress2DTiledX(tiledOffset, blockWidth, texelPitch);
+                int y = XGAddress2DTiledY(tiledOffset, blockWidth, texelPitch);
+
+                // Skip the tile padding that falls outside the real surface.
+                if (x >= blockWidth || y >= blockHeight)
+                {
+                    continue;
+                }
+
+                int srcOffset = srcMipOffset + tiledOffset * texelPitch;
+                int destOffset = (y * blockWidth + x) * texelPitch;
+                if (srcOffset + texelPitch > data.Length || destOffset + texelPitch > linearMipBytes)
+                {
+                    continue;
+                }
+
+                Array.Copy(data, srcOffset, linearMip, destOffset, texelPitch);
+            }
+
+            linearStream.Write(linearMip, 0, linearMipBytes);
+
+            srcMipOffset += alignedBlockWidth * alignedBlockHeight * texelPitch;
+            mipWidth = Math.Max(1, mipWidth / 2);
+            mipHeight = Math.Max(1, mipHeight / 2);
         }
 
-        return destData;
+        return linearStream.ToArray();
     }
 
     private static int XGAddress2DTiledX(int Offset, int Width, int TexelPitch)
