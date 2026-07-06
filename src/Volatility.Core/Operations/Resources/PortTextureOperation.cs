@@ -150,7 +150,7 @@ internal sealed class PortTextureOperation(
 
             if (destinationTexture is TextureX360 destX && sourceTexture.ResourcePlatform != Platform.X360)
             {
-                destX.Format.MaxMipLevel = destX.Format.MinMipLevel;
+                destX.Format.Tiled = true;
             }
 
             if (!TextureFormatConverter.TryConvertTexture(sourceTexture, destinationTexture, sourceBitmapData, destinationBitmapPath))
@@ -163,6 +163,14 @@ internal sealed class PortTextureOperation(
                 LogVerbose(verbose, $"Converting associated bitmap data for {Path.GetDirectoryName(outPath)}{Path.DirectorySeparatorChar}{Path.GetFileNameWithoutExtension(outPath)}_texture.dat...");
             }
             LogVerbose(verbose, $"Wrote texture bitmap data to {destinationSpec.DisplayName} destination directory.");
+
+            if (destinationTexture is TextureX360 destTiled && destTiled.Format.Tiled && File.Exists(destinationBitmapPath))
+            {
+                LogVerbose(verbose, $"Tiling X360 bitmap data ({Math.Max(1, (int)destTiled.MipmapLevels)} mip level(s))...");
+                byte[] linearData = await File.ReadAllBytesAsync(destinationBitmapPath, cancellationToken);
+                byte[] tiledData = X360TextureUtilities.GetTiled360TextureData(destTiled, linearData);
+                await File.WriteAllBytesAsync(destinationBitmapPath, tiledData, cancellationToken);
+            }
 
             if (destinationTexture is TextureBPR destBprTexture && File.Exists(destinationBitmapPath))
             {

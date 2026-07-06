@@ -157,6 +157,13 @@ internal class X360TextureUtilities
             : bitmapData;
     }
 
+    public static byte[] GetTiled360TextureData(TextureX360 xboxHeader, byte[] bitmapData)
+    {
+        return xboxHeader.Format.Tiled
+            ? ConvertToTiledTexture(bitmapData, xboxHeader.Width, xboxHeader.Height, xboxHeader.MipmapLevels, xboxHeader.Format.DataFormat)
+            : bitmapData;
+    }
+
     // X360 GPU surfaces are stored as 16 bit big endian words. 
     public static void SwapEndian8in16(byte[] data)
     {
@@ -273,6 +280,63 @@ internal class X360TextureUtilities
         }
 
         return linearStream.ToArray();
+    }
+
+    private static byte[] ConvertToTiledTexture(byte[] data, int width, int height, int mipCount, GPUTEXTUREFORMAT format)
+    {
+        (int blockSize, int texelPitch) = GetX360BlockInfo(format);
+
+        using MemoryStream tiledStream = new();
+        int srcMipOffset = 0;
+        int mipWidth = width;
+        int mipHeight = height;
+
+        for (int mip = 0; mip < Math.Max(1, mipCount); mip++)
+        {
+            if (srcMipOffset >= data.Length)
+            {
+                break;
+            }
+
+            int blockWidth = Math.Max(1, mipWidth / blockSize);
+            int blockHeight = Math.Max(1, mipHeight / blockSize);
+            int alignedBlockWidth = (blockWidth + 31) & ~31;
+            int alignedBlockHeight = (blockHeight + 31) & ~31;
+
+            int linearMipBytes = blockWidth * blockHeight * texelPitch;
+
+            int tiledBlockCount = alignedBlockWidth * alignedBlockHeight;
+            byte[] tiledMip = new byte[tiledBlockCount * texelPitch];
+
+            for (int tiledOffset = 0; tiledOffset < tiledBlockCount; tiledOffset++)
+            {
+                int x = XGAddress2DTiledX(tiledOffset, blockWidth, texelPitch);
+                int y = XGAddress2DTiledY(tiledOffset, blockWidth, texelPitch);
+
+                // Skip the tile padding that has no corresponding linear source block.
+                if (x >= blockWidth || y >= blockHeight)
+                {
+                    continue;
+                }
+
+                int srcOffset = srcMipOffset + (y * blockWidth + x) * texelPitch;
+                int destOffset = tiledOffset * texelPitch;
+                if (srcOffset + texelPitch > data.Length || destOffset + texelPitch > tiledMip.Length)
+                {
+                    continue;
+                }
+
+                Array.Copy(data, srcOffset, tiledMip, destOffset, texelPitch);
+            }
+
+            tiledStream.Write(tiledMip, 0, tiledMip.Length);
+
+            srcMipOffset += linearMipBytes;
+            mipWidth = Math.Max(1, mipWidth / 2);
+            mipHeight = Math.Max(1, mipHeight / 2);
+        }
+
+        return tiledStream.ToArray();
     }
 
     private static int XGAddress2DTiledX(int Offset, int Width, int TexelPitch)
