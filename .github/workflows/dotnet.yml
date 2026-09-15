@@ -78,43 +78,51 @@ jobs:
           }
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/latest" -Headers $headers
 
+          $extract = Join-Path $env:TEMP "dxc_extract_$rid"
+          if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+
+          $dest = Join-Path $dxcDir $rid
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
           if ($rid -like 'win-*') {
             $asset = $release.assets | Where-Object { $_.name -like 'dxc_*.zip' } | Select-Object -First 1
             if (-not $asset) { throw "DXC zip asset not found." }
             $zip = Join-Path $env:TEMP $asset.name
             Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
-            $extract = Join-Path $env:TEMP "dxc_extract_$rid"
-            if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
             Expand-Archive -Path $zip -DestinationPath $extract
-
-            $arch = $rid -eq 'win-arm64' ? 'arm64' : 'x64'
-            $src = Join-Path $extract "bin\\$arch"
-            $dest = Join-Path $dxcDir $rid
-            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-            New-Item -ItemType Directory -Force -Path $dest | Out-Null
-            Copy-Item -Path (Join-Path $src '*') -Destination $dest -Recurse -Force
-            Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
-            Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
           }
           else {
-            $asset = $release.assets | Where-Object { $_.name -like 'linux_dxc_*x86_64*.tar.gz' } | Select-Object -First 1
+            # Asset naming has varied between x86_64 and x86_x64.
+            $asset = $release.assets | Where-Object { $_.name -match '^linux_dxc_.*x86_(64|x64).*\.tar\.gz$' } | Select-Object -First 1
             if (-not $asset) { throw "DXC linux asset not found." }
             $tar = Join-Path $env:TEMP $asset.name
             Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tar
-            $extract = Join-Path $env:TEMP "dxc_extract_$rid"
-            if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
-            New-Item -ItemType Directory -Force -Path $extract | Out-Null
             tar -xzf $tar -C $extract
-
-            $dest = Join-Path $dxcDir $rid
-            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-            New-Item -ItemType Directory -Force -Path $dest | Out-Null
-            Copy-Item -Path (Join-Path $extract 'bin\\dxc') -Destination $dest -Force
-            Copy-Item -Path (Join-Path $extract 'lib\\libdxcompiler.so') -Destination $dest -Force
-            Copy-Item -Path (Join-Path $extract 'lib\\libdxil.so') -Destination $dest -Force
-            Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
-            Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
+            if ($LASTEXITCODE -ne 0) { throw "Failed to extract $($asset.name)." }
           }
+
+          # Some archives nest everything under a single top-level directory.
+          $root = $extract
+          if (-not (Test-Path (Join-Path $root 'bin'))) {
+            $root = (Get-ChildItem -Path $extract -Directory | Select-Object -First 1).FullName
+          }
+          if (-not $root -or -not (Test-Path (Join-Path $root 'bin'))) { throw "DXC bin directory not found in $($asset.name)." }
+
+          if ($rid -like 'win-*') {
+            $arch = $rid -eq 'win-arm64' ? 'arm64' : 'x64'
+            Copy-Item -Path (Join-Path $root "bin/$arch/*") -Destination $dest -Recurse -Force
+          }
+          else {
+            Copy-Item -Path (Join-Path $root 'bin/dxc') -Destination $dest -Force
+            Copy-Item -Path (Join-Path $root 'lib/libdxcompiler.so') -Destination $dest -Force
+            Copy-Item -Path (Join-Path $root 'lib/libdxil.so') -Destination $dest -Force
+          }
+
+          # License spelling (LICENSE/LICENCE) and release notes presence vary between releases.
+          Get-ChildItem -Path $root -File | Where-Object { $_.Name -like 'LICEN?E-*.txt' -or $_.Name -eq 'ReleaseNotes.md' } |
+            Copy-Item -Destination $dxcDir -Force
 
       - name: Publish for ${{ matrix.rid }}
         shell: pwsh
