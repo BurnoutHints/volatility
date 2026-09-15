@@ -55,15 +55,27 @@ jobs:
 
       - name: Fetch latest DXC
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $rid = '${{ matrix.rid }}'
+          if ($rid -notlike 'win-*' -and $rid -ne 'linux-x64') {
+            Write-Host "No official DXC asset for RID $rid; skipping."
+            exit 0
+          }
+
           $projectDir = Join-Path $PWD 'src/Volatility.Cli'
           $toolsDir = Join-Path $projectDir 'tools'
           $dxcDir = Join-Path $toolsDir 'dxc'
           New-Item -ItemType Directory -Force -Path $dxcDir | Out-Null
 
-          $headers = @{ 'User-Agent' = 'volatility-ci' }
+          # Authenticated requests avoid the shared 60/hour unauthenticated limit on runner IPs.
+          $headers = @{
+            'User-Agent' = 'volatility-ci'
+            'Authorization' = "Bearer $env:GITHUB_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/latest" -Headers $headers
 
           if ($rid -like 'win-*') {
@@ -84,7 +96,7 @@ jobs:
             Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
             Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
           }
-          elseif ($rid -eq 'linux-x64') {
+          else {
             $asset = $release.assets | Where-Object { $_.name -like 'linux_dxc_*x86_64*.tar.gz' } | Select-Object -First 1
             if (-not $asset) { throw "DXC linux asset not found." }
             $tar = Join-Path $env:TEMP $asset.name
@@ -102,9 +114,6 @@ jobs:
             Copy-Item -Path (Join-Path $extract 'lib\\libdxil.so') -Destination $dest -Force
             Copy-Item -Path (Join-Path $extract 'LICENSE-*.txt') -Destination $dxcDir -Force
             Copy-Item -Path (Join-Path $extract 'ReleaseNotes.md') -Destination $dxcDir -Force
-          }
-          else {
-            Write-Host "No official DXC asset for RID $rid; skipping."
           }
 
       - name: Publish for ${{ matrix.rid }}
